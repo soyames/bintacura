@@ -128,9 +128,10 @@ class PharmacyInventoryViewSet(viewsets.ModelViewSet):  # View for PharmacyInven
             notes=f'Réapprovisionnement: +{quantity} unités. Fournisseur: {supplier}'
         )
 
+        article_name = instance.medication.name if instance.medication else "l'article"
         return Response({
             'success': True,
-            'message': f'{quantity} unités ajoutées à {instance.medication.name if instance.medication else "l\'article"}',
+            'message': f'{quantity} unités ajoutées à {article_name}',
             'new_quantity': instance.quantity_in_stock
         })
 
