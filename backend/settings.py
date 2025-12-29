@@ -37,6 +37,7 @@ if DEBUG:
         'https://bintacura.org/',
         'https://www.bintacura.org/',
         'https://*.bintacura.org',
+        'https://bintacura.onrender.com',
         'http://localhost',
         'http://localhost',
         'http://127.0.0.1',
@@ -527,6 +528,7 @@ CSRF_COOKIE_SAMESITE = "Lax"  # CSRF protection
 CSRF_USE_SESSIONS = False  # Use cookie-based CSRF tokens
 CSRF_COOKIE_NAME = "csrftoken"
 CSRF_TRUSTED_ORIGINS = [
+    "https://bintacura.onrender.com",
     "https://bintacura.org",
     "https://www.bintacura.org",
     "https://*.bintacura.org",
