@@ -45,6 +45,8 @@ secrets.json
 .idea/
 .claude/
 claude/
+docs/
+*.aux
 *.swp
 *.swo
 *~

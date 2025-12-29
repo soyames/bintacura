@@ -77,8 +77,9 @@ openpyxl
 # Email
 django-ses
 
-# Monitoring
+# Monitoring & Logging
 sentry-sdk
+python-json-logger
 
 # API Documentation
 drf-spectacular

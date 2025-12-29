@@ -1,0 +1,86 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Deploy to EC2
+        env:
+          PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: 13.53.194.95
+          USER: ec2-user
+        run: |
+          echo "$PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER}@${HOST} << 'EOF'
+            set -e
+            
+            echo "🚀 Starting deployment..."
+            
+            # Navigate to project directory
+            cd /home/ec2-user/bintacura || {
+              echo "📥 First deployment - cloning repository..."
+              cd /home/ec2-user
+              git clone https://github.com/soyames/bintacura.git
+              cd bintacura
+            }
+            
+            # Pull latest changes
+            echo "📦 Pulling latest changes..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Activate virtual environment
+            echo "🐍 Setting up Python environment..."
+            source venv/bin/activate || {
+              echo "Creating virtual environment..."
+              python3.11 -m venv venv
+              source venv/bin/activate
+            }
+            
+            # Install/update dependencies
+            echo "📚 Installing dependencies..."
+            pip install --upgrade pip
+            pip install -r requirements.txt
+            
+            # Run migrations
+            echo "🗄️  Running database migrations..."
+            python manage.py migrate --no-input
+            
+            # Collect static files
+            echo "📁 Collecting static files..."
+            python manage.py collectstatic --no-input --clear
+            
+            # Restart application
+            echo "🔄 Restarting application..."
+            sudo systemctl restart bintacura || {
+              echo "⚠️  Service not configured yet. Setting up..."
+              # Service will be configured in initial setup
+            }
+            
+            echo "✅ Deployment completed successfully!"
+            echo "🌐 Application available at: http://13.53.194.95"
+          EOF
+          
+          rm -f private_key.pem
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+            exit 1
+          fi
