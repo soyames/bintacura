@@ -34,7 +34,10 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 if DEBUG:
     CSRF_TRUSTED_ORIGINS = [
-        'https://vitacare-ymfo.onrender.com',
+        'https://bintacura.org/',
+        'https://www.bintacura.org/',
+        'https://*.bintacura.org',
+        'http://localhost',
         'http://localhost',
         'http://127.0.0.1',
         'http://localhost:8080',
@@ -526,7 +529,8 @@ CSRF_COOKIE_NAME = "csrftoken"
 CSRF_TRUSTED_ORIGINS = [
     "https://bintacura.org",
     "https://www.bintacura.org",
-    "https://vitacare-ymfo.onrender.com",
+    "https://*.bintacura.org",
+    "http://localhost",
 ]
 
 PASSWORD_HASHERS = [
@@ -606,11 +610,11 @@ INSTANCE_ID = config('INSTANCE_ID', default=None)
 # URLs for local instances to sync with cloud
 SYNC_CLOUD_PUSH_URL = config(
     'SYNC_CLOUD_PUSH_URL',
-    default='https://vitacare-ymfo.onrender.com/api/v1/sync/push/'
+    default='https://www.bintacura.org/api/v1/sync/push/'
 )
 SYNC_CLOUD_PULL_URL = config(
     'SYNC_CLOUD_PULL_URL',
-    default='https://vitacare-ymfo.onrender.com/api/v1/sync/pull/'
+    default='https://www.bintacura.org/api/v1/sync/pull/'
 )
 
 # Sync Configuration
