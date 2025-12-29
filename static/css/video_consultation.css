@@ -1,0 +1,282 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+}
+
+.video-consultation-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+}
+
+.video-header {
+    background: #2c2c2c;
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-logo {
+    height: 40px;
+}
+
+.consultation-info h2 {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 3px;
+}
+
+.specialty {
+    color: #a0a0a0;
+    font-size: 13px;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.consultation-timer {
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    background: #3a3a3a;
+    padding: 8px 16px;
+    border-radius: 8px;
+}
+
+.end-call-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.end-call-btn:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+#jitsi-meet-container {
+    flex: 1;
+    width: 100%;
+    position: relative;
+}
+
+.consultation-sidebar {
+    position: fixed;
+    right: 0;
+    top: 70px;
+    bottom: 0;
+    width: 350px;
+    background: #2c2c2c;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease;
+    z-index: 50;
+    overflow-y: auto;
+}
+
+.consultation-sidebar.collapsed {
+    transform: translateX(350px);
+}
+
+.sidebar-toggle {
+    position: absolute;
+    left: -40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 60px;
+    background: #2c2c2c;
+    border: none;
+    border-radius: 8px 0 0 8px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+    background: #3a3a3a;
+}
+
+.sidebar-content {
+    padding: 20px;
+}
+
+.sidebar-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #3a3a3a;
+}
+
+.sidebar-section:last-child {
+    border-bottom: none;
+}
+
+.sidebar-section h3 {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar-section h3 i {
+    color: #007bff;
+}
+
+.info-item {
+    color: #d0d0d0;
+    font-size: 14px;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.info-item strong {
+    color: white;
+    display: inline-block;
+    min-width: 100px;
+}
+
+.notes-textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 12px;
+    border: 2px solid #3a3a3a;
+    border-radius: 8px;
+    background: #1a1a1a;
+    color: white;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 10px;
+}
+
+.notes-textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.save-notes-btn {
+    width: 100%;
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.save-notes-btn:hover {
+    background: #0056b3;
+}
+
+.notification {
+    position: fixed;
+    top: 90px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    opacity: 0;
+    transform: translateX(100px);
+    transition: all 0.3s ease;
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification-success {
+    background: #28a745;
+}
+
+.notification-error {
+    background: #dc3545;
+}
+
+.notification-info {
+    background: #17a2b8;
+}
+
+@media (max-width: 768px) {
+    .consultation-sidebar {
+        width: 100%;
+    }
+
+    .consultation-sidebar.collapsed {
+        transform: translateX(100%);
+    }
+
+    .header-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .header-logo {
+        height: 30px;
+    }
+
+    .consultation-info h2 {
+        font-size: 16px;
+    }
+
+    .consultation-timer {
+        font-size: 14px;
+        padding: 6px 12px;
+    }
+
+    .end-call-btn {
+        padding: 8px 15px;
+        font-size: 13px;
+    }
+}

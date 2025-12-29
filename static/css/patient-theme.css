@@ -1,0 +1,212 @@
+:root {
+    --patient-primary: #007bff;
+    --patient-primary-dark: #0056b3;
+    --patient-primary-light: #4da3ff;
+    --patient-secondary: #6c757d;
+    --patient-light: rgba(0, 123, 255, 0.1);
+    --patient-accent: #007bff;
+    --patient-success: #28a745;
+    --patient-warning: #ffc107;
+    --patient-danger: #dc3545;
+    --patient-info: #17a2b8;
+}
+
+.btn-primary,
+.btn-profile-primary,
+.action-btn.btn-primary {
+    background: linear-gradient(135deg, var(--patient-primary) 0%, var(--patient-primary-dark) 100%);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover,
+.btn-profile-primary:hover,
+.action-btn.btn-primary:hover {
+    background: linear-gradient(135deg, var(--patient-primary-dark) 0%, var(--patient-primary) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.sidebar-header {
+    background: linear-gradient(135deg, var(--patient-primary) 0%, var(--patient-secondary) 100%);
+}
+
+.nav-user-avatar,
+.sidebar-user-avatar,
+.profile-avatar-large {
+    background: linear-gradient(135deg, var(--patient-primary) 0%, var(--patient-primary-light) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.sidebar-menu-item.active,
+.sidebar-menu-item:hover {
+    background: var(--patient-light);
+    border-left: 4px solid var(--patient-primary);
+}
+
+.stat-card {
+    border-left: 4px solid var(--patient-primary);
+}
+
+.page-header {
+    background: linear-gradient(135deg, var(--patient-primary) 0%, var(--patient-primary-dark) 100%);
+    color: white;
+}
+
+.card-header,
+.content-section-header {
+    background: var(--patient-light);
+    border-left: 4px solid var(--patient-primary);
+}
+
+.badge-primary,
+.status-badge.confirmed {
+    background: var(--patient-primary);
+    color: white;
+}
+
+.link-primary,
+a.primary-link {
+    color: var(--patient-primary);
+}
+
+.link-primary:hover,
+a.primary-link:hover {
+    color: var(--patient-primary-dark);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+    border-color: var(--patient-primary);
+    box-shadow: 0 0 0 0.2rem var(--patient-light);
+}
+
+.toggle-switch.active {
+    background: var(--patient-primary);
+}
+
+.progress-bar {
+    background: var(--patient-primary);
+}
+
+.tab-btn.active {
+    border-bottom: 3px solid var(--patient-primary);
+    color: var(--patient-primary);
+}
+
+.calendar-day.today {
+    background: var(--patient-light);
+    border: 2px solid var(--patient-primary);
+}
+
+.appointment-dot.status-confirmed,
+.status-confirmed {
+    background: var(--patient-success);
+}
+
+.appointment-dot.status-pending,
+.status-pending {
+    background: var(--patient-warning);
+}
+
+.appointment-dot.status-cancelled,
+.status-cancelled {
+    background: var(--patient-danger);
+}
+
+.book-btn,
+.search-btn {
+    background: var(--patient-primary);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.book-btn:hover,
+.search-btn:hover {
+    background: var(--patient-primary-dark);
+    transform: translateY(-2px);
+}
+
+.time-slot.selected {
+    background: var(--patient-primary);
+    color: white;
+    border: 2px solid var(--patient-primary-dark);
+}
+
+.doctor-card:hover {
+    border-color: var(--patient-primary);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2);
+}
+
+.specialty-badge {
+    background: var(--patient-light);
+    color: var(--patient-primary);
+}
+
+.status-online {
+    color: var(--patient-success);
+}
+
+.consultation-fee {
+    background: var(--patient-light);
+    border-left: 4px solid var(--patient-primary);
+}
+
+.alert-profile.success {
+    background: #d4edda;
+    border-left: 4px solid var(--patient-success);
+    color: #155724;
+}
+
+.alert-profile.error {
+    background: #f8d7da;
+    border-left: 4px solid var(--patient-danger);
+    color: #721c24;
+}
+
+.profile-section-title {
+    color: var(--patient-primary);
+}
+
+.role-badge {
+    background: var(--patient-primary);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.verification-badge.verified {
+    background: var(--patient-success);
+    color: white;
+}
+
+.nav-page-title {
+    color: var(--patient-primary);
+    font-weight: 700;
+}
+
+.nav-back-btn {
+    background: var(--patient-primary);
+    color: #ffffff;
+}
+
+.nav-back-btn:hover {
+    background: var(--patient-primary-dark);
+}
+
+.menu-toggle-btn span {
+    background: var(--patient-primary);
+}
+
+.nav-page-title {
+    color: var(--patient-primary);
+}

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Map Test - BINTACURA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+          integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #testMap {
+            width: 100%;
+            height: 600px;
+            border: 2px solid red;
+        }
+        .info {
+            padding: 20px;
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>🗺️ Leaflet Map Test</h1>
+        <p>If you see a map below with a red border, Leaflet is working!</p>
+        <p id="status">Initializing...</p>
+    </div>
+
+    <div id="testMap"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+            integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        console.log('=== MAP TEST START ===');
+
+        // Check if Leaflet loaded
+        if (typeof L === 'undefined') {
+            document.getElementById('status').innerHTML = '❌ ERROR: Leaflet not loaded!';
+            console.error('Leaflet (L) not found');
+        } else {
+            console.log('✅ Leaflet loaded, version:', L.version);
+            document.getElementById('status').innerHTML = '✅ Leaflet loaded (v' + L.version + ')';
+
+            // Check container
+            const container = document.getElementById('testMap');
+            console.log('Container found:', container);
+            console.log('Container size:', container.offsetWidth, 'x', container.offsetHeight);
+
+            try {
+                // Initialize map
+                console.log('Creating map...');
+                const testMap = L.map('testMap').setView([6.1319, 1.2228], 13);
+
+                console.log('Map created:', testMap);
+
+                // Add tiles
+                console.log('Adding tiles...');
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(testMap);
+
+                // Add marker
+                L.marker([6.1319, 1.2228])
+                    .addTo(testMap)
+                    .bindPopup('Lomé, Togo')
+                    .openPopup();
+
+                document.getElementById('status').innerHTML = '✅ Map initialized successfully! You should see Lomé, Togo below.';
+                console.log('✅ Map test SUCCESS');
+
+            } catch (error) {
+                console.error('❌ Map creation error:', error);
+                document.getElementById('status').innerHTML = '❌ ERROR: ' + error.message;
+            }
+        }
+
+        console.log('=== MAP TEST END ===');
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,608 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admissions - BINTACURA Hospital</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital_admissions.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="hospital" page_title="Admissions" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_hospital.html" %}
+
+    <div class="main-content">
+        <div class="admissions-container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Admissions Actives</h3>
+                <p class="stat-value" id="activeAdmissions">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Admissions Aujourd'hui</h3>
+                <p class="stat-value" id="todayAdmissions">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Sorties Prévues</h3>
+                <p class="stat-value" id="plannedDischarges">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Urgences</h3>
+                <p class="stat-value" id="emergencyAdmissions">0</p>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="searchPatient">Rechercher Patient</label>
+                    <input type="text" id="searchPatient" placeholder="Nom ou numéro d'admission" oninput="filterAdmissions()">
+                </div>
+                <div class="filter-group">
+                    <label for="filterDepartment">Département</label>
+                    <select id="filterDepartment" onchange="filterAdmissions()">
+                        <option value="">Tous</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterType">Type</label>
+                    <select id="filterType" onchange="filterAdmissions()">
+                        <option value="">Tous</option>
+                        <option value="emergency">Urgence</option>
+                        <option value="scheduled">Programmé</option>
+                        <option value="outpatient">Ambulatoire</option>
+                        <option value="observation">Observation</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterStatus">Statut</label>
+                    <select id="filterStatus" onchange="filterAdmissions()">
+                        <option value="">Tous</option>
+                        <option value="active">Actif</option>
+                        <option value="discharged">Sorti</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="admissions-table-container">
+            <table class="admissions-table">
+                <thead>
+                    <tr>
+                        <th>N° Admission</th>
+                        <th>Patient</th>
+                        <th>Département</th>
+                        <th>Lit</th>
+                        <th>Type</th>
+                        <th>Date Admission</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="admissionsList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal" id="admissionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nouvelle Admission</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="admissionForm" onsubmit="saveAdmission(event)">
+                    <input type="hidden" id="admissionId">
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="patient">Patient <span class="required">*</span></label>
+                            <select id="patient" required>
+                                <option value="">Sélectionner...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="department">Département <span class="required">*</span></label>
+                            <select id="department" required onchange="loadBeds()">
+                                <option value="">Sélectionner...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bed">Lit <span class="required">*</span></label>
+                            <select id="bed" required>
+                                <option value="">Sélectionner...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="admitting_doctor">Médecin Admettant <span class="required">*</span></label>
+                            <select id="admitting_doctor" required>
+                                <option value="">Sélectionner...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="admission_type">Type d'Admission <span class="required">*</span></label>
+                            <select id="admission_type" required>
+                                <option value="emergency">Urgence</option>
+                                <option value="scheduled">Programmé</option>
+                                <option value="outpatient">Ambulatoire</option>
+                                <option value="observation">Observation</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="admission_date">Date d'Admission <span class="required">*</span></label>
+                            <input type="datetime-local" id="admission_date" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="chief_complaint">Motif Principal</label>
+                            <textarea id="chief_complaint" rows="2"></textarea>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="diagnosis">Diagnostic</label>
+                            <textarea id="diagnosis" rows="2"></textarea>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="treatment_plan">Plan de Traitement</label>
+                            <textarea id="treatment_plan" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expected_discharge_date">Date de Sortie Prévue</label>
+                            <input type="date" id="expected_discharge_date">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Statut</label>
+                            <select id="status">
+                                <option value="pending">En attente</option>
+                                <option value="admitted">Admis</option>
+                                <option value="discharged">Sorti</option>
+                                <option value="transferred">Transféré</option>
+                                <option value="deceased">Décédé</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Annuler</button>
+                <button type="submit" form="admissionForm" class="btn-save">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="dischargeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sortie de Patient</h2>
+                <button class="close-modal" onclick="closeDischargeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="dischargeForm" onsubmit="processDischarge(event)">
+                    <input type="hidden" id="dischargeAdmissionId">
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="actual_discharge_date">Date de Sortie <span class="required">*</span></label>
+                            <input type="datetime-local" id="actual_discharge_date" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="discharge_type">Type de Sortie</label>
+                            <select id="discharge_type">
+                                <option value="normal">Normale</option>
+                                <option value="against_medical_advice">Contre Avis Médical</option>
+                                <option value="deceased">Décédé</option>
+                                <option value="transferred">Transféré</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="discharge_summary">Résumé de Sortie</label>
+                            <textarea id="discharge_summary" rows="4"></textarea>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="discharge_instructions">Instructions de Sortie</label>
+                            <textarea id="discharge_instructions" rows="4"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="follow_up_required">Suivi Requis</label>
+                            <select id="follow_up_required">
+                                <option value="false">Non</option>
+                                <option value="true">Oui</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="follow_up_date">Date de Suivi</label>
+                            <input type="date" id="follow_up_date">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeDischargeModal()">Annuler</button>
+                <button type="submit" form="dischargeForm" class="btn-save">Confirmer Sortie</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let admissions = [];
+        let departments = [];
+        let beds = [];
+        let doctors = [];
+        let patients = [];
+
+        async function loadAdmissions() {
+            try {
+                const response = await fetch('/api/v1/hospital/admissions/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erreur lors du chargement');
+
+                admissions = await response.json();
+                updateStats();
+                renderAdmissions();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du chargement des admissions');
+            }
+        }
+
+        async function loadDepartments() {
+            try {
+                const response = await fetch('/api/v1/hospital/departments/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erreur');
+
+                departments = await response.json();
+                populateDepartmentDropdowns();
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function loadDoctors() {
+            try {
+                const response = await fetch('/api/v1/hospital/staff/?role=doctor', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erreur');
+
+                doctors = await response.json();
+                populateDoctorDropdown();
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function loadBeds() {
+            const departmentId = document.getElementById('department').value;
+            if (!departmentId) {
+                document.getElementById('bed').innerHTML = '<option value="">Sélectionner d\'abord un département</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/hospital/beds/?department=${departmentId}&status=available`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erreur');
+
+                beds = await response.json();
+                const select = document.getElementById('bed');
+                select.innerHTML = '<option value="">Sélectionner...</option>';
+
+                beds.forEach(bed => {
+                    const option = document.createElement('option');
+                    option.value = bed.id;
+                    option.textContent = `Lit ${bed.bed_number} - Chambre ${bed.room_number}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function populateDepartmentDropdowns() {
+            const modalSelect = document.getElementById('department');
+            const filterSelect = document.getElementById('filterDepartment');
+
+            modalSelect.innerHTML = '<option value="">Sélectionner...</option>';
+            filterSelect.innerHTML = '<option value="">Tous</option>';
+
+            departments.forEach(dept => {
+                const option1 = document.createElement('option');
+                option1.value = dept.id;
+                option1.textContent = dept.name;
+                modalSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = dept.id;
+                option2.textContent = dept.name;
+                filterSelect.appendChild(option2);
+            });
+        }
+
+        function populateDoctorDropdown() {
+            const select = document.getElementById('admitting_doctor');
+            select.innerHTML = '<option value="">Sélectionner...</option>';
+
+            doctors.forEach(doc => {
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = doc.full_name;
+                select.appendChild(option);
+            });
+        }
+
+        function updateStats() {
+            const active = admissions.filter(a => a.status === 'pending' || a.status === 'admitted').length;
+            const today = new Date().toISOString().split('T')[0];
+            const todayCount = admissions.filter(a => a.admission_date.startsWith(today)).length;
+            const planned = admissions.filter(a => a.status === 'admitted' && a.expected_discharge_date).length;
+            const emergency = admissions.filter(a => a.admission_type === 'emergency' && a.status === 'admitted').length;
+
+            document.getElementById('activeAdmissions').textContent = active;
+            document.getElementById('todayAdmissions').textContent = todayCount;
+            document.getElementById('plannedDischarges').textContent = planned;
+            document.getElementById('emergencyAdmissions').textContent = emergency;
+        }
+
+        function renderAdmissions() {
+            const tbody = document.getElementById('admissionsList');
+
+            if (admissions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 60px; color: #7f8c8d;">Aucune admission trouvée</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = admissions.map(adm => `
+                <tr>
+                    <td><strong>${adm.admission_number}</strong></td>
+                    <td>${adm.patient_name || 'N/A'}</td>
+                    <td>${adm.department_name || 'N/A'}</td>
+                    <td>${adm.bed_number || 'N/A'}</td>
+                    <td><span class="type-badge type-${adm.admission_type}">${getTypeLabel(adm.admission_type)}</span></td>
+                    <td>${formatDate(adm.admission_date)}</td>
+                    <td><span class="status-badge status-${adm.status}">${getStatusLabel(adm.status)}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-edit" onclick="editAdmission('${adm.id}')">Modifier</button>
+                            ${adm.status === 'pending' || adm.status === 'admitted' ?
+                                `<button class="btn-discharge" onclick="openDischargeModal('${adm.id}')">Sortie</button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getTypeLabel(type) {
+            const labels = {
+                'emergency': 'Urgence',
+                'scheduled': 'Programmé',
+                'outpatient': 'Ambulatoire',
+                'observation': 'Observation'
+            };
+            return labels[type] || type;
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'pending': 'En attente',
+                'admitted': 'Admis',
+                'discharged': 'Sorti',
+                'transferred': 'Transféré',
+                'deceased': 'Décédé'
+            };
+            return labels[status] || status;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fr-FR') + ' ' + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function filterAdmissions() {
+            const search = document.getElementById('searchPatient').value.toLowerCase();
+            const deptFilter = document.getElementById('filterDepartment').value;
+            const typeFilter = document.getElementById('filterType').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            const filtered = admissions.filter(adm => {
+                const matchSearch = !search ||
+                    adm.admission_number.toLowerCase().includes(search) ||
+                    (adm.patient_name && adm.patient_name.toLowerCase().includes(search));
+                const matchDept = !deptFilter || adm.department === deptFilter;
+                const matchType = !typeFilter || adm.admission_type === typeFilter;
+                const matchStatus = !statusFilter || adm.status === statusFilter;
+
+                return matchSearch && matchDept && matchType && matchStatus;
+            });
+
+            const tbody = document.getElementById('admissionsList');
+            tbody.innerHTML = filtered.map(adm => `
+                <tr>
+                    <td><strong>${adm.admission_number}</strong></td>
+                    <td>${adm.patient_name || 'N/A'}</td>
+                    <td>${adm.department_name || 'N/A'}</td>
+                    <td>${adm.bed_number || 'N/A'}</td>
+                    <td><span class="type-badge type-${adm.admission_type}">${getTypeLabel(adm.admission_type)}</span></td>
+                    <td>${formatDate(adm.admission_date)}</td>
+                    <td><span class="status-badge status-${adm.status}">${getStatusLabel(adm.status)}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-edit" onclick="editAdmission('${adm.id}')">Modifier</button>
+                            ${adm.status === 'pending' || adm.status === 'admitted' ?
+                                `<button class="btn-discharge" onclick="openDischargeModal('${adm.id}')">Sortie</button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('admissionId').value = '';
+            document.getElementById('modalTitle').textContent = 'Nouvelle Admission';
+            document.getElementById('admissionForm').reset();
+            document.getElementById('status').value = 'pending';
+            document.getElementById('admission_date').value = new Date().toISOString().slice(0, 16);
+            document.getElementById('admissionModal').classList.add('active');
+        }
+
+        function editAdmission(id) {
+            const adm = admissions.find(a => a.id === id);
+            if (!adm) return;
+
+            document.getElementById('admissionId').value = adm.id;
+            document.getElementById('modalTitle').textContent = 'Modifier Admission';
+            document.getElementById('patient').value = adm.patient || '';
+            document.getElementById('department').value = adm.department || '';
+            loadBeds();
+            setTimeout(() => {
+                document.getElementById('bed').value = adm.bed || '';
+            }, 300);
+            document.getElementById('admitting_doctor').value = adm.admitting_doctor || '';
+            document.getElementById('admission_type').value = adm.admission_type || 'scheduled';
+            document.getElementById('admission_date').value = adm.admission_date ? adm.admission_date.slice(0, 16) : '';
+            document.getElementById('chief_complaint').value = adm.chief_complaint || '';
+            document.getElementById('diagnosis').value = adm.diagnosis || '';
+            document.getElementById('treatment_plan').value = adm.treatment_plan || '';
+            document.getElementById('expected_discharge_date').value = adm.expected_discharge_date || '';
+            document.getElementById('status').value = adm.status || 'pending';
+            document.getElementById('admissionModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('admissionModal').classList.remove('active');
+        }
+
+        async function saveAdmission(event) {
+            event.preventDefault();
+
+            const admissionId = document.getElementById('admissionId').value;
+            const data = {
+                patient: document.getElementById('patient').value,
+                department: document.getElementById('department').value,
+                bed: document.getElementById('bed').value,
+                admitting_doctor: document.getElementById('admitting_doctor').value,
+                admission_type: document.getElementById('admission_type').value,
+                admission_date: document.getElementById('admission_date').value,
+                chief_complaint: document.getElementById('chief_complaint').value,
+                diagnosis: document.getElementById('diagnosis').value,
+                treatment_plan: document.getElementById('treatment_plan').value,
+                expected_discharge_date: document.getElementById('expected_discharge_date').value || null,
+                status: document.getElementById('status').value
+            };
+
+            try {
+                const url = admissionId
+                    ? `/api/v1/hospital/admissions/${admissionId}/`
+                    : '/api/v1/hospital/admissions/';
+
+                const method = admissionId ? 'PATCH' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Erreur lors de l\'enregistrement');
+
+                alert(admissionId ? 'Admission mise à jour' : 'Admission créée avec succès');
+                closeModal();
+                loadAdmissions();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'enregistrement de l\'admission');
+            }
+        }
+
+        function openDischargeModal(id) {
+            document.getElementById('dischargeAdmissionId').value = id;
+            document.getElementById('dischargeForm').reset();
+            document.getElementById('actual_discharge_date').value = new Date().toISOString().slice(0, 16);
+            document.getElementById('dischargeModal').classList.add('active');
+        }
+
+        function closeDischargeModal() {
+            document.getElementById('dischargeModal').classList.remove('active');
+        }
+
+        async function processDischarge(event) {
+            event.preventDefault();
+
+            const admissionId = document.getElementById('dischargeAdmissionId').value;
+            const data = {
+                actual_discharge_date: document.getElementById('actual_discharge_date').value,
+                discharge_summary: document.getElementById('discharge_summary').value,
+                discharge_instructions: document.getElementById('discharge_instructions').value,
+                follow_up_required: document.getElementById('follow_up_required').value === 'true',
+                follow_up_date: document.getElementById('follow_up_date').value || null
+            };
+
+            try {
+                const response = await fetch(`/api/v1/hospital/admissions/${admissionId}/discharge/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Erreur lors de la sortie');
+
+                alert('Patient sorti avec succès');
+                closeDischargeModal();
+                loadAdmissions();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la sortie du patient');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdmissions();
+            loadDepartments();
+            loadDoctors();
+        });
+    </script>
+        </div>
+    </div>
+</body>
+</html>
+

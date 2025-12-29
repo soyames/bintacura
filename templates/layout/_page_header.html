@@ -1,0 +1,27 @@
+{% load static %}
+<nav class="top-nav">
+    <div class="nav-left">
+        <button class="nav-back-btn" onclick="history.back()" aria-label="Retour">
+            ←
+        </button>
+        <button class="menu-toggle-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+    <div class="nav-center">
+        <div class="nav-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-header-logo">
+        </div>
+        {% if page_title %}
+        <span class="nav-page-title">{{ page_title }}</span>
+        {% endif %}
+    </div>
+    <div class="nav-right">
+        <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </div>
+</nav>
+

@@ -1,0 +1,16 @@
+<div class="form-group">
+    <label class="form-label" for="{{ id }}">{{ label }}</label>
+    <select
+        id="{{ id }}"
+        name="{{ name }}"
+        class="form-select"
+        {% if required %}required{% endif %}
+    >
+        <option value="">{{ placeholder|default:'Sélectionner...' }}</option>
+        {% for option in options %}
+        <option value="{{ option.value }}" {% if option.value == selected %}selected{% endif %}>
+            {{ option.label }}
+        </option>
+        {% endfor %}
+    </select>
+</div>

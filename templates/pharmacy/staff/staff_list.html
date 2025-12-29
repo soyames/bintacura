@@ -1,0 +1,176 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion du Personnel - {{ request.user.full_name }}</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_staff.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy" page_title="Personnel" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy.html" %}
+
+    <div class="main-content">
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card-modern">
+                <div class="stat-icon-modern stat-icon-primary">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content-modern">
+                    <span class="stat-label-modern">Total Personnel</span>
+                    <span class="stat-value-modern">{{ total_staff }}</span>
+                </div>
+            </div>
+            <div class="stat-card-modern">
+                <div class="stat-icon-modern stat-icon-success">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <div class="stat-content-modern">
+                    <span class="stat-label-modern">Personnel Actif</span>
+                    <span class="stat-value-modern">{{ active_staff }}</span>
+                </div>
+            </div>
+            <div class="stat-card-modern">
+                <div class="stat-icon-modern stat-icon-info">
+                    <i class="fas fa-desktop"></i>
+                </div>
+                <div class="stat-content-modern">
+                    <span class="stat-label-modern">Comptoirs</span>
+                    <span class="stat-value-modern">{{ counters.count }}</span>
+                </div>
+            </div>
+            <div class="stat-card-modern stat-card-action">
+                <button class="btn-modern btn-primary-modern btn-add-staff-main" id="addStaffBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Ajouter Personnel
+                </button>
+            </div>
+        </div>
+
+        <!-- Staff Table -->
+        <div class="table-container-modern">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Nom du Personnel</th>
+                        <th>Rôle</th>
+                        <th>Téléphone</th>
+                        <th>Email</th>
+                        <th>Comptoir</th>
+                        <th>Statut</th>
+                        <th>Rejoint</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 20px;">
+                            <i class="fas fa-spinner fa-spin"></i> Chargement...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div id="addStaffModal" class="modal-modern" style="display: none;">
+        <div class="modal-overlay-modern" onclick="closeStaffModal()"></div>
+        <div class="modal-content-modern">
+            <div class="modal-header-modern">
+                <h2>
+                    <i class="fas fa-user-plus"></i>
+                    Ajouter un Membre du Personnel
+                </h2>
+                <button class="modal-close-modern" onclick="closeStaffModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="addStaffForm">
+                {% csrf_token %}
+                <div class="modal-body-modern">
+                    <div class="form-group-modern">
+                        <label for="fullName">Nom Complet *</label>
+                        <input type="text" id="fullName" name="full_name" class="input-modern" required>
+                    </div>
+                    <div class="form-row-modern">
+                        <div class="form-group-modern">
+                            <label for="phoneNumber">Numéro de Téléphone *</label>
+                            <input type="tel" id="phoneNumber" name="phone_number" class="input-modern" required>
+                        </div>
+                        <div class="form-group-modern">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" class="input-modern" required>
+                        </div>
+                    </div>
+                    <div class="form-group-modern">
+                        <label for="role">Rôle *</label>
+                        <select id="role" name="role" class="input-modern" required>
+                            <option value="">Sélectionner un rôle...</option>
+                            <option value="pharmacist">Pharmacien</option>
+                            <option value="cashier">Caissier</option>
+                            <option value="inventory_clerk">Responsable Inventaire</option>
+                            <option value="delivery_person">Livreur</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Password Section -->
+                    <div class="form-group-modern">
+                        <label class="checkbox-label-modern">
+                            <input type="checkbox" id="autoGeneratePassword" name="auto_generate_password" checked>
+                            <span>Générer automatiquement un mot de passe sécurisé</span>
+                        </label>
+                        <small class="help-text-modern">Le mot de passe sera envoyé par email et SMS</small>
+                    </div>
+                    
+                    <div id="manualPasswordSection" style="display: none;">
+                        <div class="form-group-modern">
+                            <label for="password">Mot de passe *</label>
+                            <input type="password" id="password" name="password" class="input-modern">
+                            <small class="help-text-modern">Minimum 8 caractères</small>
+                        </div>
+                        <div class="form-group-modern">
+                            <label for="confirmPassword">Confirmer le mot de passe *</label>
+                            <input type="password" id="confirmPassword" class="input-modern">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-modern">
+                        <label for="counter">Assigner à un Comptoir</label>
+                        <select id="counter" name="assigned_counter" class="input-modern">
+                            <option value="">Aucun comptoir assigné</option>
+                            {% for counter in counters %}
+                            <option value="{{ counter.id }}">Comptoir {{ counter.counter_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer-modern">
+                    <button type="button" class="btn-modern btn-secondary-modern" onclick="closeStaffModal()">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn-modern btn-primary-modern">
+                        <i class="fas fa-plus"></i>
+                        Ajouter Personnel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'js/translations.js' %}"></script>
+    <script src="{% static 'js/pharmacy_staff.js' %}"></script>
+</body>
+</html>

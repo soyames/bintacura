@@ -1,0 +1,72 @@
+<!-- Email Legal Disclaimer -->
+<div class="email-disclaimer" style="margin-top: 20px; padding: 20px; background-color: #f5f7fa; border-top: 1px solid #e0e0e0; font-size: 11px; color: #666; line-height: 1.5;">
+
+    <!-- HIPAA Compliance Notice -->
+    <div style="margin-bottom: 15px; padding: 10px; background-color: #fff3cd; border-left: 3px solid #ffc107; border-radius: 3px;">
+        <p style="margin: 0; color: #856404; font-weight: 600;">
+            ⚕️ CONFIDENTIALITÉ DES INFORMATIONS DE SANTÉ (HIPAA)
+        </p>
+        <p style="margin: 5px 0 0 0; color: #856404;">
+            Ce message peut contenir des informations de santé protégées (PHI - Protected Health Information) couvertes par les réglementations HIPAA et la loi béninoise sur la protection des données de santé. Ces informations sont strictement confidentielles et destinées uniquement à l'usage du destinataire désigné.
+        </p>
+    </div>
+
+    <!-- General Confidentiality Notice -->
+    <p style="margin: 10px 0; font-weight: 600; color: #333;">
+        📄 AVIS DE CONFIDENTIALITÉ
+    </p>
+    <p style="margin: 5px 0;">
+        Ce message électronique et tous les fichiers qui y sont joints sont confidentiels et destinés exclusivement à l'usage de la personne ou de l'entité à laquelle ils sont adressés. Si vous avez reçu ce message par erreur, veuillez en informer immédiatement l'expéditeur et supprimer ce message ainsi que tous les fichiers joints.
+    </p>
+
+    <!-- Data Protection Compliance -->
+    <p style="margin: 15px 0 5px 0; font-weight: 600; color: #333;">
+        🔒 PROTECTION DES DONNÉES PERSONNELLES
+    </p>
+    <p style="margin: 5px 0;">
+        Vos données personnelles et de santé sont protégées conformément à:
+    </p>
+    <ul style="margin: 5px 0; padding-left: 20px;">
+        <li><strong>Loi béninoise n° 2017-20</strong> du 20 avril 2018 portant Code du numérique en République du Bénin</li>
+        <li>Réglementations de l'<strong>APDP</strong> (Autorité de Protection des Données Personnelles du Bénin)</li>
+        <li>Standards internationaux <strong>HIPAA</strong> (Health Insurance Portability and Accountability Act)</li>
+        <li>Principes de <strong>RGPD</strong> (Règlement Général sur la Protection des Données)</li>
+    </ul>
+
+    <!-- Usage Restrictions -->
+    <p style="margin: 15px 0 5px 0; font-weight: 600; color: #333;">
+        ⚠️ RESTRICTIONS D'UTILISATION
+    </p>
+    <p style="margin: 5px 0;">
+        Toute divulgation, copie, distribution ou action entreprise sur la base de ce message par une personne autre que le destinataire prévu est strictement interdite et peut être illégale. Si vous n'êtes pas le destinataire prévu, toute utilisation, diffusion ou copie de cette communication est strictement prohibée.
+    </p>
+
+    <!-- Healthcare Information Warning -->
+    <p style="margin: 15px 0 5px 0; font-weight: 600; color: #333;">
+        🏥 INFORMATIONS MÉDICALES
+    </p>
+    <p style="margin: 5px 0;">
+        Les informations médicales contenues dans cet e-mail ne remplacent pas une consultation médicale professionnelle. En cas d'urgence médicale, veuillez contacter immédiatement les services d'urgence ou vous rendre à l'établissement de santé le plus proche.
+    </p>
+
+    <!-- No-Reply Notice (for automated emails) -->
+    {% if is_automated %}
+    <p style="margin: 15px 0 5px 0; font-weight: 600; color: #333;">
+        🤖 MESSAGE AUTOMATISÉ
+    </p>
+    <p style="margin: 5px 0;">
+        Ceci est un message automatisé généré par la plateforme BintaCura. Veuillez ne pas répondre directement à cet e-mail. Pour toute question ou assistance, contactez-nous à <a href="mailto:contacts@bintacura.org" style="color: #4a90e2; text-decoration: none;">contacts@bintacura.org</a>.
+    </p>
+    {% endif %}
+
+    <!-- Environmental Notice -->
+    <p style="margin: 15px 0 0 0; text-align: center; color: #28a745;">
+        🌍 <strong>Pensez à l'environnement avant d'imprimer ce message</strong>
+    </p>
+
+    <!-- Copyright -->
+    <p style="margin: 15px 0 0 0; text-align: center; font-size: 10px; color: #999;">
+        © {{ current_year }} BintaCura Healthcare Platform - Digital Concordia. Tous droits réservés.<br>
+        RCCM: RB/ABC/21 A 28773 | IFU: 0201710085082
+    </p>
+</div>

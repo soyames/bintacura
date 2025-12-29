@@ -1,0 +1,966 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prescriptions - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    
+    <link rel="stylesheet" href="{% static 'css/prescriptions.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Prescriptions</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+    <div class="prescriptions-container">
+        <div class="tabs">
+            <div class="tab active" onclick="filterPrescriptions('all')">Toutes</div>
+            <div class="tab" onclick="filterPrescriptions('active')">Actives</div>
+            <div class="tab" onclick="filterPrescriptions('ordered')">Commandées</div>
+            <div class="tab" onclick="filterPrescriptions('expired')">Expirées</div>
+        </div>
+
+        <div class="prescriptions-grid" id="prescriptionsGrid">
+            <div class="empty-state">
+                <div class="empty-icon">💊</div>
+                <p>Chargement de vos prescriptions...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('Prescriptions page script loading...');
+        let allPrescriptions = [];
+        let currentFilter = 'all';
+
+        async function loadPrescriptions() {
+            const grid = document.getElementById('prescriptionsGrid');
+            try {
+                grid.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><p>Chargement en cours...</p></div>';
+
+                const response = await fetch('/patient/api/prescriptions/', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Erreur HTTP: ' + response.status + '</p></div>';
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Prescriptions API response:', data);
+                allPrescriptions = data.results || data;
+                console.log('Loaded prescriptions:', allPrescriptions);
+
+                if (!allPrescriptions || allPrescriptions.length === 0) {
+                    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">💊</div><p>Aucune prescription trouvée</p></div>';
+                    return;
+                }
+
+                grid.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Chargement réussi! ' + allPrescriptions.length + ' prescription(s)</p></div>';
+                renderPrescriptions();
+            } catch (error) {
+                console.error('Error loading prescriptions:', error);
+                grid.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Erreur: ' + error.message + '</p></div>';
+            }
+        }
+
+        function renderPrescriptions() {
+            const grid = document.getElementById('prescriptionsGrid');
+
+            let filtered = allPrescriptions;
+            if (currentFilter !== 'all') {
+                filtered = allPrescriptions.filter(p => p.status === currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                showEmptyState('Aucune prescription trouvée');
+                return;
+            }
+
+            grid.innerHTML = filtered.map(prescription => {
+                const date = new Date(prescription.issue_date || prescription.created_at);
+                const formattedDate = date.toLocaleDateString('fr-FR');
+
+                const doctorName = prescription.doctor_name || 'Docteur Inconnu';
+                const doctorInitials = doctorName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+                const isExpired = prescription.is_expired || false;
+                const status = isExpired ? 'expired' : (prescription.status || 'active');
+
+                return `
+                    <div class="prescription-card">
+                        <div class="prescription-header">
+                            <div>
+                                <div class="prescription-number">Ordonnance #${prescription.id.substring(0, 8)}</div>
+                                <div class="prescription-date">📅 ${formattedDate}</div>
+                            </div>
+                            <span class="status-badge status-${status}">
+                                ${getStatusText(status)}
+                            </span>
+                        </div>
+
+                        <div class="doctor-info">
+                            <div class="doctor-avatar">${doctorInitials}</div>
+                            <div class="doctor-details">
+                                <h4>${doctorName}</h4>
+                                <div class="doctor-specialty">Médecin</div>
+                            </div>
+                        </div>
+
+                        <div class="medications-list">
+                            ${renderMedications(prescription.items || [])}
+                        </div>
+
+                        <div class="prescription-actions">
+                            ${status === 'active' ? `
+                                <button class="action-btn btn-primary" onclick="orderPrescription('${prescription.id}')">
+                                    Commander
+                                </button>
+                            ` : ''}
+                            <button class="action-btn btn-secondary" onclick="viewPrescription('${prescription.id}')">
+                                Détails
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderMedications(medications) {
+            if (!medications || medications.length === 0) {
+                return '<div class="medication-item"><div class="medication-name">Aucun médicament spécifié</div></div>';
+            }
+
+            const displayMeds = medications.slice(0, 3);
+            const remaining = medications.length - 3;
+
+            let html = displayMeds.map(med => `
+                <div class="medication-item">
+                    <div class="medication-name">${med.name || med.medication_name}</div>
+                    <div class="medication-dosage">${med.dosage || ''} ${med.frequency ? '- ' + med.frequency : ''}</div>
+                </div>
+            `).join('');
+
+            if (remaining > 0) {
+                html += `<div class="medication-item"><div class="medication-name">+ ${remaining} autre(s) médicament(s)</div></div>`;
+            }
+
+            return html;
+        }
+
+        function getStatusText(status) {
+            const statuses = {
+                'active': 'Active',
+                'expired': 'Expirée',
+                'ordered': 'Commandée',
+                'completed': 'Terminée'
+            };
+            return statuses[status] || status;
+        }
+
+        function filterPrescriptions(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            renderPrescriptions();
+        }
+
+        function showEmptyState(message) {
+            const grid = document.getElementById('prescriptionsGrid');
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">💊</div>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        async function orderPrescription(prescriptionId) {
+            const prescription = allPrescriptions.find(p => p.id === prescriptionId);
+            if (!prescription) {
+                alert('Prescription introuvable');
+                return;
+            }
+
+            const modal = createOrderModal(prescription);
+            document.body.insertAdjacentHTML('beforeend', modal);
+
+            await loadPriceComparison(prescription);
+        }
+
+        async function viewPrescription(prescriptionId) {
+            try {
+                // Find prescription in already loaded data
+                const prescription = allPrescriptions.find(p => p.id === prescriptionId);
+                if (!prescription) {
+                    alert('Prescription introuvable');
+                    return;
+                }
+
+                const modal = createPrescriptionModal(prescription);
+                document.body.insertAdjacentHTML('beforeend', modal);
+            } catch (error) {
+                console.error('Error loading prescription:', error);
+                alert('Erreur lors du chargement de la prescription');
+            }
+        }
+
+        function createPrescriptionModal(prescription) {
+            const medications = prescription.items || prescription.medications || [];
+            const doctorName = prescription.doctor_name || (prescription.doctor_last_name ? 'Dr. ' + prescription.doctor_last_name : 'Docteur Inconnu');
+            
+            return `
+                <div class="modal-overlay" onclick="this.remove()" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                    <div onclick="event.stopPropagation()" style="background: white; padding: 30px; border-radius: 16px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h2 style="margin: 0; color: #007bff;">📋 Détails de l'Ordonnance</h2>
+                            <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6b7280;">&times;</button>
+                        </div>
+
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                                <div>
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Médecin Prescripteur</div>
+                                    <div style="font-weight: 600;">${doctorName}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Date d'émission</div>
+                                    <div style="font-weight: 600;">${new Date(prescription.issue_date || prescription.created_at).toLocaleDateString('fr-FR')}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Valide jusqu'au</div>
+                                    <div style="font-weight: 600;">${new Date(prescription.valid_until).toLocaleDateString('fr-FR')}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Statut</div>
+                                    <div style="font-weight: 600; color: #10b981;">${getStatusText(prescription.status)}</div>
+                                </div>
+                            </div>
+                            ${prescription.diagnosis ? `
+                                <div style="margin-top: 15px;">
+                                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Diagnostic</div>
+                                    <div style="font-weight: 600;">${prescription.diagnosis}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <h3 style="margin: 20px 0 15px 0; font-size: 18px;">💊 Médicaments Prescrits</h3>
+                        ${medications.map((med, index) => `
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #007bff;">
+                                <div style="font-weight: 700; font-size: 16px; color: #007bff; margin-bottom: 10px;">
+                                    ${index + 1}. ${med.medication_name || med.name}
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                                    <div>
+                                        <span style="color: #6b7280; font-size: 13px;">Dosage:</span>
+                                        <span style="font-weight: 600; margin-left: 5px;">${med.dosage || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: #6b7280; font-size: 13px;">Forme:</span>
+                                        <span style="font-weight: 600; margin-left: 5px;">${med.dosage_form || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: #6b7280; font-size: 13px;">Quantité:</span>
+                                        <span style="font-weight: 600; margin-left: 5px;">${med.quantity || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: #6b7280; font-size: 13px;">Fréquence:</span>
+                                        <span style="font-weight: 600; margin-left: 5px;">${med.frequency || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span style="color: #6b7280; font-size: 13px;">Durée:</span>
+                                        <span style="font-weight: 600; margin-left: 5px;">${med.duration_days || 'N/A'} jours</span>
+                                    </div>
+                                    ${med.route ? `
+                                        <div>
+                                            <span style="color: #6b7280; font-size: 13px;">Voie:</span>
+                                            <span style="font-weight: 600; margin-left: 5px;">${med.route}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                ${med.instructions ? `
+                                    <div style="background: white; padding: 12px; border-radius: 8px; margin-top: 10px;">
+                                        <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">📝 Instructions:</div>
+                                        <div style="font-size: 14px;">${med.instructions}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+
+                        ${prescription.notes || prescription.special_instructions ? `
+                            <div style="background: #fff3cd; padding: 15px; border-radius: 12px; margin-top: 20px; border-left: 4px solid #ffc107;">
+                                <div style="font-weight: 700; margin-bottom: 8px;">⚠️ Notes Importantes</div>
+                                <div style="font-size: 14px;">${prescription.notes || prescription.special_instructions}</div>
+                            </div>
+                        ` : ''}
+
+                        ${prescription.qr_code ? `
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-top: 20px; text-align: center;">
+                                <div style="font-weight: 700; margin-bottom: 15px; font-size: 16px;">📱 Code QR de l'Ordonnance</div>
+                                <div style="background: white; padding: 20px; border-radius: 12px; display: inline-block;">
+                                    <img src="data:image/png;base64,${prescription.qr_code}" alt="QR Code" style="width: 200px; height: 200px; display: block;">
+                                </div>
+                                <div style="font-size: 13px; color: #6b7280; margin-top: 10px;">
+                                    Présentez ce code QR à la pharmacie pour récupérer vos médicaments
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+                            ${prescription.status === 'active' ? `
+                                <button onclick="this.closest('.modal-overlay').remove(); orderPrescription('${prescription.id}')" style="flex: 1; min-width: 200px; padding: 14px; background: #007bff; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                                    🛒 Commander les Médicaments
+                                </button>
+                            ` : ''}
+                            ${prescription.status === 'active' || prescription.status === 'expired' || prescription.status === 'pendingRenewal' ? `
+                                <button onclick="requestPrescriptionRenewal('${prescription.id}')" style="flex: 1; min-width: 200px; padding: 14px; background: ${prescription.status === 'expired' ? '#f59e0b' : '#10b981'}; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                                    🔄 ${prescription.status === 'pendingRenewal' ? 'Renouvellement en cours' : 'Demander un Renouvellement'}
+                                </button>
+                            ` : ''}
+                            <button onclick="this.closest('.modal-overlay').remove()" style="flex: 1; min-width: 150px; padding: 14px; background: #6c757d; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createOrderModal(prescription) {
+            const medications = prescription.items || prescription.medications || [];
+
+            return `
+                <div class="modal-overlay" id="orderModal" onclick="if(event.target === this) this.remove()" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                    <div onclick="event.stopPropagation()" style="background: white; padding: 30px; border-radius: 16px; max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h2 style="margin: 0; color: #10b981;">🛒 Commander les Médicaments</h2>
+                            <button onclick="document.getElementById('orderModal').remove()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6b7280;">&times;</button>
+                        </div>
+
+                        <div style="background: #f0fdf4; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">ℹ️ Comparaison des Prix</div>
+                            <div style="font-size: 14px; color: #6b7280;">Nous comparons les prix parmi toutes les pharmacies enregistrées pour vous offrir la meilleure option.</div>
+                        </div>
+
+                        <div id="pharmacyComparison" style="margin-bottom: 20px;">
+                            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                                <div style="font-size: 40px; margin-bottom: 10px;">⏳</div>
+                                <div>Recherche des meilleures offres...</div>
+                            </div>
+                        </div>
+
+                        <div id="orderActions" style="display: none; gap: 12px;">
+                            <button onclick="document.getElementById('orderModal').remove()" style="flex: 1; padding: 14px; background: #6c757d; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                                Annuler
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadPriceComparison(prescription) {
+            const comparisonDiv = document.getElementById('pharmacyComparison');
+
+            // Show loading state
+            comparisonDiv.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div style="font-size: 40px; margin-bottom: 10px;">⏳</div>
+                    <div>Chargement des prix des pharmacies...</div>
+                </div>
+            `;
+
+            try {
+                // Fetch medication prices from pharmacies
+                const response = await fetch(`/api/v1/prescriptions/prescriptions/${prescription.id}/medication_prices/`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const priceData = await response.json();
+
+                if (!priceData.success) {
+                    throw new Error(priceData.detail || 'Erreur lors du chargement des prix');
+                }
+
+                // Display the price comparison with pharmacy options
+                displayPriceComparison(priceData, prescription);
+
+            } catch (error) {
+                console.error('Error loading price comparison:', error);
+                comparisonDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <div style="font-size: 40px; margin-bottom: 10px;">❌</div>
+                        <div>Erreur lors du chargement des prix</div>
+                        <div style="font-size: 14px; margin-top: 10px;">${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function displayPriceComparison(priceData, prescription) {
+            const comparisonDiv = document.getElementById('pharmacyComparison');
+            const medications = priceData.medications || [];
+            const currency = priceData.currency || 'USD';
+            const estimatedTotal = priceData.estimated_total || 0;
+
+            if (medications.length === 0) {
+                comparisonDiv.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <div style="font-size: 40px; margin-bottom: 10px;">⚠️</div>
+                        <div>Aucun médicament trouvé dans cette ordonnance</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = medications.map((med, index) => {
+                const isAvailable = med.available && med.pharmacies && med.pharmacies.length > 0;
+                const lowestPrice = med.lowest_price || 0;
+                const pharmacyCount = med.pharmacies ? med.pharmacies.length : 0;
+
+                if (!isAvailable) {
+                    return `
+                        <div style="background: #fff3cd; padding: 20px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+                            <div style="font-weight: 700; font-size: 16px; color: #856404; margin-bottom: 5px;">
+                                ${index + 1}. ${med.medication_name}
+                            </div>
+                            <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">
+                                ${med.dosage} × ${med.quantity} - ${med.frequency}
+                            </div>
+                            <div style="color: #d97706; font-size: 13px;">
+                                ⚠️ Actuellement indisponible dans les pharmacies
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #007bff;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; font-size: 16px; color: #007bff; margin-bottom: 5px;">
+                                    <input type="checkbox" id="med_${med.item_id}" checked style="margin-right: 8px;">
+                                    <label for="med_${med.item_id}">${index + 1}. ${med.medication_name}</label>
+                                </div>
+                                <div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">
+                                    ${med.dosage} × ${med.quantity} - ${med.frequency}
+                                </div>
+                                <div style="color: #10b981; font-size: 13px;">
+                                    ✓ Disponible dans ${pharmacyCount} pharmacie(s)
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: 700; font-size: 18px; color: #007bff;">
+                                    ${(lowestPrice * med.quantity).toFixed(2)} ${currency}
+                                </div>
+                                <div style="color: #6b7280; font-size: 13px;">
+                                    ${lowestPrice.toFixed(2)} ${currency} / unité
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const availableCount = medications.filter(m => m.available).length;
+
+            comparisonDiv.innerHTML = `
+                <div style="max-height: 500px; overflow-y: auto;">
+                    ${html}
+                </div>
+
+                <div style="background: #e8f5e9; padding: 20px; border-radius: 12px; margin-top: 20px; border-left: 4px solid #4caf50;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 18px; color: #2e7d32;">Total Estimé</div>
+                            <div style="color: #6b7280; font-size: 14px; margin-top: 5px;">
+                                ${availableCount} médicament(s) disponible(s)
+                            </div>
+                        </div>
+                        <div style="font-weight: 700; font-size: 24px; color: #2e7d32;">
+                            ${estimatedTotal.toFixed(2)} ${currency}
+                        </div>
+                    </div>
+                </div>
+
+                ${availableCount > 0 ? `
+                    <div style="margin-top: 20px;">
+                        <button onclick="submitPrescriptionOrder('${prescription.id}')" style="width: 100%; padding: 16px; background: #007bff; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 16px;">
+                            📦 Commander les Médicaments (${availableCount})
+                        </button>
+                    </div>
+                ` : `
+                    <div style="background: #fee2e2; padding: 15px; border-radius: 10px; margin-top: 15px; border-left: 4px solid #ef4444; text-align: center;">
+                        <div style="font-size: 14px; color: #991b1b;">
+                            ⚠️ Aucun médicament disponible actuellement
+                        </div>
+                    </div>
+                `}
+
+                <div style="background: #e0f2fe; padding: 15px; border-radius: 10px; margin-top: 15px; border-left: 4px solid #0284c7;">
+                    <div style="font-size: 14px; color: #075985;">
+                        ℹ️ La pharmacie proposant le meilleur prix sera sélectionnée automatiquement
+                    </div>
+                </div>
+            `;
+        }
+
+        async function selectPharmacyForOrder(pharmacyId, pharmacyName, prescriptionId) {
+            const prescription = allPrescriptions.find(p => p.id === prescriptionId);
+            if (!prescription) {
+                alert('Prescription introuvable');
+                return;
+            }
+
+            document.getElementById('orderModal').remove();
+
+            const confirmModal = `
+                <div class="modal-overlay" id="confirmOrderModal" onclick="if(event.target === this) this.remove()" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                    <div onclick="event.stopPropagation()" style="background: white; padding: 30px; border-radius: 16px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+                        <h2 style="margin: 0 0 20px 0; color: #007bff;">📋 Confirmer la Commande</h2>
+
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 10px;">Pharmacie sélectionnée:</div>
+                            <div style="font-size: 18px; color: #007bff; font-weight: 700;">${pharmacyName}</div>
+                        </div>
+
+                        <form id="orderConfirmForm">
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Adresse de livraison *</label>
+                                <textarea id="deliveryAddress" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit;" rows="3" placeholder="Entrez votre adresse complète"></textarea>
+                            </div>
+
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Téléphone *</label>
+                                <input type="tel" id="deliveryPhone" required style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;" placeholder="+229 97000000">
+                            </div>
+
+                            <div style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Instructions spéciales</label>
+                                <textarea id="deliveryNotes" style="width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit;" rows="2" placeholder="Ex: Appeler avant la livraison"></textarea>
+                            </div>
+                        </form>
+
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                            <div style="font-size: 13px; color: #856404;">
+                                <strong>💡 Note:</strong> La pharmacie confirmera la disponibilité et vous contactera pour le paiement et la livraison.
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 12px;">
+                            <button onclick="document.getElementById('confirmOrderModal').remove()" style="flex: 1; padding: 14px; background: #6c757d; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                                Annuler
+                            </button>
+                            <button onclick="submitPrescriptionOrder('${pharmacyId}', ${prescriptionId})" style="flex: 1; padding: 14px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                                🛒 Confirmer la Commande
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', confirmModal);
+
+            try {
+                const response = await fetchApi('/api/v1/patient/profile/');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('deliveryAddress').value = data.profile.address || '';
+                    document.getElementById('deliveryPhone').value = data.profile.phone || '';
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        }
+
+        async function submitPrescriptionOrder(pharmacyId, prescriptionId) {
+            const form = document.getElementById('orderConfirmForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const prescription = allPrescriptions.find(p => p.id === prescriptionId);
+            const medications = prescription.items || prescription.medications || [];
+
+            const orderData = {
+                pharmacy_id: pharmacyId,
+                prescription_id: prescriptionId,
+                medication_items: medications.map(m => m.id),
+                delivery_address: document.getElementById('deliveryAddress').value,
+                delivery_phone: document.getElementById('deliveryPhone').value,
+                notes: document.getElementById('deliveryNotes').value
+            };
+
+            try {
+                const response = await fetch('/patient/api/pharmacy-orders/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                    },
+                    body: JSON.stringify(orderData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('confirmOrderModal').remove();
+                    alert('✓ Commande envoyée avec succès! La pharmacie vous contactera bientôt.');
+                    loadPrescriptions();
+                } else {
+                    alert('Erreur: ' + (result.message || 'Impossible d\'envoyer la commande'));
+                }
+            } catch (error) {
+                console.error('Error submitting order:', error);
+                alert('Une erreur est survenue lors de l\'envoi de la commande');
+            }
+        }
+
+        function createPaymentMethodModal(prescriptionId, selectedMeds) {
+            return `
+                <div class="modal-overlay" id="paymentMethodModal" onclick="if(event.target === this) { this.remove(); document.getElementById('orderModal').style.display = 'flex'; }" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                    <div onclick="event.stopPropagation()" style="background: white; padding: 30px; border-radius: 16px; max-width: 550px; width: 100%; max-height: 90vh; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h2 style="margin: 0; color: #10b981;">💳 Choisissez une Méthode de Paiement</h2>
+                            <button onclick="document.getElementById('paymentMethodModal').remove(); document.getElementById('orderModal').style.display = 'flex';" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #6b7280;">&times;</button>
+                        </div>
+
+                        <div style="background: #f0fdf4; padding: 15px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+                            <div style="font-size: 13px; color: #047857;">
+                                Sélectionnez votre méthode de paiement préférée pour cette commande.
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <label class="payment-method-option" style="display: flex; align-items: center; padding: 16px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#10b981'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e5e7eb'" onclick="this.querySelector('input').checked=true; document.querySelectorAll('.payment-method-option').forEach(el => el.style.borderColor='#e5e7eb'); this.style.borderColor='#10b981';">
+                                <input type="radio" name="paymentMethod" value="cash_on_delivery" checked style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">💵 Espèces à la Livraison</div>
+                                    <div style="font-size: 13px; color: #6b7280;">Payez en espèces lors de la livraison ou du retrait</div>
+                                </div>
+                            </label>
+
+                            <label class="payment-method-option" style="display: flex; align-items: center; padding: 16px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#10b981'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e5e7eb'" onclick="this.querySelector('input').checked=true; document.querySelectorAll('.payment-method-option').forEach(el => el.style.borderColor='#e5e7eb'); this.style.borderColor='#10b981';">
+                                <input type="radio" name="paymentMethod" value="wallet" style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">👛 Portefeuille BINTACURA</div>
+                                    <div style="font-size: 13px; color: #6b7280;">Paiement instantané depuis votre portefeuille</div>
+                                </div>
+                            </label>
+
+                            <label class="payment-method-option" style="display: flex; align-items: center; padding: 16px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#10b981'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e5e7eb'" onclick="this.querySelector('input').checked=true; document.querySelectorAll('.payment-method-option').forEach(el => el.style.borderColor='#e5e7eb'); this.style.borderColor='#10b981';">
+                                <input type="radio" name="paymentMethod" value="mobile_money" style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">📱 Mobile Money</div>
+                                    <div style="font-size: 13px; color: #6b7280;">MTN, Moov, ou autres services mobile money</div>
+                                </div>
+                            </label>
+
+                            <label class="payment-method-option" style="display: flex; align-items: center; padding: 16px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#10b981'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e5e7eb'" onclick="this.querySelector('input').checked=true; document.querySelectorAll('.payment-method-option').forEach(el => el.style.borderColor='#e5e7eb'); this.style.borderColor='#10b981';">
+                                <input type="radio" name="paymentMethod" value="card" style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">💳 Carte Bancaire</div>
+                                    <div style="font-size: 13px; color: #6b7280;">Visa, Mastercard, ou autre carte</div>
+                                </div>
+                            </label>
+
+                            <label class="payment-method-option" style="display: flex; align-items: center; padding: 16px; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#10b981'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e5e7eb'" onclick="this.querySelector('input').checked=true; document.querySelectorAll('.payment-method-option').forEach(el => el.style.borderColor='#e5e7eb'); this.style.borderColor='#10b981';">
+                                <input type="radio" name="paymentMethod" value="insurance" style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">🏥 Assurance Santé</div>
+                                    <div style="font-size: 13px; color: #6b7280;">Paiement via votre assurance santé active</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; gap: 12px;">
+                            <button onclick="document.getElementById('paymentMethodModal').remove(); document.getElementById('orderModal').style.display = 'flex';" style="flex: 1; padding: 14px; background: #6c757d; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                                Retour
+                            </button>
+                            <button onclick="confirmPaymentAndSubmit('${prescriptionId}', ${JSON.stringify(selectedMeds)})" style="flex: 1; padding: 14px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px;">
+                                Continuer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function confirmPaymentAndSubmit(prescriptionId, selectedMeds) {
+            const selectedPaymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
+            if (!selectedPaymentMethod) {
+                alert('Veuillez sélectionner une méthode de paiement');
+                return;
+            }
+
+            const paymentMethod = selectedPaymentMethod.value;
+
+            // Close payment modal
+            document.getElementById('paymentMethodModal').remove();
+            document.getElementById('orderModal').remove();
+
+            try {
+                // Show loading
+                const loadingModal = `
+                    <div class="modal-overlay" id="loadingModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                        <div style="background: white; padding: 30px; border-radius: 16px; text-align: center;">
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">Traitement de votre commande...</div>
+                            <div style="font-size: 14px; color: #6b7280;">Veuillez patienter</div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', loadingModal);
+
+                // Submit order
+                const response = await fetch(`/api/v1/prescriptions/prescriptions/${prescriptionId}/order_medications/`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        medication_items: selectedMeds,
+                        delivery_method: 'delivery',
+                        payment_method: paymentMethod
+                    })
+                });
+
+                const result = await response.json();
+
+                // Remove loading modal
+                document.getElementById('loadingModal')?.remove();
+
+                if (response.ok && result.success) {
+                    // Show success message with payment info
+                    let message = `Commande envoyée avec succès!\n\nNuméro de commande: ${result.order_number}\nPharmacie: ${result.pharmacy_name}\n`;
+
+                    if (result.payment_info) {
+                        message += `\n${result.payment_info.message}`;
+                    }
+
+                    if (result.payment_method === 'wallet') {
+                        message += '\n\nLe montant a été débité de votre portefeuille.';
+                    } else if (result.payment_method === 'insurance') {
+                        message += '\n\nUne réclamation d\'assurance a été créée.';
+                    } else if (result.payment_method === 'card' || result.payment_method === 'mobile_money') {
+                        message += '\n\nVous recevrez les instructions de paiement par notification.';
+                    }
+
+                    alert(message);
+
+                    // Reload prescriptions
+                    loadPrescriptions();
+                } else {
+                    throw new Error(result.detail || 'Erreur lors de la commande');
+                }
+
+            } catch (error) {
+                console.error('Error submitting prescription order:', error);
+                document.getElementById('loadingModal')?.remove();
+                alert('Erreur lors de l\'envoi de la commande: ' + error.message);
+            }
+        }
+
+        async function submitPrescriptionOrder(prescriptionId) {
+            try {
+                // Get selected medications with their quantities
+                const selectedMeds = [];
+                document.querySelectorAll('input[id^="med_"]:checked').forEach(checkbox => {
+                    const itemId = checkbox.id.replace('med_', '');
+                    // Find the prescription to get the quantity
+                    const prescription = allPrescriptions.find(p => p.id === prescriptionId);
+                    if (prescription) {
+                        const item = (prescription.items || prescription.medications || []).find(m => m.id === itemId);
+                        if (item) {
+                            selectedMeds.push({
+                                item_id: itemId,
+                                quantity: item.quantity
+                            });
+                        }
+                    }
+                });
+
+                if (selectedMeds.length === 0) {
+                    alert('Veuillez sélectionner au moins un médicament');
+                    return;
+                }
+
+                // Show payment method selection modal
+                const paymentModal = createPaymentMethodModal(prescriptionId, selectedMeds);
+                document.getElementById('orderModal').insertAdjacentHTML('beforebegin', paymentModal);
+                return; // Wait for payment method selection
+
+                // Show loading
+                const modal = document.querySelector('.modal-overlay');
+                if (modal) {
+                    modal.style.opacity = '0.6';
+                    modal.style.pointerEvents = 'none';
+                }
+
+                // Submit order
+                const response = await fetch(`/api/v1/prescriptions/prescriptions/${prescriptionId}/order_medications/`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        medication_items: selectedMeds,
+                        delivery_method: 'delivery'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Close modal
+                    if (modal) modal.remove();
+
+                    // Show success message
+                    alert(`✅ Commande envoyée avec succès!\n\nNuméro de commande: ${result.order_number}\nPharmacie: ${result.pharmacy_name}\n\nVous recevrez une notification lorsque la pharmacie traitera votre commande.`);
+
+                    // Reload prescriptions
+                    loadPrescriptions();
+                } else {
+                    throw new Error(result.detail || 'Erreur lors de la commande');
+                }
+
+            } catch (error) {
+                console.error('Error submitting prescription order:', error);
+                alert('❌ Erreur lors de l\'envoi de la commande: ' + error.message);
+
+                // Restore modal
+                const modal = document.querySelector('.modal-overlay');
+                if (modal) {
+                    modal.style.opacity = '1';
+                    modal.style.pointerEvents = 'auto';
+                }
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function requestPrescriptionRenewal(prescriptionId) {
+            try {
+                const prescription = allPrescriptions.find(p => p.id === prescriptionId);
+                if (!prescription) {
+                    alert('Prescription introuvable');
+                    return;
+                }
+
+                if (prescription.status === 'pendingRenewal') {
+                    alert('Vous avez déjà une demande de renouvellement en cours pour cette ordonnance.');
+                    return;
+                }
+
+                // Ask for patient notes
+                const patientNotes = prompt('Pourquoi souhaitez-vous renouveler cette ordonnance?\n(Optionnel - laissez vide si non applicable)', '');
+
+                if (patientNotes === null) {
+                    // User cancelled
+                    return;
+                }
+
+                // Show loading
+                const modal = document.querySelector('.modal-overlay');
+                if (modal) {
+                    modal.style.opacity = '0.6';
+                    modal.style.pointerEvents = 'none';
+                }
+
+                // Submit renewal request
+                const response = await fetch(`/api/v1/prescriptions/prescriptions/${prescriptionId}/request_renewal/`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        patient_notes: patientNotes
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Close modal
+                    if (modal) modal.remove();
+
+                    // Show success message
+                    alert(`✅ Demande de renouvellement envoyée avec succès!\n\nVotre demande a été envoyée à ${result.doctor_name}.\nVous recevrez une notification lorsque le médecin aura examiné votre demande.`);
+
+                    // Reload prescriptions
+                    loadPrescriptions();
+                } else {
+                    throw new Error(result.detail || 'Erreur lors de la demande');
+                }
+
+            } catch (error) {
+                console.error('Error requesting prescription renewal:', error);
+                alert('❌ Erreur lors de la demande de renouvellement: ' + error.message);
+
+                // Restore modal
+                const modal = document.querySelector('.modal-overlay');
+                if (modal) {
+                    modal.style.opacity = '1';
+                    modal.style.pointerEvents = 'auto';
+                }
+            }
+        }
+
+        loadPrescriptions();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prescriptions - Pharmacie BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_prescriptions.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy" page_title="Ordonnances" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy.html" %}
+
+    <div class="main-content">
+        <div class="filter-bar">
+            <input type="text" id="searchInput" placeholder="Rechercher par patient, médecin ou médicament...">
+            <select id="statusFilter">
+                <option value="">Tous les statuts</option>
+                <option value="active">En Attente</option>
+                <option value="ordered">En Cours</option>
+                <option value="verified">Prêt</option>
+                <option value="fulfilled">Livré</option>
+            </select>
+            <select id="dateFilter">
+                <option value="today">Aujourd'hui</option>
+                <option value="week">Cette semaine</option>
+                <option value="month">Ce mois</option>
+                <option value="all">Tout</option>
+            </select>
+            <button onclick="filterPrescriptions()">🔍 Filtrer</button>
+        </div>
+
+        <div class="prescriptions-grid">
+            {% if prescriptions %}
+                {% for prescription in prescriptions %}
+                <div class="prescription-card" data-status="{{ prescription.status }}" data-patient="{{ prescription.patient.get_full_name|lower }}" data-doctor="{{ prescription.doctor.get_full_name|lower }}">
+                    <div class="prescription-header">
+                        <div class="prescription-id">PRES-{{ prescription.id }}</div>
+                        <span class="prescription-status {% if prescription.status == 'active' %}status-pending{% elif prescription.status == 'ordered' %}status-processing{% elif prescription.status == 'verified' %}status-ready{% elif prescription.status == 'fulfilled' %}status-delivered{% endif %}">
+                            {% if prescription.status == 'active' %}
+                                En Attente
+                            {% elif prescription.status == 'ordered' %}
+                                En Cours
+                            {% elif prescription.status == 'verified' %}
+                                Prêt
+                            {% elif prescription.status == 'fulfilled' %}
+                                Livré
+                            {% else %}
+                                {{ prescription.get_status_display }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="prescription-info">
+                        <div class="info-item">
+                            <span class="info-label">Patient</span>
+                            <span class="info-value">{{ prescription.patient.get_full_name }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Médecin</span>
+                            <span class="info-value">Dr. {{ prescription.doctor.get_full_name }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Date</span>
+                            <span class="info-value">{{ prescription.issue_date|date:"d M Y" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Valide jusqu'à</span>
+                            <span class="info-value">{{ prescription.valid_until|date:"d M Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="prescription-medications">
+                        {% if prescription.medications %}
+                            <div class="medication-item">
+                                <span class="medication-name">{{ prescription.medications }}</span>
+                                <span class="medication-dosage">{{ prescription.dosage_instructions|default:"Voir détails" }}</span>
+                            </div>
+                        {% else %}
+                            <div class="medication-item">
+                                <span class="medication-name">Prescription médicale</span>
+                                <span class="medication-dosage">Voir les détails pour plus d'informations</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="prescription-actions">
+                        <button class="action-btn btn-view" onclick="viewPrescriptionDetails({{ prescription.id }})">Voir Détails</button>
+                        {% if prescription.status == 'active' %}
+                            <button class="action-btn btn-process" onclick="processPrescription({{ prescription.id }})">Traiter</button>
+                        {% elif prescription.status == 'ordered' %}
+                            <button class="action-btn btn-ready" onclick="markReady({{ prescription.id }})">Marquer Prêt</button>
+                        {% elif prescription.status == 'verified' %}
+                            <button class="action-btn btn-deliver" onclick="deliverPrescription({{ prescription.id }})">Livrer</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <h3>Aucune prescription</h3>
+                    <p>Il n'y a actuellement aucune prescription à traiter</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/pharmacy_prescriptions.js' %}"></script>
+</body>
+
+</html>
+

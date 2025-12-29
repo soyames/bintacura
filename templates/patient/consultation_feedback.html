@@ -1,0 +1,462 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Évaluer la Consultation - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    <style>
+        .feedback-container {
+            max-width: 800px;
+            margin: 80px auto 40px;
+            padding: 20px;
+        }
+
+        .feedback-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .feedback-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .feedback-header h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .feedback-header p {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+
+        .doctor-info {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .doctor-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .doctor-details h3 {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .doctor-details p {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .rating-section {
+            margin-bottom: 25px;
+        }
+
+        .rating-section label {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 10px;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .star {
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s;
+        }
+
+        .star:hover,
+        .star.active {
+            color: #f39c12;
+        }
+
+        .detailed-ratings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .detailed-rating-item label {
+            display: block;
+            font-size: 14px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .mini-star-rating {
+            display: flex;
+            gap: 5px;
+            font-size: 20px;
+        }
+
+        .review-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            resize: vertical;
+            margin-top: 10px;
+        }
+
+        .review-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .submit-section {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .btn-secondary:hover {
+            background: #d5dbdb;
+        }
+
+        .already-reviewed {
+            background: #d5f4e6;
+            border: 2px solid #27ae60;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .already-reviewed i {
+            font-size: 48px;
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+
+        .already-reviewed h3 {
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+
+        .error-message {
+            background: #fee;
+            border: 2px solid #e74c3c;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #c0392b;
+        }
+
+        @media (max-width: 768px) {
+            .detailed-ratings {
+                grid-template-columns: 1fr;
+            }
+
+            .feedback-card {
+                padding: 20px;
+            }
+
+            .star-rating {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="nav-back-btn" onclick="window.location.href='/patient/telemedicine/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Évaluer la Consultation</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="feedback-container">
+        <div class="feedback-card">
+            {% if error %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Erreur</h3>
+                <p>{{ error }}</p>
+            </div>
+            {% elif existing_review %}
+            <div class="already-reviewed">
+                <i class="fas fa-check-circle"></i>
+                <h3>Merci pour votre avis!</h3>
+                <p>Vous avez déjà évalué cette consultation avec {{ existing_review.rating }} étoile(s).</p>
+                {% if existing_review.review_text %}
+                <p style="margin-top: 10px; font-style: italic;">"{{ existing_review.review_text }}"</p>
+                {% endif %}
+            </div>
+            <div class="submit-section">
+                <a href="/patient/telemedicine/" class="btn btn-primary">Retour aux Consultations</a>
+            </div>
+            {% else %}
+            <div class="feedback-header">
+                <h1>Comment s'est passée votre consultation?</h1>
+                <p>Votre avis nous aide à améliorer nos services</p>
+            </div>
+
+            {% if appointment %}
+            <div class="doctor-info">
+                <div class="doctor-avatar">
+                    {{ appointment.doctor.full_name|slice:":1"|upper }}
+                </div>
+                <div class="doctor-details">
+                    <h3>Dr. {{ appointment.doctor.full_name }}</h3>
+                    <p>{{ appointment.doctor.doctor_data.get_specialization_display }}</p>
+                    <p>{{ appointment.appointment_date|date:"d/m/Y" }} à {{ appointment.appointment_time|time:"H:i" }}</p>
+                </div>
+            </div>
+
+            <form method="POST" id="feedbackForm">
+                {% csrf_token %}
+
+                <!-- Overall Rating -->
+                <div class="rating-section">
+                    <label>Évaluation générale <span style="color: red;">*</span></label>
+                    <div class="star-rating" id="overallRating">
+                        <i class="fas fa-star star" data-rating="1"></i>
+                        <i class="fas fa-star star" data-rating="2"></i>
+                        <i class="fas fa-star star" data-rating="3"></i>
+                        <i class="fas fa-star star" data-rating="4"></i>
+                        <i class="fas fa-star star" data-rating="5"></i>
+                    </div>
+                    <input type="hidden" name="rating" id="ratingValue" required>
+                </div>
+
+                <!-- Detailed Ratings -->
+                <div class="detailed-ratings">
+                    <div class="detailed-rating-item">
+                        <label>Professionnalisme</label>
+                        <div class="mini-star-rating" data-field="professionalism_rating">
+                            <i class="fas fa-star star mini-star" data-rating="1"></i>
+                            <i class="fas fa-star star mini-star" data-rating="2"></i>
+                            <i class="fas fa-star star mini-star" data-rating="3"></i>
+                            <i class="fas fa-star star mini-star" data-rating="4"></i>
+                            <i class="fas fa-star star mini-star" data-rating="5"></i>
+                        </div>
+                        <input type="hidden" name="professionalism_rating">
+                    </div>
+
+                    <div class="detailed-rating-item">
+                        <label>Communication</label>
+                        <div class="mini-star-rating" data-field="communication_rating">
+                            <i class="fas fa-star star mini-star" data-rating="1"></i>
+                            <i class="fas fa-star star mini-star" data-rating="2"></i>
+                            <i class="fas fa-star star mini-star" data-rating="3"></i>
+                            <i class="fas fa-star star mini-star" data-rating="4"></i>
+                            <i class="fas fa-star star mini-star" data-rating="5"></i>
+                        </div>
+                        <input type="hidden" name="communication_rating">
+                    </div>
+
+                    <div class="detailed-rating-item">
+                        <label>Temps d'attente</label>
+                        <div class="mini-star-rating" data-field="wait_time_rating">
+                            <i class="fas fa-star star mini-star" data-rating="1"></i>
+                            <i class="fas fa-star star mini-star" data-rating="2"></i>
+                            <i class="fas fa-star star mini-star" data-rating="3"></i>
+                            <i class="fas fa-star star mini-star" data-rating="4"></i>
+                            <i class="fas fa-star star mini-star" data-rating="5"></i>
+                        </div>
+                        <input type="hidden" name="wait_time_rating">
+                    </div>
+
+                    <div class="detailed-rating-item">
+                        <label>Rapport qualité/prix</label>
+                        <div class="mini-star-rating" data-field="value_rating">
+                            <i class="fas fa-star star mini-star" data-rating="1"></i>
+                            <i class="fas fa-star star mini-star" data-rating="2"></i>
+                            <i class="fas fa-star star mini-star" data-rating="3"></i>
+                            <i class="fas fa-star star mini-star" data-rating="4"></i>
+                            <i class="fas fa-star star mini-star" data-rating="5"></i>
+                        </div>
+                        <input type="hidden" name="value_rating">
+                    </div>
+                </div>
+
+                <!-- Review Text -->
+                <div class="rating-section" style="margin-top: 30px;">
+                    <label>Votre commentaire (optionnel)</label>
+                    <textarea name="review_text" class="review-textarea" placeholder="Partagez votre expérience avec ce médecin..."></textarea>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="submit-section">
+                    <a href="/patient/telemedicine/" class="btn btn-secondary">Annuler</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Soumettre l'évaluation
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Overall rating
+        const overallStars = document.querySelectorAll('#overallRating .star');
+        const ratingInput = document.getElementById('ratingValue');
+
+        overallStars.forEach(star => {
+            star.addEventListener('click', () => {
+                const rating = star.dataset.rating;
+                ratingInput.value = rating;
+
+                overallStars.forEach(s => {
+                    if (s.dataset.rating <= rating) {
+                        s.classList.add('active');
+                    } else {
+                        s.classList.remove('active');
+                    }
+                });
+            });
+
+            star.addEventListener('mouseenter', () => {
+                const rating = star.dataset.rating;
+                overallStars.forEach(s => {
+                    if (s.dataset.rating <= rating) {
+                        s.style.color = '#f39c12';
+                    } else {
+                        s.style.color = '#ddd';
+                    }
+                });
+            });
+        });
+
+        document.getElementById('overallRating').addEventListener('mouseleave', () => {
+            const currentRating = ratingInput.value;
+            overallStars.forEach(s => {
+                if (currentRating && s.dataset.rating <= currentRating) {
+                    s.style.color = '#f39c12';
+                } else {
+                    s.style.color = '#ddd';
+                }
+            });
+        });
+
+        // Detailed ratings
+        document.querySelectorAll('.mini-star-rating').forEach(container => {
+            const fieldName = container.dataset.field;
+            const stars = container.querySelectorAll('.mini-star');
+            const input = container.nextElementSibling;
+
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    const rating = star.dataset.rating;
+                    input.value = rating;
+
+                    stars.forEach(s => {
+                        if (s.dataset.rating <= rating) {
+                            s.classList.add('active');
+                        } else {
+                            s.classList.remove('active');
+                        }
+                    });
+                });
+
+                star.addEventListener('mouseenter', () => {
+                    const rating = star.dataset.rating;
+                    stars.forEach(s => {
+                        if (s.dataset.rating <= rating) {
+                            s.style.color = '#f39c12';
+                        } else {
+                            s.style.color = '#ddd';
+                        }
+                    });
+                });
+            });
+
+            container.addEventListener('mouseleave', () => {
+                const currentRating = input.value;
+                stars.forEach(s => {
+                    if (currentRating && s.dataset.rating <= currentRating) {
+                        s.style.color = '#f39c12';
+                    } else {
+                        s.style.color = '#ddd';
+                    }
+                });
+            });
+        });
+
+        // Form validation
+        document.getElementById('feedbackForm').addEventListener('submit', (e) => {
+            if (!ratingInput.value) {
+                e.preventDefault();
+                alert('Veuillez donner une note avant de soumettre.');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>
+

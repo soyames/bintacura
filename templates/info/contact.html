@@ -1,0 +1,192 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/info/contact.css' %}">
+</head>
+
+<body>
+    <header class="page-header">
+        <a href="/" class="header-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA">
+            
+        </a>
+        <a href="/" class="back-btn">Retour →</a>
+    </header>
+
+    <div class="content-wrapper">
+        <h1 class="page-title">Contactez-Nous</h1>
+
+        <div class="contact-grid">
+            <div class="contact-card">
+                <div class="contact-icon">📧</div>
+                <h3 class="contact-title">Email (Recommandé)</h3>
+                <div class="contact-info">
+                    <p>Contact principal :</p>
+                    <a href="mailto:contacts@bintacura.org">contacts@bintacura.org</a>
+                    <p class="contact-note">Pour toute demande : information, support technique, partenariat</p>
+                </div>
+            </div>
+
+            <div class="contact-card">
+                <div class="contact-icon">📞</div>
+                <h3 class="contact-title">Téléphone</h3>
+                <div class="contact-info">
+                    <p>Standard :</p>
+                    <a href="tel:+2290166124838">+229 01 66 12 48 38</a>
+                    <p class="contact-note">
+                        Préférence : Email<br>
+                        Disponible : Lun-Ven 8h-17h
+                    </p>
+                </div>
+            </div>
+
+            <div class="contact-card">
+                <div class="contact-icon">📍</div>
+                <h3 class="contact-title">Adresse</h3>
+                <div class="contact-info">
+                    <p>
+                        <strong>BINTACURA - Digital Concordia</strong><br>
+                        Abomey-Calavi<br>
+                        Bénin
+                    </p>
+                    <p class="contact-note">
+                        RCCM: RB/ABC/21 A 28773<br>
+                        IFU: 0201710085082
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="contact-card partnership-card">
+            <div class="company-logo">
+                <img src="{% static 'img/logo_digital_concordia.png' %}" alt="Digital Concordia" class="concordia-logo">
+            </div>
+            <h3 class="contact-title">Digital Concordia</h3>
+            <div class="contact-info">
+                <p>
+                    Entreprise de droit béninois spécialisée dans les solutions numériques pour la santé
+                </p>
+                <p>
+                    <a href="https://www.digitalconcordia.com/" target="_blank" rel="noopener noreferrer">www.digitalconcordia.com</a>
+                </p>
+            </div>
+        </div>
+
+        <div class="form-card">
+            <h2>Envoyez-nous un Message</h2>
+            <div id="formAlert" class="alert"></div>
+            <form id="contactForm">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="name">Nom complet *</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Téléphone</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+229 XX XX XX XX">
+                </div>
+
+                <div class="form-group">
+                    <label for="subject">Sujet *</label>
+                    <select id="subject" name="subject" required>
+                        <option value="">Sélectionnez un sujet</option>
+                        <option value="support">Support technique</option>
+                        <option value="info">Demande d'information</option>
+                        <option value="partnership">Opportunité de partenariat</option>
+                        <option value="feedback">Retour d'expérience</option>
+                        <option value="deployment">Déploiement au Bénin/Afrique</option>
+                        <option value="other">Autre</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message *</label>
+                    <textarea id="message" name="message" required placeholder="Décrivez votre demande en détail..."></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">Envoyer le Message</button>
+            </form>
+        </div>
+
+        <div class="contact-card partnership-card">
+            <div class="contact-icon">🤝</div>
+            <h3 class="contact-title">Opportunités de Partenariat</h3>
+            <div class="contact-info">
+                <p>
+                    Digital Concordia recherche activement des partenaires pour le déploiement
+                    de la solution BINTACURA au Bénin et dans d'autres pays d'Afrique.
+                </p>
+                <p class="contact-note">
+                    Intéressé par un partenariat stratégique? Contactez-nous via le formulaire ci-dessous
+                    ou directement par email à <strong>contacts@bintacura.org</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const alert = document.getElementById('formAlert');
+            const originalBtnText = submitBtn.textContent;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Envoi en cours...';
+            alert.classList.remove('show', 'success', 'error');
+
+            const formData = new FormData(this);
+            const data = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                subject: formData.get('subject'),
+                message: formData.get('message')
+            };
+
+            try {
+                const response = await fetch('/api/v1/contact/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert.textContent = 'Message envoyé avec succès! Nous vous répondrons dans les plus brefs délais.';
+                    alert.classList.add('success', 'show');
+                    this.reset();
+                } else {
+                    alert.textContent = result.error || 'Une erreur est survenue. Veuillez réessayer.';
+                    alert.classList.add('error', 'show');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert.textContent = 'Erreur de connexion. Veuillez vérifier votre connexion internet et réessayer.';
+                alert.classList.add('error', 'show');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            }
+        });
+    </script>
+</body>
+
+</html>

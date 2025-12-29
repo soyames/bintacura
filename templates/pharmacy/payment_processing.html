@@ -1,0 +1,208 @@
+{% extends 'pharmacy/base.html' %}
+{% load static %}
+
+{% block title %}Payment Processing - {{ pharmacy.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pharmacy/payment_processing.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="payment-container">
+    <div class="payment-header">
+        <button class="btn-back" onclick="window.history.back()">
+            <i class="fas fa-arrow-left"></i> Back to Queue
+        </button>
+        <h1><i class="fas fa-credit-card"></i> Payment Processing</h1>
+    </div>
+
+    <div class="payment-grid">
+        <!-- Order Summary -->
+        <div class="order-summary-card">
+            <h2><i class="fas fa-file-invoice"></i> Order Summary</h2>
+            
+            <div class="order-info">
+                <div class="info-row">
+                    <span>Order Number:</span>
+                    <strong>#{{ order.order_number }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Patient:</span>
+                    <strong>{{ order.patient.get_full_name }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Phone:</span>
+                    <strong>{{ order.patient.phone_number }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Date:</span>
+                    <strong>{{ order.created_at|date:"M d, Y H:i" }}</strong>
+                </div>
+            </div>
+
+            <div class="items-list">
+                <h3>Items</h3>
+                {% for item in order.items.all %}
+                <div class="item-row">
+                    <div class="item-info">
+                        <strong>{{ item.medicine.name }}</strong>
+                        <p>{{ item.medicine.strength }} - {{ item.medicine.form }}</p>
+                    </div>
+                    <div class="item-quantity">
+                        Qty: {{ item.quantity }}
+                    </div>
+                    <div class="item-price">
+                        {{ order.currency_symbol }}{{ item.total_price_local|floatformat:2 }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="price-breakdown">
+                <div class="price-row">
+                    <span>Subtotal:</span>
+                    <span>{{ order.currency_symbol }}{{ order.subtotal_local|floatformat:2 }}</span>
+                </div>
+                {% if order.tax_amount_local > 0 %}
+                <div class="price-row">
+                    <span>Tax:</span>
+                    <span>{{ order.currency_symbol }}{{ order.tax_amount_local|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+                {% if order.delivery_fee_local > 0 %}
+                <div class="price-row">
+                    <span>Delivery Fee:</span>
+                    <span>{{ order.currency_symbol }}{{ order.delivery_fee_local|floatformat:2 }}</span>
+                </div>
+                {% endif %}
+                <div class="price-row total">
+                    <strong>Total:</strong>
+                    <strong class="total-amount">{{ order.currency_symbol }}{{ order.total_amount_local|floatformat:2 }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="payment-methods-card">
+            <h2><i class="fas fa-wallet"></i> Payment Method</h2>
+            
+            <div class="payment-options">
+                <div class="payment-option" data-method="mobile_money">
+                    <div class="option-header">
+                        <input type="radio" name="payment_method" id="mobile_money" value="mobile_money" checked>
+                        <label for="mobile_money">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>Mobile Money</span>
+                        </label>
+                    </div>
+                    <div class="option-details active">
+                        <select id="mobile_provider" class="form-control">
+                            <option value="">Select Provider</option>
+                            <option value="mtn">MTN Mobile Money</option>
+                            <option value="orange">Orange Money</option>
+                            <option value="moov">Moov Money</option>
+                            <option value="wave">Wave</option>
+                        </select>
+                        <input type="tel" id="mobile_number" class="form-control" placeholder="Phone Number" value="{{ order.patient.phone_number }}">
+                    </div>
+                </div>
+
+                <div class="payment-option" data-method="card">
+                    <div class="option-header">
+                        <input type="radio" name="payment_method" id="card" value="card">
+                        <label for="card">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Card Payment</span>
+                        </label>
+                    </div>
+                    <div class="option-details">
+                        <p class="payment-note">Customer will receive payment link via SMS</p>
+                    </div>
+                </div>
+
+                <div class="payment-option" data-method="cash">
+                    <div class="option-header">
+                        <input type="radio" name="payment_method" id="cash" value="cash">
+                        <label for="cash">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Cash Payment</span>
+                        </label>
+                    </div>
+                    <div class="option-details">
+                        <input type="number" id="cash_received" class="form-control" placeholder="Amount Received" step="0.01">
+                        <div id="change_amount" class="change-display" style="display:none;">
+                            <span>Change:</span>
+                            <strong id="change_value">{{ order.currency_symbol }}0.00</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payment-option" data-method="insurance">
+                    <div class="option-header">
+                        <input type="radio" name="payment_method" id="insurance" value="insurance">
+                        <label for="insurance">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Insurance</span>
+                        </label>
+                    </div>
+                    <div class="option-details">
+                        {% if order.patient.insurance_provider %}
+                        <p class="insurance-info">
+                            <strong>{{ order.patient.insurance_provider.name }}</strong><br>
+                            Policy: {{ order.patient.insurance_policy_number }}
+                        </p>
+                        {% else %}
+                        <p class="payment-note text-warning">No insurance information on file</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="payment-actions">
+                <button class="btn btn-secondary" onclick="window.history.back()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-success btn-lg" id="processPaymentBtn">
+                    <i class="fas fa-check"></i> Process Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Processing Modal -->
+<div id="processingModal" class="modal">
+    <div class="modal-content modal-sm">
+        <div class="modal-body text-center">
+            <div class="spinner"></div>
+            <h3>Processing Payment...</h3>
+            <p>Please wait</p>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Success Modal -->
+<div id="successModal" class="modal">
+    <div class="modal-content modal-sm">
+        <div class="modal-body text-center">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2>Payment Successful!</h2>
+            <p>Transaction completed successfully</p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="printReceiptBtn">
+                    <i class="fas fa-print"></i> Print Receipt
+                </button>
+                <button class="btn btn-secondary" id="backToQueueBtn">
+                    <i class="fas fa-arrow-left"></i> Back to Queue
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pharmacy/payment_processing.js' %}"></script>
+{% endblock %}

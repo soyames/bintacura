@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion du Personnel - Assurance Santé BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/claims.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Gestion du Personnel" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="content-section">
+            <div class="stats-grid">
+                <div class="stat-card approved">
+                    <div class="stat-label">Personnel Actif</div>
+                    <div class="stat-value" id="activeStaffCount">-</div>
+                </div>
+                <div class="stat-card pending">
+                    <div class="stat-label">Gestionnaires de Réclamations</div>
+                    <div class="stat-value" id="claimsProcessorCount">-</div>
+                </div>
+                <div class="stat-card review">
+                    <div class="stat-label">Souscripteurs</div>
+                    <div class="stat-value" id="underwriterCount">-</div>
+                </div>
+                <div class="stat-card rejected">
+                    <div class="stat-label">Personnel Inactif</div>
+                    <div class="stat-value" id="inactiveStaffCount">-</div>
+                </div>
+            </div>
+
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterStaff('all')">Tous</button>
+                <button class="filter-btn" onclick="filterStaff('claims_processor')">Gestionnaires de Réclamations</button>
+                <button class="filter-btn" onclick="filterStaff('underwriter')">Souscripteurs</button>
+                <button class="filter-btn" onclick="filterStaff('customer_service')">Service Client</button>
+                <button class="filter-btn" onclick="filterStaff('manager')">Managers</button>
+                <button class="filter-btn" onclick="filterStaff('administrator')">Administrateurs</button>
+                <button class="filter-btn" onclick="filterStaff('inactive')">Inactifs</button>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <button class="btn-action btn-approve" onclick="openAddStaffModal()">➕ Ajouter un Membre du Personnel</button>
+            </div>
+
+            <div id="staffList" class="claims-list">
+                <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <p>Chargement du personnel...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div id="addStaffModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter un Membre du Personnel</h3>
+                <button class="close-btn" onclick="closeAddStaffModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addStaffForm">
+                    <div class="detail-section">
+                        <h4>👤 Informations Personnelles</h4>
+                        <div class="detail-row">
+                            <label class="label">Nom Complet *</label>
+                            <input type="text" id="fullName" class="value" required>
+                        </div>
+                        <div class="detail-row">
+                            <label class="label">Email *</label>
+                            <input type="email" id="email" class="value" required>
+                        </div>
+                        <div class="detail-row">
+                            <label class="label">Téléphone</label>
+                            <input type="tel" id="phone" class="value">
+                        </div>
+                        <div class="detail-row">
+                            <label class="label">Mot de passe *</label>
+                            <input type="password" id="password" class="value" required>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h4>💼 Informations Professionnelles</h4>
+                        <div class="detail-row">
+                            <label class="label">Rôle *</label>
+                            <select id="staffRole" class="value" required>
+                                <option value="">Sélectionner un rôle</option>
+                                <option value="claims_processor">Gestionnaire de Réclamations</option>
+                                <option value="underwriter">Souscripteur</option>
+                                <option value="customer_service">Service Client</option>
+                                <option value="manager">Manager</option>
+                                <option value="administrator">Administrateur</option>
+                            </select>
+                        </div>
+                        <div class="detail-row">
+                            <label class="label">Département</label>
+                            <input type="text" id="department" class="value">
+                        </div>
+                        <div class="detail-row">
+                            <label class="label">ID Employé</label>
+                            <input type="text" id="employeeId" class="value">
+                        </div>
+                        <div class="detail-row">
+                            <label class="label">Superviseur</label>
+                            <select id="supervisor" class="value">
+                                <option value="">Aucun superviseur</option>
+                            </select>
+                        </div>
+                        <div class="detail-row">
+                            <label class="label">Date d'embauche</label>
+                            <input type="date" id="hireDate" class="value">
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h4>🔐 Permissions</h4>
+                        <div class="detail-row">
+                            <label>
+                                <input type="checkbox" class="permission-checkbox" value="approve_claims"> Approuver les réclamations
+                            </label>
+                        </div>
+                        <div class="detail-row">
+                            <label>
+                                <input type="checkbox" class="permission-checkbox" value="reject_claims"> Rejeter les réclamations
+                            </label>
+                        </div>
+                        <div class="detail-row">
+                            <label>
+                                <input type="checkbox" class="permission-checkbox" value="approve_subscriptions"> Approuver les abonnements
+                            </label>
+                        </div>
+                        <div class="detail-row">
+                            <label>
+                                <input type="checkbox" class="permission-checkbox" value="manage_policies"> Gérer les polices
+                            </label>
+                        </div>
+                        <div class="detail-row">
+                            <label>
+                                <input type="checkbox" class="permission-checkbox" value="view_reports"> Voir les rapports
+                            </label>
+                        </div>
+                        <div class="detail-row">
+                            <label>
+                                <input type="checkbox" class="permission-checkbox" value="manage_staff"> Gérer le personnel
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h4>📝 Notes</h4>
+                        <div class="detail-row">
+                            <textarea id="notes" class="value" rows="3" placeholder="Notes additionnelles..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-action" onclick="closeAddStaffModal()">Annuler</button>
+                <button type="button" class="btn-action btn-approve" onclick="submitAddStaff()">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Detail Modal -->
+    <div id="staffDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalStaffTitle">Détails du Personnel</h3>
+                <button class="close-btn" onclick="closeStaffDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="staffDetailBody">
+            </div>
+            <div class="modal-footer" id="staffModalActions">
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Permissions Modal -->
+    <div id="editPermissionsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifier les Permissions</h3>
+                <button class="close-btn" onclick="closeEditPermissionsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-section">
+                    <h4>🔐 Permissions</h4>
+                    <div class="detail-row">
+                        <label>
+                            <input type="checkbox" class="edit-permission-checkbox" value="approve_claims"> Approuver les réclamations
+                        </label>
+                    </div>
+                    <div class="detail-row">
+                        <label>
+                            <input type="checkbox" class="edit-permission-checkbox" value="reject_claims"> Rejeter les réclamations
+                        </label>
+                    </div>
+                    <div class="detail-row">
+                        <label>
+                            <input type="checkbox" class="edit-permission-checkbox" value="approve_subscriptions"> Approuver les abonnements
+                        </label>
+                    </div>
+                    <div class="detail-row">
+                        <label>
+                            <input type="checkbox" class="edit-permission-checkbox" value="manage_policies"> Gérer les polices
+                        </label>
+                    </div>
+                    <div class="detail-row">
+                        <label>
+                            <input type="checkbox" class="edit-permission-checkbox" value="view_reports"> Voir les rapports
+                        </label>
+                    </div>
+                    <div class="detail-row">
+                        <label>
+                            <input type="checkbox" class="edit-permission-checkbox" value="manage_staff"> Gérer le personnel
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-action" onclick="closeEditPermissionsModal()">Annuler</button>
+                <button type="button" class="btn-action btn-approve" onclick="submitEditPermissions()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/staff.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
+

@@ -1,0 +1,7 @@
+<button
+    type="{{ button_type|default:'button' }}"
+    class="btn btn-{{ style|default:'primary' }}"
+    {% if onclick %}onclick="{{ onclick }}"{% endif %}
+>
+    {{ text|default:'Button' }}
+</button>

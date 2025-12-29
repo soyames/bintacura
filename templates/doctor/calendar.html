@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendrier - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/calendar.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Calendrier" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button class="calendar-nav-btn" id="prevMonth">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h2 id="currentMonth"></h2>
+                <button class="calendar-nav-btn" id="nextMonth">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <div class="calendar-weekdays">
+                <div class="calendar-weekday">Lun</div>
+                <div class="calendar-weekday">Mar</div>
+                <div class="calendar-weekday">Mer</div>
+                <div class="calendar-weekday">Jeu</div>
+                <div class="calendar-weekday">Ven</div>
+                <div class="calendar-weekday">Sam</div>
+                <div class="calendar-weekday">Dim</div>
+            </div>
+
+            <div class="calendar-grid" id="calendarGrid"></div>
+
+            <div class="calendar-legend">
+                <div class="legend-item">
+                    <span class="legend-dot status-pending"></span>
+                    <span>En attente</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot status-confirmed"></span>
+                    <span>Confirmé</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot status-completed"></span>
+                    <span>Terminé</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot status-cancelled"></span>
+                    <span>Annulé</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="appointments-sidebar" id="appointmentsSidebar">
+            <h3 id="selectedDate"></h3>
+            <div id="appointmentsList"></div>
+        </div>
+    </div>
+
+    <div id="appointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <button class="close-btn" onclick="closeAppointmentModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        let currentDate = new Date();
+        let appointments = [];
+
+        async function loadAppointments() {
+            try {
+                const response = await fetchApi('appointments/appointments/?doctor=' + '{{ request.user.uid }}');
+                const data = await response.json();
+                appointments = data.results || [];
+                renderCalendar();
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            
+            document.getElementById('currentMonth').textContent = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '';
+
+            for (let i = 0; i < adjustedFirstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day empty';
+                calendarGrid.appendChild(emptyDay);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayAppointments = appointments.filter(apt => apt.appointment_date === dateStr);
+
+                const today = new Date();
+                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    dayElement.classList.add('today');
+                }
+
+                dayElement.innerHTML = `
+                    <div class="day-number">${day}</div>
+                    <div class="day-appointments">
+                        ${dayAppointments.slice(0, 3).map(apt => `
+                            <div class="appointment-dot status-${apt.status}" title="${apt.patient_name}"></div>
+                        `).join('')}
+                        ${dayAppointments.length > 3 ? `<div class="more-appointments">+${dayAppointments.length - 3}</div>` : ''}
+                    </div>
+                `;
+
+                dayElement.onclick = () => showAppointments(dateStr, day);
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+
+        function showAppointments(dateStr, day) {
+            const dayAppointments = appointments.filter(apt => apt.appointment_date === dateStr);
+            const sidebar = document.getElementById('appointmentsSidebar');
+            const selectedDateEl = document.getElementById('selectedDate');
+            const appointmentsList = document.getElementById('appointmentsList');
+
+            selectedDateEl.textContent = `Rendez-vous du ${day} ${document.getElementById('currentMonth').textContent.split(' ')[0]}`;
+
+            if (dayAppointments.length === 0) {
+                appointmentsList.innerHTML = '<p class="no-appointments">Aucun rendez-vous ce jour</p>';
+            } else {
+                appointmentsList.innerHTML = dayAppointments.map(apt => `
+                    <div class="appointment-card" onclick="showAppointmentDetails('${apt.id}')">
+                        <div class="appointment-time">${apt.appointment_time}</div>
+                        <div class="appointment-patient">${apt.patient_name || 'Patient'}</div>
+                        <div class="appointment-status status-${apt.status}">
+                            ${apt.status === 'pending' ? 'En attente' : 
+                              apt.status === 'confirmed' ? 'Confirmé' : 
+                              apt.status === 'completed' ? 'Terminé' : 'Annulé'}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            sidebar.classList.add('active');
+        }
+
+        function showAppointmentDetails(appointmentId) {
+            const appointment = appointments.find(apt => apt.id === appointmentId);
+            if (!appointment) return;
+
+            const modal = document.getElementById('appointmentModal');
+            document.getElementById('modalTitle').textContent = 'Détails du Rendez-vous';
+            document.getElementById('modalBody').innerHTML = `
+                <div class="appointment-details">
+                    <div class="detail-row">
+                        <strong>Patient:</strong>
+                        <span>${appointment.patient_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Date:</strong>
+                        <span>${appointment.appointment_date}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Heure:</strong>
+                        <span>${appointment.appointment_time}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Type:</strong>
+                        <span>${appointment.type === 'telemedicine' ? 'Télémédecine' : 'En personne'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <strong>Statut:</strong>
+                        <span class="status-badge status-${appointment.status}">
+                            ${appointment.status}
+                        </span>
+                    </div>
+                    ${appointment.reason ? `
+                        <div class="detail-row">
+                            <strong>Motif:</strong>
+                            <span>${appointment.reason}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            modal.classList.add('active');
+        }
+
+        function closeAppointmentModal() {
+            document.getElementById('appointmentModal').classList.remove('active');
+        }
+
+        document.getElementById('prevMonth').onclick = () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        };
+
+        document.getElementById('nextMonth').onclick = () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        };
+
+        document.onclick = (event) => {
+            const sidebar = document.getElementById('appointmentsSidebar');
+            const modal = document.getElementById('appointmentModal');
+            if (event.target === sidebar) {
+                sidebar.classList.remove('active');
+            }
+            if (event.target === modal) {
+                modal.classList.remove('active');
+            }
+        };
+
+        loadAppointments();
+    </script>
+</body>
+
+</html>
+

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px 20px;
+            background-color: white;
+        }
+
+        .content h2 {
+            color: #4a90e2;
+            font-size: 22px;
+            margin-top: 0;
+        }
+
+        .content p {
+            margin: 15px 0;
+        }
+
+        .content ul {
+            padding-left: 20px;
+            margin: 15px 0;
+        }
+
+        .content li {
+            margin: 8px 0;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box p {
+            margin: 0;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        .footer a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 20px 0;
+        }
+
+        .content a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+
+        .closing-text {
+            margin-top: 30px;
+        }
+
+        .footer-contact {
+            margin-top: 10px;
+        }
+
+        .footer-legal {
+            margin-top: 15px;
+            font-size: 11px;
+            color: #999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Bienvenue sur BINTACURA</h1>
+            <p>Votre plateforme de santé numérique</p>
+        </div>
+        <div class="content">
+            <h2>Bonjour {{ user_name }} !</h2>
+
+            <p>Nous sommes ravis de vous accueillir sur <strong>BINTACURA</strong>, la plateforme de santé numérique développée par <strong>Digital Concordia</strong>.</p>
+
+            <p>Votre compte <strong>{{ role }}</strong> a été créé avec succès.</p>
+
+            <div class="warning-box">
+                <p><strong>⚠️ Phase de Test :</strong> BINTACURA est actuellement en phase de test et de validation. Certaines fonctionnalités peuvent être en cours de développement. Merci de votre compréhension et de vos retours pour améliorer la plateforme.</p>
+            </div>
+
+            <p><strong>Fonctionnalités disponibles :</strong></p>
+            <ul>
+                <li>Prendre des rendez-vous avec des professionnels de santé</li>
+                <li>Consulter vos ordonnances et prescriptions</li>
+                <li>Gérer votre dossier médical électronique</li>
+                <li>Effectuer des paiements sécurisés via FedaPay</li>
+                <li>Accéder à vos informations d'assurance santé</li>
+                <li>Communiquer avec vos prestataires de soins</li>
+            </ul>
+
+            <div class="divider"></div>
+
+            <p><strong>Besoin d'aide ?</strong></p>
+            <p>Notre équipe est disponible pour vous accompagner :</p>
+            <ul>
+                <li><strong>Email (Recommandé) :</strong> <a href="mailto:contacts@bintacura.org">contacts@bintacura.org</a></li>
+                <li><strong>Téléphone :</strong> +229 01 66 12 48 38 (Lun-Ven 8h-17h)</li>
+            </ul>
+
+            <p>Pour en savoir plus sur BINTACURA, consultez notre <a href="https://www.bintacura.org">site web</a>.</p>
+
+            <p class="closing-text">Merci de nous faire confiance pour accompagner votre parcours de santé.</p>
+
+            <p><strong>L'équipe BINTACURA</strong><br>Digital Concordia</p>
+        </div>
+        <div class="footer">
+            <p><strong>BINTACURA</strong> - Développé par <strong>Digital Concordia</strong></p>
+            <p>Abomey-Calavi, Bénin</p>
+            <p>RCCM: RB/ABC/21 A 28773 | IFU: 0201710085082</p>
+            <p class="footer-contact">
+                <a href="mailto:contacts@bintacura.org">contacts@bintacura.org</a> |
+                <a href="https://www.bintacura.org">www.bintacura.org</a>
+            </p>
+            <p class="footer-legal">
+                Vos données de santé sont protégées conformément à la loi béninoise (Code du numérique - Loi n° 2017-20)<br>
+                et aux réglementations de l'APDP (Autorité de Protection des Données Personnelles du Bénin).
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

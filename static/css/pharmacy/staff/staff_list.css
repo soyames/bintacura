@@ -1,0 +1,362 @@
+/* Staff Management Page Styles */
+.staff-management-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.staff-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.header-title h1 {
+    color: #2c5f2d;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.header-title p {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.staff-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #2c5f2d 0%, #97bf0d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c5f2d;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.staff-table-container {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow-x: auto;
+}
+
+.staff-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.staff-table thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.staff-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #2c5f2d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.staff-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.staff-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.staff-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.staff-name .name {
+    font-weight: 500;
+    color: #333;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.role-pharmacist {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.role-technician {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.role-cashier {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.role-manager {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.counter-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: #e3f2fd;
+    color: #1976d2;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.no-counter {
+    color: #999;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-active {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.status-inactive {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    width: 35px;
+    height: 35px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-icon.edit-staff {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.btn-icon.edit-staff:hover {
+    background: #1976d2;
+    color: white;
+}
+
+.btn-icon.delete-staff {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+.btn-icon.delete-staff:hover {
+    background: #d32f2f;
+    color: white;
+}
+
+.no-data {
+    text-align: center;
+    padding: 3rem !important;
+    color: #999;
+}
+
+.no-data i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #ddd;
+}
+
+.no-data p {
+    font-size: 1.1rem;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-header h2 {
+    color: #2c5f2d;
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.close {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close:hover {
+    color: #333;
+}
+
+#addStaffForm {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2c5f2d;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2c5f2d 0%, #97bf0d 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(44,95,45,0.3);
+}
+
+.btn-secondary {
+    background: #f8f9fa;
+    color: #666;
+}
+
+.btn-secondary:hover {
+    background: #e9ecef;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .staff-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .staff-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .staff-table-container {
+        overflow-x: auto;
+    }
+}

@@ -1,0 +1,260 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patients - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard-common.css' %}">
+<link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+<!-- Inline styles moved to dashboard-common.css and doctor.css (DOCTOR PATIENTS PAGE STYLES section) -->
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Patients" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalPatients">0</div>
+                <div class="stat-label">Total Patients</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activePatients">0</div>
+                <div class="stat-label">Actifs (30j)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalConsultations">0</div>
+                <div class="stat-label">Consultations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgConsultations">0</div>
+                <div class="stat-label">Moy./Patient</div>
+            </div>
+        </div>
+
+        <div class="search-filter-bar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Rechercher un patient (nom, email, téléphone)...">
+                <span class="search-icon">🔍</span>
+            </div>
+            <select class="filter-select" id="sortFilter">
+                <option value="recent">Plus récents</option>
+                <option value="name">Nom (A-Z)</option>
+                <option value="consultations">Plus de consultations</option>
+            </select>
+        </div>
+
+        <div class="patient-list">
+            <div class="patient-list-header">
+                Liste des Patients
+            </div>
+            <div id="patientListContainer">
+                <!-- Patients will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allPatients = [];
+
+        async function loadPatients() {
+            try {
+                console.log('Loading patients from API...');
+                const response = await fetch('/api/v1/doctor/patients/');
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error:', response.status, errorText);
+                    throw new Error(`Failed to fetch patients: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Patients loaded:', data);
+
+                if (!data.success) {
+                    throw new Error(data.error || 'API returned unsuccessful response');
+                }
+
+                allPatients = data.patients || [];
+                console.log(`Total patients: ${allPatients.length}`);
+
+                updateStats(data.stats);
+                renderPatients(allPatients);
+            } catch (error) {
+                console.error('Error loading patients:', error);
+                showEmptyState(`Erreur: ${error.message}`);
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('totalPatients').textContent = stats?.total || 0;
+            document.getElementById('activePatients').textContent = stats?.active || 0;
+            document.getElementById('totalConsultations').textContent = stats?.consultations || 0;
+            document.getElementById('avgConsultations').textContent = stats?.average?.toFixed(1) || 0;
+        }
+
+        function renderPatients(patients) {
+            const container = document.getElementById('patientListContainer');
+            
+            if (!patients || patients.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            container.innerHTML = patients.map(patient => `
+                <div class="patient-item">
+                    <div class="patient-info">
+                        <div class="patient-name">${patient.full_name}</div>
+                        <div class="patient-details">
+                            <div class="patient-detail-item">
+                                <span>📧</span>
+                                <span>${patient.email}</span>
+                            </div>
+                            <div class="patient-detail-item">
+                                <span>📞</span>
+                                <span>${patient.phone_number || 'N/A'}</span>
+                            </div>
+                            <div class="patient-detail-item">
+                                <span>🎂</span>
+                                <span>${patient.age || 'N/A'} ans</span>
+                            </div>
+                            <div class="patient-detail-item">
+                                <span>⚧</span>
+                                <span>${patient.gender_display || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="patient-stats">
+                        <div class="patient-stat">
+                            <div class="patient-stat-value">${patient.total_appointments || 0}</div>
+                            <div class="patient-stat-label">RDV</div>
+                        </div>
+                        <div class="patient-stat">
+                            <div class="patient-stat-value">${patient.last_visit || 'Jamais'}</div>
+                            <div class="patient-stat-label">Dernière</div>
+                        </div>
+                    </div>
+                    <div class="patient-actions">
+                        <a href="/doctor/medical-record/${patient.uid}/" class="btn btn-primary">
+                            📋 Dossier
+                        </a>
+                        <a href="/doctor/new-prescription/?patient=${patient.uid}" class="btn btn-secondary">
+                            💊 Prescription
+                        </a>
+                        ${patient.has_active_prescription ? `
+                        <button class="btn btn-outline" onclick="renewPrescription('${patient.uid}')">
+                            🔄 Renouveler
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showEmptyState(message = null) {
+            const container = document.getElementById('patientListContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">👥</div>
+                    <div class="empty-state-text">${message || 'Aucun patient pour le moment'}</div>
+                    <p>Les patients qui prennent rendez-vous avec vous apparaîtront ici.</p>
+                </div>
+            `;
+        }
+
+        function renewPrescription(patientUid) {
+            if (confirm('Voulez-vous renouveler la dernière prescription de ce patient ?')) {
+                window.location.href = `/doctor/new-prescription/?patient=${patientUid}&renew=true`;
+            }
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+
+            // If search is empty, show all patients
+            if (!searchTerm) {
+                renderPatients(allPatients);
+                return;
+            }
+
+            const filtered = allPatients.filter(patient => {
+                const fullName = (patient.full_name || '').toLowerCase();
+                const email = (patient.email || '').toLowerCase();
+                const phone = (patient.phone_number || '').toLowerCase();
+
+                return fullName.includes(searchTerm) ||
+                       email.includes(searchTerm) ||
+                       phone.includes(searchTerm);
+            });
+
+            renderPatients(filtered);
+
+            // Show message if no results
+            if (filtered.length === 0) {
+                const container = document.getElementById('patientListContainer');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-text">Aucun patient trouvé</div>
+                        <p>Aucun patient ne correspond à "${e.target.value}"</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Sort functionality
+        document.getElementById('sortFilter').addEventListener('change', function(e) {
+            const sortBy = e.target.value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            // Get filtered patients based on current search
+            let patientsToSort = allPatients;
+            if (searchTerm) {
+                patientsToSort = allPatients.filter(patient => {
+                    const fullName = (patient.full_name || '').toLowerCase();
+                    const email = (patient.email || '').toLowerCase();
+                    const phone = (patient.phone_number || '').toLowerCase();
+
+                    return fullName.includes(searchTerm) ||
+                           email.includes(searchTerm) ||
+                           phone.includes(searchTerm);
+                });
+            }
+
+            let sorted = [...patientsToSort];
+
+            switch(sortBy) {
+                case 'name':
+                    sorted.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+                    break;
+                case 'consultations':
+                    sorted.sort((a, b) => (b.total_appointments || 0) - (a.total_appointments || 0));
+                    break;
+                case 'recent':
+                default:
+                    sorted.sort((a, b) => {
+                        const dateA = a.last_visit_date ? new Date(a.last_visit_date) : new Date(0);
+                        const dateB = b.last_visit_date ? new Date(b.last_visit_date) : new Date(0);
+                        return dateB - dateA;
+                    });
+            }
+
+            renderPatients(sorted);
+        });
+
+        // Load patients on page load
+        loadPatients();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

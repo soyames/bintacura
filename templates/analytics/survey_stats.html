@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiques Enquête - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/survey_stats.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+        <a href="/" class="header-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA">
+        </a>
+        <a href="/" class="back-btn">← Retour</a>
+    </header>
+
+    <div class="content-wrapper">
+        <h1 class="page-title">📊 Statistiques de l'Enquête</h1>
+
+        <div class="stats-overview">
+            <h2>Aperçu Global</h2>
+            <div class="total-count" id="totalResponses">0</div>
+            <p class="stats-description">Réponses totales collectées</p>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="countriesCount">0</div>
+                    <div class="stat-label">Pays</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="professionsCount">0</div>
+                    <div class="stat-label">Professions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgPrice">0.00</div>
+                    <div class="stat-label">Prix Moyen Suggéré</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <a href="{% url 'analytics_survey:survey_submit' %}" class="action-btn">Participer à l'enquête</a>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-block">
+                <h3>📊 Distribution par Sexe</h3>
+                <div class="chart-container">
+                    <canvas id="sexChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-block">
+                <h3>💼 Top 15 Professions</h3>
+                <div class="chart-container">
+                    <canvas id="professionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-block">
+                <h3>🌍 Top 15 Pays</h3>
+                <div class="chart-container">
+                    <canvas id="countryChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-block">
+                <h3>💰 Distribution des Devises</h3>
+                <div class="chart-container">
+                    <canvas id="currencyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-block full-width">
+                <h3>💵 Distribution des Prix Suggérés</h3>
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-block full-width">
+                <h3>📈 Analyse Statistique des Prix</h3>
+                <div class="chart-container">
+                    <canvas id="priceBoxChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/survey_stats.js' %}"></script>
+</body>
+</html>
+

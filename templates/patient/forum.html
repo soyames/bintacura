@@ -1,0 +1,575 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forum - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/forum.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    {% include "layout/_sidebar_patient.html" %}
+
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <h1 class="nav-title">Forum</h1>
+        </div>
+        <div class="nav-right">
+            <div class="nav-avatar">{{ request.user.full_name|slice:":2"|upper|default:"PA" }}</div>
+        </div>
+    </nav>
+
+    <!-- MAIN LAYOUT -->
+    <main class="forum-wrapper">
+        <!-- FEED -->
+        <section>
+            <article class="forum-card forum-new-post">
+                <div class="forum-new-post-header">
+                    <div class="forum-avatar">
+                        {{ request.user.full_name|slice:":1"|upper|default:"U" }}
+                    </div>
+                    <div>
+                        <div class="forum-new-post-title">Partagez avec la communauté</div>
+                        <div class="forum-meta">Questions, conseils, retours d'expérience…</div>
+                    </div>
+                </div>
+                <form id="new-post-form" enctype="multipart/form-data">
+                    <textarea
+                        name="content"
+                        id="post-content"
+                        placeholder="Partagez votre expérience ou posez une question…"
+                        required
+                    ></textarea>
+                    <img id="image-preview" class="image-preview" alt="Preview">
+                    <div class="forum-new-post-actions">
+                        <div class="forum-new-post-actions-left">
+                            <label class="btn-upload-image">
+                                📷 <span>Photo</span>
+                                <input type="file" id="post-image" name="image" accept="image/*" style="display:none">
+                            </label>
+                        </div>
+                        <button type="submit">Publier</button>
+                    </div>
+                </form>
+            </article>
+
+            <div id="forum-posts">
+                <div class="forum-loading">Chargement des messages…</div>
+            </div>
+        </section>
+
+        <!-- SIDEBAR -->
+        <aside>
+            <div class="forum-card">
+                <div class="forum-sidebar-title">👥 En ligne (<span id="online-count">0</span>)</div>
+                <div id="online-users-list" class="online-users-list">
+                    <div class="forum-loading" style="padding: 1rem; font-size: 12px;">Chargement...</div>
+                </div>
+            </div>
+
+            <div class="forum-card">
+                <div class="forum-sidebar-title">À propos du forum</div>
+                <p class="forum-sidebar-text">
+                    Cet espace vous permet d'échanger avec d'autres utilisateurs de BINTACURA :
+                    poser des questions, partager vos expériences et vous soutenir mutuellement.
+                </p>
+                <div class="forum-sidebar-tags">
+                    <span class="forum-tag">Conseils santé</span>
+                    <span class="forum-tag">Médicaments</span>
+                    <span class="forum-tag">Expériences patients</span>
+                    <span class="forum-tag">Questions générales</span>
+                </div>
+            </div>
+
+            <div class="forum-card">
+                <div class="forum-sidebar-title">Règles de bienveillance</div>
+                <p class="forum-sidebar-text">
+                    • Respectez la confidentialité et la vie privée.<br>
+                    • Restez courtois, même en cas de désaccord.<br>
+                    • Cet espace ne remplace pas l'avis d'un professionnel de santé.
+                </p>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Scripts -->
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        const postsContainer = document.getElementById('forum-posts');
+        const form = document.getElementById('new-post-form');
+        const submitButton = form.querySelector('button[type="submit"]');
+        const imageInput = document.getElementById('post-image');
+        const imagePreview = document.getElementById('image-preview');
+        const csrfToken = '{{ csrf_token }}';
+
+        // Image preview
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.classList.add('visible');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.classList.remove('visible');
+            }
+        });
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            if (isNaN(date)) return dateString;
+
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'À l\'instant';
+            if (diffMins < 60) return `Il y a ${diffMins} min`;
+            if (diffHours < 24) return `Il y a ${diffHours}h`;
+            if (diffDays < 7) return `Il y a ${diffDays}j`;
+
+            return date.toLocaleString('fr-FR', {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        async function toggleLike(postId, currentReaction) {
+            try {
+                const endpoint = currentReaction === 'like'
+                    ? `/api/v1/communication/posts/${postId}/unlike/`
+                    : `/api/v1/communication/posts/${postId}/like/`;
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to toggle like');
+
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error toggling like:', error);
+                return null;
+            }
+        }
+
+        async function toggleDislike(postId, currentReaction) {
+            try {
+                const endpoint = currentReaction === 'dislike'
+                    ? `/api/v1/communication/posts/${postId}/unlike/`
+                    : `/api/v1/communication/posts/${postId}/dislike/`;
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to toggle dislike');
+
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error toggling dislike:', error);
+                return null;
+            }
+        }
+
+        async function loadComments(postId) {
+            try {
+                const response = await fetch(`/api/v1/communication/posts/${postId}/comments/`);
+                if (!response.ok) throw new Error('Failed to load comments');
+
+                const comments = await response.json();
+                return comments;
+            } catch (error) {
+                console.error('Error loading comments:', error);
+                return [];
+            }
+        }
+
+        async function postComment(postId, content, parentId = null) {
+            try {
+                const response = await fetch(`/api/v1/communication/posts/${postId}/comment/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ content, parent_comment: parentId })
+                });
+
+                if (!response.ok) throw new Error('Failed to post comment');
+
+                const comment = await response.json();
+                return comment;
+            } catch (error) {
+                console.error('Error posting comment:', error);
+                return null;
+            }
+        }
+
+        function renderComments(comments, postId) {
+            // Create comment form
+            const commentForm = `
+                <div class="comment-form" id="comment-form-${postId}">
+                    <textarea class="comment-textarea" id="comment-input-${postId}" placeholder="Écrivez un commentaire..." rows="2"></textarea>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: center;">
+                        <input type="file" id="comment-image-${postId}" accept="image/*" style="display: none;">
+                        <button class="forum-action-btn" onclick="document.getElementById('comment-image-${postId}').click()">
+                            📷 Photo
+                        </button>
+                        <button class="btn-comment-submit" onclick="submitComment('${postId}')">Commenter</button>
+                    </div>
+                    <div class="comment-image-preview" id="comment-preview-${postId}"></div>
+                </div>
+            `;
+
+            if (!comments.length) {
+                return commentForm + '<div class="forum-meta" style="padding: 0.5rem;">Aucun commentaire</div>';
+            }
+
+            const commentsHtml = comments.map(comment => {
+                const authorInitial = comment.author_name ? comment.author_name.charAt(0).toUpperCase() : 'U';
+                return `
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <div class="comment-avatar">${authorInitial}</div>
+                            <div class="comment-author">${escapeHtml(comment.author_name)}</div>
+                            <div class="forum-meta">${formatDate(comment.created_at)}</div>
+                        </div>
+                        <div class="comment-content">${escapeHtml(comment.content)}</div>
+                        <div style="padding-left: 2rem; margin-top: 0.25rem;">
+                            <button class="forum-action-btn" onclick="toggleReplyForm('reply-${comment.id}')" style="font-size: 12px; padding: 0.2rem 0.5rem;">
+                                Répondre
+                            </button>
+                        </div>
+                        <div class="reply-form" id="reply-${comment.id}">
+                            <input type="text" class="reply-input" placeholder="Votre réponse..." id="reply-input-${comment.id}">
+                            <button class="btn-reply-submit" onclick="submitReply('${postId}', '${comment.id}')">Envoyer</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return commentForm + commentsHtml;
+        }
+
+        function toggleReplyForm(formId) {
+            const form = document.getElementById(formId);
+            if (form) {
+                form.classList.toggle('visible');
+            }
+        }
+
+        async function submitComment(postId) {
+            const textarea = document.getElementById(`comment-input-${postId}`);
+            const content = textarea.value.trim();
+
+            if (!content) return;
+
+            const comment = await postComment(postId, content);
+            if (comment) {
+                textarea.value = '';
+                // Reload comments to show the new one
+                const commentsSection = document.getElementById(`comments-${postId}`);
+                const comments = await loadComments(postId);
+                commentsSection.innerHTML = renderComments(comments, postId);
+
+                // Update comment count on the post
+                await loadPosts();
+            }
+        }
+
+        async function submitReply(postId, commentId) {
+            const input = document.getElementById(`reply-input-${commentId}`);
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            const comment = await postComment(postId, content, commentId);
+            if (comment) {
+                input.value = '';
+                toggleComments(postId); // Reload comments
+            }
+        }
+
+        async function toggleComments(postId) {
+            const commentsSection = document.getElementById(`comments-${postId}`);
+
+            if (!commentsSection) return;
+
+            if (commentsSection.classList.contains('visible')) {
+                commentsSection.classList.remove('visible');
+            } else {
+                const comments = await loadComments(postId);
+                commentsSection.innerHTML = renderComments(comments, postId);
+                commentsSection.classList.add('visible');
+            }
+        }
+
+        function renderPosts(posts) {
+            console.log('Rendering posts:', posts);
+
+            if (!posts || !Array.isArray(posts)) {
+                console.error('Invalid posts data:', posts);
+                postsContainer.innerHTML = '<div class="forum-error">Erreur de format de données</div>';
+                return;
+            }
+
+            if (!posts.length) {
+                console.log('No posts to display');
+                postsContainer.innerHTML = '<div class="forum-empty">Aucun message pour le moment. Soyez le premier à publier !</div>';
+                return;
+            }
+
+            console.log('Rendering', posts.length, 'posts');
+            postsContainer.innerHTML = posts.map(post => {
+                const author = escapeHtml(post.author_name || post.author_handle || 'Utilisateur');
+                const content = escapeHtml(post.content || '');
+                const createdAt = formatDate(post.created_at);
+                const avatarInitial = author.trim().charAt(0).toUpperCase() || 'U';
+                const userReaction = post.user_reaction;
+                const imageUrl = post.image;
+
+                return `
+                    <article class="forum-post-card" data-post-id="${post.id}">
+                        <header class="forum-post-header">
+                            <div class="forum-avatar">${avatarInitial}</div>
+                            <div>
+                                <div class="forum-author">@${author}</div>
+                                <div class="forum-meta">${createdAt}</div>
+                            </div>
+                        </header>
+                        <p class="forum-content">${content}</p>
+                        ${imageUrl ? `<img src="${imageUrl}" alt="Post image" class="forum-post-image">` : ''}
+                        <footer class="forum-post-footer">
+                            <button class="forum-action-btn ${userReaction === 'like' ? 'liked' : ''}"
+                                    onclick="handleLike('${post.id}', '${userReaction || ''}')">
+                                👍 <span id="likes-${post.id}">${post.likes_count || 0}</span>
+                            </button>
+                            <button class="forum-action-btn ${userReaction === 'dislike' ? 'disliked' : ''}"
+                                    onclick="handleDislike('${post.id}', '${userReaction || ''}')">
+                                👎 <span id="dislikes-${post.id}">${post.dislikes_count || 0}</span>
+                            </button>
+                            <button class="forum-action-btn" onclick="toggleComments('${post.id}')">
+                                💬 <span>${post.comments_count || 0}</span>
+                            </button>
+                        </footer>
+                        <div class="comments-section" id="comments-${post.id}"></div>
+                    </article>
+                `;
+            }).join('');
+        }
+
+        async function handleLike(postId, currentReaction) {
+            const result = await toggleLike(postId, currentReaction);
+            if (result) {
+                document.getElementById(`likes-${postId}`).textContent = result.likes_count;
+                document.getElementById(`dislikes-${postId}`).textContent = result.dislikes_count;
+
+                const likeBtn = event.target.closest('.forum-action-btn');
+                const postCard = likeBtn.closest('.forum-post-card');
+                const dislikeBtn = postCard.querySelectorAll('.forum-action-btn')[1];
+
+                likeBtn.classList.toggle('liked');
+                dislikeBtn.classList.remove('disliked');
+
+                // Update data attribute
+                postCard.dataset.userReaction = result.status === 'liked' ? 'like' : '';
+            }
+        }
+
+        async function handleDislike(postId, currentReaction) {
+            const result = await toggleDislike(postId, currentReaction);
+            if (result) {
+                document.getElementById(`likes-${postId}`).textContent = result.likes_count;
+                document.getElementById(`dislikes-${postId}`).textContent = result.dislikes_count;
+
+                const dislikeBtn = event.target.closest('.forum-action-btn');
+                const postCard = dislikeBtn.closest('.forum-post-card');
+                const likeBtn = postCard.querySelectorAll('.forum-action-btn')[0];
+
+                dislikeBtn.classList.toggle('disliked');
+                likeBtn.classList.remove('liked');
+
+                // Update data attribute
+                postCard.dataset.userReaction = result.status === 'disliked' ? 'dislike' : '';
+            }
+        }
+
+        async function loadPosts() {
+            console.log('Loading posts...');
+            postsContainer.innerHTML = '<div class="forum-loading">Chargement des messages…</div>';
+            try {
+                const response = await fetch('/api/v1/communication/posts/');
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error('Erreur de chargement');
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+
+                // Handle paginated response - DRF returns {count, next, previous, results}
+                const posts = data.results || data;  // Use 'results' if paginated, otherwise use data directly
+                console.log('Posts received:', Array.isArray(posts) ? posts.length : 'not an array', posts);
+
+                renderPosts(posts);
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                postsContainer.innerHTML = '<div class="forum-error">Impossible de charger les messages. Veuillez réessayer plus tard.</div>';
+            }
+        }
+
+        async function loadOnlineUsers() {
+            try {
+                const response = await fetch('/api/v1/communication/online-users/');
+                if (!response.ok) throw new Error('Failed to load online users');
+
+                const data = await response.json();
+                const onlineUsersList = document.getElementById('online-users-list');
+                const onlineCount = document.getElementById('online-count');
+
+                onlineCount.textContent = data.count;
+
+                if (data.users.length === 0) {
+                    onlineUsersList.innerHTML = '<div class="forum-meta" style="padding: 0.5rem; font-size: 12px;">Aucun utilisateur en ligne</div>';
+                } else {
+                    onlineUsersList.innerHTML = data.users.map(user => `
+                        <div class="online-user-item">
+                            <div class="online-indicator"></div>
+                            <span>${escapeHtml(user.user_name)}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading online users:', error);
+            }
+        }
+
+        async function updateActivity() {
+            try {
+                await fetch('/api/v1/communication/update-activity/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+            } catch (error) {
+                console.error('Error updating activity:', error);
+            }
+        }
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const content = form.content.value.trim();
+            if (!content) return;
+
+            submitButton.disabled = true;
+            const oldText = submitButton.textContent;
+            submitButton.textContent = 'Publication…';
+
+            try {
+                const formData = new FormData();
+                formData.append('content', content);
+
+                if (imageInput.files[0]) {
+                    formData.append('image', imageInput.files[0]);
+                }
+
+                const response = await fetch('/api/v1/communication/posts/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Error response:', errorData);
+                    throw new Error('Erreur de publication');
+                }
+
+                const newPost = await response.json();
+                console.log('Post created successfully:', newPost);
+
+                form.reset();
+                imagePreview.classList.remove('visible');
+
+                console.log('Reloading posts after successful creation...');
+                await loadPosts();
+            } catch (error) {
+                console.error(error);
+                alert("Une erreur s'est produite lors de la publication. Veuillez réessayer.");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = oldText;
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPosts();
+            loadOnlineUsers();
+
+            // Update activity every 2 minutes
+            setInterval(updateActivity, 120000);
+
+            // Reload online users every 30 seconds
+            setInterval(loadOnlineUsers, 30000);
+        });
+
+        // Mark user offline when leaving
+        window.addEventListener('beforeunload', function() {
+            navigator.sendBeacon('/api/v1/communication/go-offline/', new FormData());
+        });
+    </script>
+</body>
+
+</html>
+

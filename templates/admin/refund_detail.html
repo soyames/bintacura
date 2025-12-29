@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block title %}Refund Details - BINTACURA Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block sidebar %}
+{% include 'admin/sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Refund Request Details</h2>
+                <a href="{% url 'superadmin:refund_management' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Request Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Request ID:</strong> {{ refund.id }}</p>
+                                    <p><strong>Request Type:</strong>
+                                        <span class="badge bg-secondary">{{ refund.get_request_type_display }}</span>
+                                    </p>
+                                    <p><strong>Amount:</strong> {{ refund.amount }} {{ refund.currency }}</p>
+                                    <p><strong>Status:</strong>
+                                        {% if refund.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% elif refund.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                        {% elif refund.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% elif refund.status == 'completed' %}
+                                        <span class="badge bg-info">Completed</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Requested At:</strong> {{ refund.requested_at|date:"M d, Y H:i" }}</p>
+                                    {% if refund.reviewed_at %}
+                                    <p><strong>Reviewed At:</strong> {{ refund.reviewed_at|date:"M d, Y H:i" }}</p>
+                                    {% endif %}
+                                    {% if refund.processed_at %}
+                                    <p><strong>Processed At:</strong> {{ refund.processed_at|date:"M d, Y H:i" }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <hr>
+                            <div>
+                                <p><strong>Reason:</strong></p>
+                                <p>{{ refund.reason }}</p>
+                            </div>
+                            {% if refund.admin_notes %}
+                            <hr>
+                            <div>
+                                <p><strong>Admin Notes:</strong></p>
+                                <p>{{ refund.admin_notes }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Provider Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Name:</strong> {{ refund.provider.full_name }}</p>
+                            <p><strong>Email:</strong> {{ refund.provider.email }}</p>
+                            <p><strong>Role:</strong>
+                                <span class="badge bg-primary">{{ refund.provider.get_role_display }}</span>
+                            </p>
+                            <p><strong>Wallet Balance:</strong> {{ wallet_balance|user_currency:request.user }}</p>
+                        </div>
+                    </div>
+
+                    {% if refund.transaction %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Original Transaction</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Transaction ID:</strong> {{ refund.transaction.transaction_id }}</p>
+                            <p><strong>Amount:</strong> {{ refund.transaction.amount|user_currency:request.user }}</p>
+                            <p><strong>Date:</strong> {{ refund.transaction.created_at|date:"M d, Y H:i" }}</p>
+                            <p><strong>Type:</strong> {{ refund.transaction.get_transaction_type_display }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    {% if refund.status == 'pending' %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" action="{% url 'superadmin:approve_refund' refund.id %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label">Admin Notes</label>
+                                    <textarea name="admin_notes" class="form-control" rows="3"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100 mb-2">
+                                    <i class="bi bi-check-circle"></i> Approve Refund
+                                </button>
+                            </form>
+
+                            <form method="post" action="{% url 'superadmin:reject_refund' refund.id %}">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label class="form-label">Rejection Reason</label>
+                                    <textarea name="admin_notes" class="form-control" rows="3" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-x-circle"></i> Reject Refund
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if refund.admin_reviewer %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Reviewer</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Name:</strong> {{ refund.admin_reviewer.full_name }}</p>
+                            <p><strong>Email:</strong> {{ refund.admin_reviewer.email }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+{% endblock %}

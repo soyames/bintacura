@@ -1,0 +1,179 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Pharmacien Hospitalier - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital_pharmacist_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="hospital_pharmacist" page_title="Tableau de Bord Pharmacien" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_hospital_pharmacist.html" %}
+
+    <div class="main-content">
+        <div class="pharmacist-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Prescriptions en Attente</h3>
+                    <p class="stat-value">{{ pending_prescriptions|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Prescriptions Aujourd'hui</h3>
+                    <p class="stat-value">{{ today_prescriptions }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Stock Faible</h3>
+                    <p class="stat-value">{{ low_stock_count }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Expiration Proche</h3>
+                    <p class="stat-value">{{ expiring_soon_count }}</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Prescriptions en Attente</h2>
+                    </div>
+                    <div class="prescriptions-list">
+                        {% if pending_prescriptions %}
+                            {% for prescription in pending_prescriptions %}
+                                <div class="prescription-card">
+                                    <div class="prescription-info">
+                                        <h4>{{ prescription.patient.full_name }}</h4>
+                                        <p class="doctor-name">Prescrit par: Dr. {{ prescription.doctor.full_name }}</p>
+                                        <p class="prescription-date">{{ prescription.prescribed_at|date:"d/m/Y H:i" }}</p>
+                                        <p class="admission-info">
+                                            {% if prescription.admission %}
+                                                Admission: {{ prescription.admission.admission_number }}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="prescription-actions">
+                                        <button class="btn-sm btn-view" onclick="viewPrescription('{{ prescription.id }}')">Voir</button>
+                                        <button class="btn-sm btn-prepare" onclick="preparePrescription('{{ prescription.id }}')">Préparer</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune prescription en attente</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Prescriptions Préparées</h2>
+                    </div>
+                    <div class="prescriptions-list prepared">
+                        {% if prepared_prescriptions %}
+                            {% for prescription in prepared_prescriptions %}
+                                <div class="prescription-card prepared">
+                                    <div class="prescription-info">
+                                        <h4>{{ prescription.patient.full_name }}</h4>
+                                        <p class="doctor-name">Dr. {{ prescription.doctor.full_name }}</p>
+                                        <p class="prepared-at">Préparé: {{ prescription.prepared_at|date:"d/m/Y H:i" }}</p>
+                                    </div>
+                                    <div class="prescription-actions">
+                                        <button class="btn-sm btn-deliver" onclick="deliverPrescription('{{ prescription.id }}')">Livrer</button>
+                                        <button class="btn-sm btn-view" onclick="viewPrescription('{{ prescription.id }}')">Détails</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune prescription préparée</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Alertes Stock</h2>
+                    </div>
+                    <div class="stock-alerts">
+                        <div class="alert-section">
+                            <h4>Stock Faible</h4>
+                            {% if low_stock_items %}
+                                <div class="stock-items">
+                                    {% for item in low_stock_items %}
+                                        <div class="stock-item low">
+                                            <p class="medication-name">{{ item.medication.name }}</p>
+                                            <p class="stock-level">Stock: {{ item.quantity }}</p>
+                                            <button class="btn-sm btn-order" onclick="orderStock('{{ item.id }}')">Commander</button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="no-data">Aucun article en stock faible</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="alert-section">
+                            <h4>Expiration Proche</h4>
+                            {% if expiring_soon_items %}
+                                <div class="stock-items">
+                                    {% for item in expiring_soon_items %}
+                                        <div class="stock-item expiring">
+                                            <p class="medication-name">{{ item.medication.name }}</p>
+                                            <p class="expiry-date">Expire: {{ item.expiry_date|date:"d/m/Y" }}</p>
+                                            <p class="batch-number">Lot: {{ item.batch_number }}</p>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="no-data">Aucun article proche de l'expiration</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="prescriptionModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Détails Prescription</h3>
+                <span class="close" onclick="closeModal('prescriptionModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="prescriptionDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="preparePrescriptionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Préparer Prescription</h3>
+                <span class="close" onclick="closeModal('preparePrescriptionModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="preparePrescriptionForm" onsubmit="submitPrescriptionPreparation(event)">
+                    <input type="hidden" id="prescriptionId">
+                    <div id="medicationsChecklist"></div>
+                    <div class="form-group">
+                        <label for="preparationNotes">Notes</label>
+                        <textarea id="preparationNotes" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('preparePrescriptionModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Marquer comme Préparé</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/hospital_pharmacist_dashboard.js' %}"></script>
+</body>
+</html>
+

@@ -1,0 +1,273 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emploi du Temps - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/schedule.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Emploi du Temps" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="content-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>Mes Disponibilités</h2>
+                <button onclick="openAvailabilityModal()"
+                    style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    + Ajouter Disponibilité
+                </button>
+            </div>
+
+            <div id="availabilityList" style="display: grid; gap: 15px;">
+            </div>
+        </div>
+
+        <div id="availabilityModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
+                <h2 style="margin-bottom: 20px;">Ajouter Disponibilité</h2>
+                <form id="availabilityForm">
+                    {% csrf_token %}
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Jour de la semaine</label>
+                        <select id="weekday" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                            <option value="">Sélectionner un jour</option>
+                            <option value="monday">Lundi</option>
+                            <option value="tuesday">Mardi</option>
+                            <option value="wednesday">Mercredi</option>
+                            <option value="thursday">Jeudi</option>
+                            <option value="friday">Vendredi</option>
+                            <option value="saturday">Samedi</option>
+                            <option value="sunday">Dimanche</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Heure de début</label>
+                        <input type="time" id="start_time" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Heure de fin</label>
+                        <input type="time" id="end_time" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Durée des créneaux
+                            (minutes)</label>
+                        <select id="slot_duration" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                            <option value="15">15 minutes</option>
+                            <option value="30" selected>30 minutes</option>
+                            <option value="45">45 minutes</option>
+                            <option value="60">60 minutes</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" onclick="closeAvailabilityModal()"
+                            style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer;">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                            style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: #28a745; color: white; cursor: pointer; font-weight: 600;">
+                            Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        const weekdayNames = {
+            'monday': 'Lundi',
+            'tuesday': 'Mardi',
+            'wednesday': 'Mercredi',
+            'thursday': 'Jeudi',
+            'friday': 'Vendredi',
+            'saturday': 'Samedi',
+            'sunday': 'Dimanche'
+        };
+
+        async function loadAvailabilities() {
+            try {
+                const response = await fetchApi('appointments/availability/');
+                const data = await response.json();
+                const availabilities = data.results || data;
+
+                const container = document.getElementById('availabilityList');
+                if (!availabilities || availabilities.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">Aucune disponibilité configurée</p>';
+                    return;
+                }
+
+                container.innerHTML = availabilities.map(av => `
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 5px;">${weekdayNames[av.weekday]}</div>
+                            <div style="color: #666;">${av.start_time} - ${av.end_time} (Créneaux de ${av.slot_duration} min)</div>
+                            <div style="color: ${av.is_active ? '#28a745' : '#dc3545'}; font-size: 12px; margin-top: 5px;">
+                                ${av.is_active ? '✓ Actif' : '✗ Inactif'}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="toggleAvailability('${av.id}', ${!av.is_active})" style="padding: 8px 15px; border: none; border-radius: 6px; background: ${av.is_active ? '#ffc107' : '#28a745'}; color: white; cursor: pointer;">
+                                ${av.is_active ? 'Désactiver' : 'Activer'}
+                            </button>
+                            <button onclick="deleteAvailability('${av.id}')" style="padding: 8px 15px; border: none; border-radius: 6px; background: #dc3545; color: white; cursor: pointer;">
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading availabilities:', error);
+            }
+        }
+
+        function openAvailabilityModal() {
+            document.getElementById('availabilityModal').style.display = 'flex';
+        }
+
+        function closeAvailabilityModal() {
+            document.getElementById('availabilityModal').style.display = 'none';
+            document.getElementById('availabilityForm').reset();
+        }
+
+        document.getElementById('availabilityForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                weekday: document.getElementById('weekday').value,
+                start_time: document.getElementById('start_time').value,
+                end_time: document.getElementById('end_time').value,
+                slot_duration: parseInt(document.getElementById('slot_duration').value),
+                is_active: true
+            };
+
+            try {
+                const response = await fetchApi('appointments/availability/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    closeAvailabilityModal();
+                    loadAvailabilities();
+                    alert('Disponibilité ajoutée avec succès');
+                } else {
+                    const error = await response.json();
+                    alert('Erreur: ' + (error.detail || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        });
+
+        async function toggleAvailability(id, isActive) {
+            try {
+                const response = await fetch(`/api/v1/appointments/availability/${id}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ is_active: isActive })
+                });
+
+                if (response.ok) {
+                    loadAvailabilities();
+                } else {
+                    alert('Erreur lors de la modification');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function deleteAvailability(id) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette disponibilité ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/appointments/availability/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    loadAvailabilities();
+                    alert('Disponibilité supprimée');
+                } else {
+                    alert('Erreur lors de la suppression');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        loadAvailabilities();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

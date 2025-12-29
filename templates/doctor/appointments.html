@@ -1,0 +1,299 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rendez-vous - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/appointments.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Rendez-vous" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="content-section">
+            <div class="filters-container">
+                <button class="filter-btn active" data-filter="today" onclick="filterAppointments('today')">
+                    <span class="filter-icon">📅</span>
+                    Aujourd'hui
+                    <span class="filter-count">{{ today_appointments.count }}</span>
+                </button>
+                <button class="filter-btn" data-filter="pending" onclick="filterAppointments('pending')">
+                    <span class="filter-icon">⏳</span>
+                    En Attente
+                    <span class="filter-count">{{ pending_appointments.count }}</span>
+                </button>
+                <button class="filter-btn" data-filter="confirmed" onclick="filterAppointments('confirmed')">
+                    <span class="filter-icon">✓</span>
+                    Confirmés
+                    <span class="filter-count">{{ confirmed_appointments.count }}</span>
+                </button>
+            </div>
+
+            <div id="todaySection" class="appointments-section active">
+                <div class="section-header">
+                    <h3>Aujourd'hui ({{ today_appointments.count }})</h3>
+                </div>
+                {% if today_appointments %}
+                <div class="appointments-grid">
+                    {% for appointment in today_appointments %}
+                    <div class="appointment-card today">
+                        <div class="appointment-info">
+                            <div class="patient-name">{{ appointment.patient.full_name }}</div>
+                            <div class="appointment-time">⏰ {{ appointment.appointment_time|date:"H:i" }}</div>
+                            <div class="appointment-type">{{ appointment.get_type_display }}</div>
+                            {% if appointment.service %}
+                            <div class="appointment-service">🏷️ {{ appointment.service.name }}</div>
+                            {% endif %}
+                            {% if appointment.reason %}
+                            <div class="appointment-reason">Motif: {{ appointment.reason }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="appointment-actions">
+                            <a href="/doctor/medical-record/{{ appointment.patient.uid }}/" class="btn btn-consult">
+                                Consulter
+                            </a>
+                            {% if appointment.status == 'confirmed' %}
+                            <button onclick="startAppointment('{{ appointment.id }}', '{{ appointment.patient.uid }}')" class="btn btn-start">
+                                Démarrer
+                            </button>
+                            {% elif appointment.status == 'in_progress' %}
+                            <button onclick="completeAppointment('{{ appointment.id }}')" class="btn btn-complete">
+                                Terminer
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">Aucun rendez-vous aujourd'hui</p>
+                {% endif %}
+            </div>
+
+            <div id="pendingSection" class="appointments-section">
+                <div class="section-header">
+                    <h3>En Attente ({{ pending_appointments.count }})</h3>
+                </div>
+                {% if pending_appointments %}
+                <div class="appointments-grid">
+                    {% for appointment in pending_appointments %}
+                    <div class="appointment-card pending">
+                        <div class="appointment-info">
+                            <div class="patient-name">{{ appointment.patient.full_name }}</div>
+                            <div class="appointment-time">📅 {{ appointment.appointment_date|date:"d/m/Y" }} à {{ appointment.appointment_time|date:"H:i" }}</div>
+                            <div class="appointment-type">{{ appointment.get_type_display }}</div>
+                            {% if appointment.service %}
+                            <div class="appointment-service">🏷️ {{ appointment.service.name }}</div>
+                            {% endif %}
+                            {% if appointment.reason %}
+                            <div class="appointment-reason">Motif: {{ appointment.reason }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="appointment-actions">
+                            <a href="/doctor/medical-record/{{ appointment.patient.uid }}/" class="btn btn-consult">
+                                Consulter
+                            </a>
+                            <button onclick="confirmAppointment('{{ appointment.id }}')" class="btn btn-confirm">
+                                Confirmer
+                            </button>
+                            <button onclick="cancelAppointment('{{ appointment.id }}')" class="btn btn-cancel">
+                                Annuler
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">Aucun rendez-vous en attente</p>
+                {% endif %}
+            </div>
+
+            <div id="confirmedSection" class="appointments-section">
+                <div class="section-header">
+                    <h3>Confirmés ({{ confirmed_appointments.count }})</h3>
+                </div>
+                {% if confirmed_appointments %}
+                <div class="appointments-grid">
+                    {% for appointment in confirmed_appointments %}
+                    <div class="appointment-card confirmed">
+                        <div class="appointment-info">
+                            <div class="patient-name">{{ appointment.patient.full_name }}</div>
+                            <div class="appointment-time">📅 {{ appointment.appointment_date|date:"d/m/Y" }} à {{ appointment.appointment_time|date:"H:i" }}</div>
+                            <div class="appointment-type">{{ appointment.get_type_display }}</div>
+                            {% if appointment.service %}
+                            <div class="appointment-service">🏷️ {{ appointment.service.name }}</div>
+                            {% endif %}
+                            {% if appointment.reason %}
+                            <div class="appointment-reason">Motif: {{ appointment.reason }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="appointment-actions">
+                            <a href="/doctor/medical-record/{{ appointment.patient.uid }}/" class="btn btn-consult">
+                                Consulter
+                            </a>
+                            <button onclick="startAppointment('{{ appointment.id }}', '{{ appointment.patient.uid }}')" class="btn btn-start">
+                                Démarrer
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="empty-state">Aucun rendez-vous confirmé</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function filterAppointments(filter) {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+
+            document.querySelectorAll('.appointments-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            const sectionMap = {
+                'today': 'todaySection',
+                'pending': 'pendingSection',
+                'confirmed': 'confirmedSection'
+            };
+
+            document.getElementById(sectionMap[filter]).classList.add('active');
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function confirmAppointment(appointmentId) {
+            if (!confirm('Confirmer ce rendez-vous ?')) return;
+
+            try {
+                const response = await fetch(`/api/v1/appointments/appointments/${appointmentId}/confirm/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Rendez-vous confirmé');
+                    window.location.reload();
+                } else {
+                    alert('Erreur: ' + (data.message || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function startAppointment(appointmentId, patientId) {
+            try {
+                const response = await fetch(`/api/v1/appointments/appointments/${appointmentId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ status: 'in_progress' })
+                });
+
+                if (response.ok) {
+                    window.location.href = `/doctor/medical-record/${patientId}/`;
+                } else {
+                    alert('Erreur lors du démarrage');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function completeAppointment(appointmentId) {
+            if (!confirm('Marquer cette consultation comme terminée ?')) return;
+
+            try {
+                const response = await fetch(`/api/v1/appointments/appointments/${appointmentId}/complete/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Consultation terminée');
+                    window.location.reload();
+                } else {
+                    alert('Erreur: ' + (data.message || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function cancelAppointment(appointmentId) {
+            const reason = prompt('Raison de l\'annulation:');
+            if (!reason) return;
+
+            try {
+                const response = await fetch(`/api/v1/appointments/appointments/${appointmentId}/cancel/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ reason: reason })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Rendez-vous annulé');
+                    window.location.reload();
+                } else {
+                    alert('Erreur: ' + (data.message || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
+

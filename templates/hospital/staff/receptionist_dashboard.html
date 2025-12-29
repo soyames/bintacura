@@ -1,0 +1,246 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Réceptionniste - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/receptionist_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="receptionist" page_title="Tableau de Bord Réceptionniste" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_receptionist.html" %}
+
+    <div class="main-content">
+        <div class="receptionist-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Rendez-vous Aujourd'hui</h3>
+                    <p class="stat-value">{{ total_appointments_today }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Rendez-vous en Attente</h3>
+                    <p class="stat-value">{{ pending_appointments|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Admissions en Attente</h3>
+                    <p class="stat-value">{{ pending_admissions|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Lits Disponibles</h3>
+                    <p class="stat-value">{{ available_beds }}</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Rendez-vous d'Aujourd'hui</h2>
+                        <a href="{% url 'hospital:receptionist_appointments' %}" class="btn-link">Voir Tous</a>
+                    </div>
+                    <div class="appointments-list">
+                        {% if today_appointments %}
+                            {% for appointment in today_appointments %}
+                                <div class="appointment-card">
+                                    <div class="appointment-time">
+                                        <span class="time">{{ appointment.appointment_time|date:"H:i" }}</span>
+                                    </div>
+                                    <div class="appointment-details">
+                                        <h4>{{ appointment.patient.full_name }}</h4>
+                                        <p class="doctor-name">Dr. {{ appointment.doctor.full_name }}</p>
+                                        <p class="reason">{{ appointment.reason_for_visit }}</p>
+                                    </div>
+                                    <div class="appointment-status">
+                                        <span class="status-badge status-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                                    </div>
+                                    <div class="appointment-actions">
+                                        <button class="btn-sm btn-confirm" onclick="confirmAppointment('{{ appointment.id }}')">Confirmer</button>
+                                        <button class="btn-sm btn-reschedule" onclick="rescheduleAppointment('{{ appointment.id }}')">Reprogrammer</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucun rendez-vous prévu aujourd'hui</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Rendez-vous en Attente</h2>
+                    </div>
+                    <div class="pending-appointments-list">
+                        {% if pending_appointments %}
+                            {% for appointment in pending_appointments %}
+                                <div class="pending-appointment-card">
+                                    <div class="appointment-date">
+                                        <span class="date">{{ appointment.appointment_date|date:"d/m/Y" }}</span>
+                                        <span class="time">{{ appointment.appointment_time|date:"H:i" }}</span>
+                                    </div>
+                                    <div class="appointment-info">
+                                        <h4>{{ appointment.patient.full_name }}</h4>
+                                        <p>{{ appointment.reason_for_visit }}</p>
+                                    </div>
+                                    <div class="appointment-assignment">
+                                        <select class="doctor-select" onchange="assignDoctor('{{ appointment.id }}', this.value)">
+                                            <option value="">Assigner un médecin</option>
+                                            {% for doctor in doctors %}
+                                                <option value="{{ doctor.id }}" {% if appointment.doctor_id == doctor.id %}selected{% endif %}>
+                                                    Dr. {{ doctor.full_name }} - {{ doctor.specialization }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="appointment-actions">
+                                        <button class="btn-sm btn-approve" onclick="approveAppointment('{{ appointment.id }}')">Approuver</button>
+                                        <button class="btn-sm btn-reject" onclick="rejectAppointment('{{ appointment.id }}')">Rejeter</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucun rendez-vous en attente</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Admissions en Attente</h2>
+                    </div>
+                    <div class="admissions-list">
+                        {% if pending_admissions %}
+                            {% for admission in pending_admissions %}
+                                <div class="admission-card">
+                                    <div class="admission-info">
+                                        <h4>{{ admission.patient.full_name }}</h4>
+                                        <p class="admission-number">Admission #{{ admission.admission_number }}</p>
+                                        <p class="complaint">{{ admission.chief_complaint }}</p>
+                                        <p class="department">Département: {{ admission.department.name }}</p>
+                                    </div>
+                                    <div class="admission-actions">
+                                        <button class="btn-sm btn-assign-bed" onclick="assignBed('{{ admission.id }}')">Assigner Lit</button>
+                                        <button class="btn-sm btn-view" onclick="viewAdmission('{{ admission.id }}')">Détails</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune admission en attente</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Départements</h2>
+                    </div>
+                    <div class="departments-grid">
+                        {% for department in departments %}
+                            <div class="department-card">
+                                <h4>{{ department.name }}</h4>
+                                <p class="department-head">Chef: {{ department.head_name }}</p>
+                                <p class="department-location">{{ department.location }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="newAppointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouveau Rendez-vous</h3>
+                <span class="close" onclick="closeModal('newAppointmentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="newAppointmentForm" onsubmit="submitNewAppointment(event)">
+                    <div class="form-group">
+                        <label for="patientSearch">Rechercher Patient</label>
+                        <input type="text" id="patientSearch" placeholder="Nom ou numéro de téléphone" oninput="searchPatients(this.value)">
+                        <div id="patientResults" class="search-results"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="appointmentDate">Date</label>
+                        <input type="date" id="appointmentDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="appointmentTime">Heure</label>
+                        <input type="time" id="appointmentTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="doctorSelect">Médecin</label>
+                        <select id="doctorSelect" required>
+                            <option value="">Sélectionner un médecin</option>
+                            {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}">Dr. {{ doctor.full_name }} - {{ doctor.specialization }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reasonVisit">Raison de la visite</label>
+                        <textarea id="reasonVisit" rows="3" required></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('newAppointmentModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Créer Rendez-vous</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="newAdmissionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouvelle Admission</h3>
+                <span class="close" onclick="closeModal('newAdmissionModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="newAdmissionForm" onsubmit="submitNewAdmission(event)">
+                    <div class="form-group">
+                        <label for="admissionPatientSearch">Rechercher Patient</label>
+                        <input type="text" id="admissionPatientSearch" placeholder="Nom ou numéro de téléphone" oninput="searchPatientsForAdmission(this.value)">
+                        <div id="admissionPatientResults" class="search-results"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="admissionDepartment">Département</label>
+                        <select id="admissionDepartment" required>
+                            <option value="">Sélectionner un département</option>
+                            {% for department in departments %}
+                                <option value="{{ department.id }}">{{ department.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="admissionType">Type d'Admission</label>
+                        <select id="admissionType" required>
+                            <option value="emergency">Urgence</option>
+                            <option value="scheduled">Programmé</option>
+                            <option value="outpatient">Ambulatoire</option>
+                            <option value="observation">Observation</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="chiefComplaint">Plainte Principale</label>
+                        <textarea id="chiefComplaint" rows="3" required></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('newAdmissionModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Créer Admission</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/receptionist_dashboard.js' %}"></script>
+</body>
+</html>
+

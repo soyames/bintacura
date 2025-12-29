@@ -1,0 +1,158 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Gestionnaire Stock - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_inventory_clerk_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy_inventory_clerk" page_title="Tableau de Bord Inventaire" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy_inventory_clerk.html" %}
+
+    <div class="main-content">
+        <div class="inventory-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Articles en Stock</h3>
+                    <p class="stat-value">{{ total_items }}</p>
+                </div>
+                <div class="stat-card warning">
+                    <h3>Stock Faible</h3>
+                    <p class="stat-value">{{ low_stock_count }}</p>
+                </div>
+                <div class="stat-card alert">
+                    <h3>Expiration Proche</h3>
+                    <p class="stat-value">{{ expiring_soon_count }}</p>
+                </div>
+                <div class="stat-card danger">
+                    <h3>Articles Expirés</h3>
+                    <p class="stat-value">{{ expired_count }}</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Stock Faible</h2>
+                        <button class="btn-add" onclick="openReorderModal()">
+                            <span>+</span> Nouvelle Commande
+                        </button>
+                    </div>
+                    <div class="inventory-list">
+                        {% if low_stock_items %}
+                            {% for item in low_stock_items %}
+                                <div class="inventory-card low-stock">
+                                    <div class="inventory-info">
+                                        <h4>{{ item.medication.name }}</h4>
+                                        <p class="batch-number">Lot: {{ item.batch_number }}</p>
+                                        <p class="manufacturer">{{ item.manufacturer }}</p>
+                                    </div>
+                                    <div class="stock-status">
+                                        <div class="stock-indicator low">
+                                            <span class="current">{{ item.quantity_in_stock }}</span>
+                                            <span class="separator">/</span>
+                                            <span class="threshold">{{ item.reorder_level }}</span>
+                                        </div>
+                                        <p class="status-label">Seuil de commande</p>
+                                    </div>
+                                    <div class="inventory-actions">
+                                        <button class="btn-sm btn-order" onclick="reorderItem('{{ item.id }}')">Commander</button>
+                                        <button class="btn-sm btn-edit" onclick="editItem('{{ item.id }}')">Modifier</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucun article en stock faible</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Expiration Proche (30 jours)</h2>
+                    </div>
+                    <div class="inventory-list">
+                        {% if expiring_soon_items %}
+                            {% for item in expiring_soon_items %}
+                                <div class="inventory-card expiring">
+                                    <div class="inventory-info">
+                                        <h4>{{ item.medication.name }}</h4>
+                                        <p class="batch-number">Lot: {{ item.batch_number }}</p>
+                                        <p class="quantity">Quantité: {{ item.quantity_in_stock }}</p>
+                                    </div>
+                                    <div class="expiry-info">
+                                        <p class="expiry-date">{{ item.expiry_date|date:"d/m/Y" }}</p>
+                                        <p class="days-left">{{ item.days_until_expiry }} jours restants</p>
+                                    </div>
+                                    <div class="inventory-actions">
+                                        <button class="btn-sm btn-move" onclick="moveToDisposal('{{ item.id }}')">Retirer</button>
+                                        <button class="btn-sm btn-view" onclick="viewItem('{{ item.id }}')">Détails</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucun article proche de l'expiration</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Réceptions Récentes</h2>
+                    </div>
+                    <div class="reception-list">
+                        <p class="no-data">Aucune réception récente</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="reorderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouvelle Commande Fournisseur</h3>
+                <span class="close" onclick="closeModal('reorderModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="reorderForm" onsubmit="submitReorder(event)">
+                    <div class="form-group">
+                        <label for="supplier">Fournisseur</label>
+                        <select id="supplier" required>
+                            <option value="">Sélectionner un fournisseur</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Articles à Commander</label>
+                        <div id="orderItems"></div>
+                        <button type="button" class="btn-secondary" onclick="addOrderItem()">+ Ajouter Article</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="deliveryDate">Date de Livraison Prévue</label>
+                        <input type="date" id="deliveryDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('reorderModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Envoyer Commande</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/pharmacy_inventory_clerk_dashboard.js' %}"></script>
+</body>
+</html>
+

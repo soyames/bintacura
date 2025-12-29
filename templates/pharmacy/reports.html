@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapports - Pharmacie Centrale BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_reports.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy" page_title="Rapports" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy.html" %}
+
+    <div class="main-content">
+        <div class="reports-section">
+            <h2 class="section-title">Performance des Ventes (30 derniers jours)</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon icon-blue">💰</div>
+                    <h3>Revenu Total</h3>
+                    <div class="stat-value">{{ sales_data.total_revenue|default:0|floatformat:0 }} FCFA</div>
+                    <div class="stat-label">Ce mois</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-green">📈</div>
+                    <h3>Total Ventes</h3>
+                    <div class="stat-value">{{ sales_data.total_sales|default:0 }}</div>
+                    <div class="stat-label">Transactions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-orange">📊</div>
+                    <h3>Vente Moyenne</h3>
+                    <div class="stat-value">{{ sales_data.avg_sale|default:0|floatformat:0 }} FCFA</div>
+                    <div class="stat-label">Par transaction</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="reports-section">
+            <h2 class="section-title">Inventaire</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon icon-purple">📦</div>
+                    <h3>Articles Total</h3>
+                    <div class="stat-value">{{ inventory_data.total_items|default:0 }}</div>
+                    <div class="stat-label">Dans l'inventaire</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-orange">⚠️</div>
+                    <h3>Stock Faible</h3>
+                    <div class="stat-value">{{ inventory_data.low_stock|default:0 }}</div>
+                    <div class="stat-label">Nécessite réapprovisionnement</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="reports-section">
+            <h2 class="section-title">Commandes (30 derniers jours)</h2>
+            <div class="report-card">
+                <div class="report-header">
+                    <div class="report-title">Résumé des Commandes</div>
+                    <div class="report-period">Derniers 30 jours</div>
+                </div>
+                <div class="report-content">
+                    <div class="report-item">
+                        <span class="report-item-label">Total Commandes</span>
+                        <span class="report-item-value">{{ orders_data.total_orders|default:0 }}</span>
+                    </div>
+                    <div class="report-item">
+                        <span class="report-item-label">Commandes en Attente</span>
+                        <span class="report-item-value">{{ orders_data.pending_orders|default:0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+

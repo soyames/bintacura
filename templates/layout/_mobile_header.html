@@ -1,0 +1,16 @@
+{% load static %}
+<header class="mobile-header">
+    <div class="menu-icon" id="menuIcon">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <div class="logo">
+        <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="mobile-logo-img">
+        {{ role_label|upper|default:"DASHBOARD" }}
+    </div>
+    <div class="profile-icon">
+        {% include "components/user_avatar.html" with user=request.user %}
+    </div>
+</header>
+

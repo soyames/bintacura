@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block title %}Provider Details - BINTACURA Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block sidebar %}
+{% include 'admin/sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Provider Details</h2>
+                <a href="{% url 'superadmin:provider_verification' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Basic Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p><strong>Full Name:</strong> {{ provider.full_name }}</p>
+                                    <p><strong>Email:</strong> {{ provider.email }}</p>
+                                    <p><strong>Phone:</strong> {{ provider.phone_number }}</p>
+                                    <p><strong>Role:</strong>
+                                        <span class="badge bg-primary">{{ provider.get_role_display }}</span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>City:</strong> {{ provider.city }}</p>
+                                    <p><strong>Country:</strong> {{ provider.country }}</p>
+                                    <p><strong>Joined:</strong> {{ provider.created_at|date:"M d, Y" }}</p>
+                                    <p><strong>Status:</strong>
+                                        {% if provider.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if provider.role == 'doctor' and provider.doctor_data %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Doctor Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Specialization:</strong> {{ provider.doctor_data.specialization }}</p>
+                            <p><strong>License Number:</strong> {{ provider.doctor_data.license_number }}</p>
+                            <p><strong>Years of Experience:</strong> {{ provider.doctor_data.years_of_experience }}</p>
+                            <p><strong>Consultation Fee:</strong> {{ provider.doctor_data.consultation_fee|user_currency:request.user }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if provider.provider_data %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Provider Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Business Name:</strong> {{ provider.provider_data.business_name }}</p>
+                            <p><strong>Business Type:</strong> {{ provider.provider_data.business_type }}</p>
+                            <p><strong>License Number:</strong> {{ provider.provider_data.license_number }}</p>
+                            <p><strong>Address:</strong> {{ provider.provider_data.business_address }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if provider.insurance_company_data %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Insurance Company Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Company Name:</strong> {{ provider.insurance_company_data.company_name }}</p>
+                            <p><strong>License Number:</strong> {{ provider.insurance_company_data.license_number }}</p>
+                            <p><strong>Coverage Area:</strong> {{ provider.insurance_company_data.coverage_area }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5>Verification Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Verified:</strong>
+                                {% if provider.is_verified %}
+                                <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                <span class="badge bg-warning">No</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Blue Checkmark:</strong>
+                                {% if provider.has_blue_checkmark %}
+                                <span class="badge bg-info">Yes</span>
+                                {% else %}
+                                <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </p>
+
+                            {% if not provider.has_blue_checkmark %}
+                            <form method="post" action="{% url 'superadmin:approve_provider' provider.uid %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success w-100 mb-2">
+                                    <i class="bi bi-check-circle"></i> Grant Blue Checkmark
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'superadmin:reject_provider' provider.uid %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-x-circle"></i> Reject Verification
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Quick Stats</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Wallet Balance:</strong> {{ wallet_balance|user_currency:request.user }}</p>
+                            <p><strong>Total Transactions:</strong> {{ transaction_count }}</p>
+                            <p><strong>Last Active:</strong> {{ provider.last_login|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+{% endblock %}

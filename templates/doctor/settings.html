@@ -1,0 +1,258 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor_settings.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="logo-img">
+                
+            </div>
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">DR</div>
+                <div class="sidebar-user-info">
+                    <h3>Docteur</h3>
+                    <p>doctor@BINTACURA.com</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Navigation</div>
+                <a href="/doctor/dashboard/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">📊</span>
+                    <span class="sidebar-menu-item-text">Tableau de Bord</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Compte</div>
+                <a href="/doctor/profile/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">👤</span>
+                    <span class="sidebar-menu-item-text">Profil</span>
+                </a>
+                <a href="/logout/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">🚪</span>
+                    <span class="sidebar-menu-item-text">Déconnexion</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/doctor/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Paramètres</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/doctor/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="content-section">
+            <h2>🌐 Préférences de Langue</h2>
+            <p>Choisissez votre langue préférée</p>
+            <div class="language-wrapper">
+                {% include "components/language_switcher.html" %}
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>💰 Tarifs et Services</h2>
+            <p>Définissez vos tarifs et services disponibles</p>
+
+            <form id="feesForm">
+                {% csrf_token %}
+                <div class="form-grid two-columns">
+                    <div class="form-group">
+                        <label>Frais de consultation (FCFA)</label>
+                        <input type="number" id="consultation_fee" min="0" step="100" required>
+                        <small>Montant que les patients devront payer pour une consultation</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Années d'expérience</label>
+                        <input type="number" id="years_of_experience" min="0" max="70">
+                        <small>Votre nombre d'années de pratique médicale</small>
+                    </div>
+                </div>
+
+                <div class="form-group form-bio">
+                    <label>Biographie professionnelle</label>
+                    <textarea id="bio" placeholder="Décrivez brièvement votre parcours et vos domaines d'expertise..."></textarea>
+                    <small>Cette description sera visible par les patients</small>
+                </div>
+
+                <div class="checkbox-wrapper checkbox-section">
+                    <input type="checkbox" id="telemedicine_available">
+                    <label for="telemedicine_available">Disponible pour la télémédecine</label>
+                </div>
+
+                <button type="submit" class="btn-primary submit-btn">
+                    Enregistrer les modifications
+                </button>
+            </form>
+
+            <div class="current-settings-box" id="currentSettings">
+                <h3>📋 Paramètres actuels</h3>
+                <div id="settingsDisplay">
+                    <p>Chargement...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        async function loadSettings() {
+            try {
+                const response = await fetchApi('core/doctor-data/');
+                const data = await response.json();
+                const settings = data.results && data.results.length > 0 ? data.results[0] : data;
+
+                if (settings) {
+                    document.getElementById('consultation_fee').value = settings.consultation_fee || 0;
+                    document.getElementById('telemedicine_available').checked = settings.is_available_for_telemedicine || false;
+                    document.getElementById('years_of_experience').value = settings.years_of_experience || 0;
+                    document.getElementById('bio').value = settings.bio || '';
+
+                    document.getElementById('settingsDisplay').innerHTML = `
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <div class="setting-label">Frais de consultation</div>
+                                <div class="setting-value" id="consultation-fee-display">${settings.consultation_fee || 0} USD</div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">Télémédecine</div>
+                                <div class="setting-value">
+                                    <span class="status-badge ${settings.is_available_for_telemedicine ? 'active' : 'inactive'}">
+                                        ${settings.is_available_for_telemedicine ? 'Activée' : 'Désactivée'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">Spécialisation</div>
+                                <div class="setting-value">${settings.specialization || 'Non définie'}</div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">Années d'expérience</div>
+                                <div class="setting-value">${settings.years_of_experience || 0} ans</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                document.getElementById('settingsDisplay').innerHTML = '<p class="error-text">Erreur de chargement</p>';
+            }
+        }
+
+        document.getElementById('feesForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                consultation_fee: parseInt(document.getElementById('consultation_fee').value),
+                is_available_for_telemedicine: document.getElementById('telemedicine_available').checked,
+                years_of_experience: parseInt(document.getElementById('years_of_experience').value) || 0,
+                bio: document.getElementById('bio').value
+            };
+
+            try {
+                const listResponse = await fetchApi('core/doctor-data/');
+                const listData = await listResponse.json();
+                const doctorData = listData.results && listData.results.length > 0 ? listData.results[0] : listData;
+
+                if (!doctorData || !doctorData.id) {
+                    alert('Impossible de charger vos données. Veuillez réessayer.');
+                    return;
+                }
+
+                const response = await fetchApi(`core/doctor-data/${doctorData.id}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Paramètres mis à jour avec succès');
+                    loadSettings();
+                } else {
+                    const error = await response.json();
+                    alert('Erreur: ' + (error.detail || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        loadSettings();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

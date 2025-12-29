@@ -1,0 +1,380 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <style>
+        :root {
+            --accent-color: #007bff;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .profile-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .carousel-slide {
+            background: linear-gradient(135deg, rgba(0, 123, 255, 0.9), rgba(108, 117, 125, 0.9));
+        }
+
+        @media (min-width: 768px) {
+            .services-grid {
+                max-width: 900px;
+            }
+        }
+    </style>
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">JM</div>
+                <div class="sidebar-user-info">
+                    <h3>Jean Marie Loko</h3>
+                    <p>patient@BINTACURA.com</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Services</div>
+                <a href="/api/health-records/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">📋</span>
+                    <span class="sidebar-menu-item-text">Carnet De Santé</span>
+                </a>
+                <a href="/api/providers/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">🏥</span>
+                    <span class="sidebar-menu-item-text">Pharmacie & Hôpitaux</span>
+                </a>
+                <a href="/api/prescriptions/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">💊</span>
+                    <span class="sidebar-menu-item-text">Prescriptions</span>
+                </a>
+                <a href="/api/communication/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">👨‍⚕️</span>
+                    <span class="sidebar-menu-item-text">Télémédication</span>
+                </a>
+                <a href="/patient/beneficiaries/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">👨‍👩‍👧</span>
+                    <span class="sidebar-menu-item-text">Bénéficiaires</span>
+                </a>
+                <a href="/api/insurance/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">🛡️</span>
+                    <span class="sidebar-menu-item-text">Assurance Santé</span>
+                </a>
+                <a href="/api/appointments/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">📅</span>
+                    <span class="sidebar-menu-item-text">Rendez-vous</span>
+                    <span class="sidebar-menu-item-badge">3</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Paramètres</div>
+
+                <div class="setting-toggle" onclick="toggleDarkMode()">
+                    <div class="setting-info">
+                        <span class="setting-icon">🌙</span>
+                        <span>Mode Sombre</span>
+                    </div>
+                    <div class="toggle-switch" id="darkModeToggle">
+                        <div class="toggle-switch-slider"></div>
+                    </div>
+                </div>
+
+                <div class="setting-toggle" onclick="toggleNotifications()">
+                    <div class="setting-info">
+                        <span class="setting-icon">🔔</span>
+                        <span>Notifications</span>
+                    </div>
+                    <div class="toggle-switch active" id="notificationsToggle">
+                        <div class="toggle-switch-slider"></div>
+                    </div>
+                </div>
+
+                <div class="setting-toggle" onclick="toggleAutoPlay()">
+                    <div class="setting-info">
+                        <span class="setting-icon">▶️</span>
+                        <span>Lecture Auto</span>
+                    </div>
+                    <div class="toggle-switch active" id="autoPlayToggle">
+                        <div class="toggle-switch-slider"></div>
+                    </div>
+                </div>
+
+                <div class="setting-select">
+                    <label class="setting-select-label">
+                        <span class="setting-icon">🌍</span>
+                        <span>Langue</span>
+                    </label>
+                    <select id="languageSelect" aria-label="Sélection de langue" onchange="changeLanguage(this.value)">
+                        <option value="fr">Français</option>
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+
+                <div class="setting-select">
+                    <label class="setting-select-label">
+                        <span class="setting-icon">🔤</span>
+                        <span>Taille de Police</span>
+                    </label>
+                    <select id="fontSizeSelect" aria-label="Taille de police" onchange="changeFontSize(this.value)">
+                        <option value="small">Petit</option>
+                        <option value="medium" selected>Normal</option>
+                        <option value="large">Grand</option>
+                        <option value="xlarge">Très Grand</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Compte</div>
+                <a href="/patient/profile/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">👤</span>
+                    <span class="sidebar-menu-item-text">Mon Profil</span>
+                </a>
+                <a href="/patient/settings/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">⚙️</span>
+                    <span class="sidebar-menu-item-text">Paramètres</span>
+                </a>
+                <a href="/api/communication/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">💬</span>
+                    <span class="sidebar-menu-item-text">Support</span>
+                </a>
+                <a href="/logout/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">🚪</span>
+                    <span class="sidebar-menu-item-text">Déconnexion</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <header class="mobile-header">
+        <div class="menu-icon" id="menuIcon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="logo">JEAN MARIE LOKO</div>
+        <div class="profile-icon">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </header>
+
+    <div class="carousel-container">
+        <div class="carousel" id="carousel">
+            <div class="carousel-slide">
+                <h3>Informez-vous sur les bonnes pratiques sanitaires</h3>
+                <h3>Rejoignez un forum de discussion</h3>
+                <button class="carousel-btn">Suscire</button>
+            </div>
+            <div class="carousel-slide">
+                <h3>Consultez vos résultats médicaux</h3>
+                <h3>Accédez à votre dossier de santé</h3>
+                <button class="carousel-btn">Voir Plus</button>
+            </div>
+            <div class="carousel-slide">
+                <h3>Gérez vos prescriptions</h3>
+                <h3>Renouvelez vos ordonnances</h3>
+                <button class="carousel-btn">Commencer</button>
+            </div>
+        </div>
+        <button class="carousel-nav prev" onclick="moveCarousel(-1)">‹</button>
+        <button class="carousel-nav next" onclick="moveCarousel(1)">›</button>
+    </div>
+
+    <div class="section-title">
+        VOS SERVICES
+        <div class="help-badge">
+            <span>💬</span>
+            Besoin d'Assistance
+        </div>
+    </div>
+
+    <div class="services-grid">
+        <a href="/api/health-records/" class="service-card">
+            <div class="service-icon">📋</div>
+            <h3 class="service-title">Carnet De Santé</h3>
+        </a>
+
+        <a href="/api/providers/" class="service-card">
+            <div class="service-icon">🏥</div>
+            <h3 class="service-title">Pharmacie Hopitaux</h3>
+        </a>
+
+        <a href="/api/prescriptions/" class="service-card">
+            <div class="service-icon">💊</div>
+            <h3 class="service-title">Prescriptions</h3>
+        </a>
+
+        <a href="/api/communication/" class="service-card">
+            <div class="service-icon">👨‍⚕️</div>
+            <h3 class="service-title">Télémédication</h3>
+        </a>
+
+        <a href="/patient/beneficiaries/" class="service-card">
+            <div class="service-icon">👨‍👩‍👧</div>
+            <h3 class="service-title">Liste Bénéficiares</h3>
+        </a>
+
+        <a href="/api/insurance/" class="service-card">
+            <div class="service-icon">🛡️</div>
+            <h3 class="service-title">Assurance Santé</h3>
+        </a>
+    </div>
+
+    <button class="appointment-btn" onclick="window.location.href='/api/appointments/'">
+        PRENDRE RENDEZ-VOUS
+    </button>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            menuIcon.classList.toggle('active');
+            document.body.classList.toggle('sidebar-open');
+
+            if (!isOpen) {
+                sidebar.scrollTop = 0;
+            }
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+            menuIcon.classList.remove('active');
+            document.body.classList.remove('sidebar-open');
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        document.querySelectorAll('.sidebar-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                closeSidebar();
+            });
+        });
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const toggle = document.getElementById('darkModeToggle');
+            const isDark = html.getAttribute('data-theme') === 'dark';
+
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            toggle.classList.toggle('active');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        function toggleNotifications() {
+            const toggle = document.getElementById('notificationsToggle');
+            toggle.classList.toggle('active');
+            const enabled = toggle.classList.contains('active');
+            localStorage.setItem('notifications', enabled);
+
+            if (enabled && 'Notification' in window) {
+                Notification.requestPermission();
+            }
+        }
+
+        function toggleAutoPlay() {
+            const toggle = document.getElementById('autoPlayToggle');
+            toggle.classList.toggle('active');
+            const enabled = toggle.classList.contains('active');
+            localStorage.setItem('autoPlay', enabled);
+
+            if (!enabled && carouselInterval) {
+                clearInterval(carouselInterval);
+                carouselInterval = null;
+            } else if (enabled && !carouselInterval) {
+                startCarouselAutoPlay();
+            }
+        }
+
+        function changeLanguage(lang) {
+            localStorage.setItem('language', lang);
+            window.location.reload();
+        }
+
+        function changeFontSize(size) {
+            const html = document.documentElement;
+            const sizes = {
+                'small': '14px',
+                'medium': '16px',
+                'large': '18px',
+                'xlarge': '20px'
+            };
+            html.style.fontSize = sizes[size];
+            localStorage.setItem('fontSize', size);
+        }
+
+        let currentSlide = 0;
+        const carousel = document.getElementById('carousel');
+        const slides = carousel.children.length;
+        let carouselInterval = null;
+
+        function moveCarousel(direction) {
+            currentSlide += direction;
+            if (currentSlide < 0) currentSlide = slides - 1;
+            if (currentSlide >= slides) currentSlide = 0;
+            carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }
+
+        function startCarouselAutoPlay() {
+            carouselInterval = setInterval(() => {
+                moveCarousel(1);
+            }, 5000);
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            if (savedTheme === 'dark') {
+                document.getElementById('darkModeToggle').classList.add('active');
+            }
+        }
+
+        const savedFontSize = localStorage.getItem('fontSize');
+        if (savedFontSize) {
+            document.getElementById('fontSizeSelect').value = savedFontSize;
+            changeFontSize(savedFontSize);
+        }
+
+        const savedLanguage = localStorage.getItem('language');
+        if (savedLanguage) {
+            document.getElementById('languageSelect').value = savedLanguage;
+        }
+
+        const savedNotifications = localStorage.getItem('notifications');
+        if (savedNotifications === 'false') {
+            document.getElementById('notificationsToggle').classList.remove('active');
+        }
+
+        const savedAutoPlay = localStorage.getItem('autoPlay');
+        if (savedAutoPlay === 'false') {
+            document.getElementById('autoPlayToggle').classList.remove('active');
+        } else {
+            startCarouselAutoPlay();
+        }
+    </script>
+</body>
+
+</html>

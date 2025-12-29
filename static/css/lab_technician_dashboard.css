@@ -1,0 +1,98 @@
+.lab-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.role-info {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-top: 0.5rem;
+}
+
+.tests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.tests-list.urgent .test-card {
+    border-left: 4px solid #dc3545;
+}
+
+.tests-list.in-progress .test-card {
+    border-left: 4px solid #ffc107;
+}
+
+.test-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.test-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+}
+
+.test-card.urgent {
+    background: #fff5f5;
+}
+
+.test-card.in-progress {
+    background: #fffbf0;
+}
+
+.test-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.test-type {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0.25rem 0;
+}
+
+.requested-by,
+.request-time,
+.started-at {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.test-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-results {
+    background: #007bff;
+    color: white;
+}
+
+.btn-results:hover {
+    background: #0056b3;
+}
+
+@media (max-width: 768px) {
+    .lab-container {
+        padding: 1rem;
+    }
+
+    .test-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .test-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+}

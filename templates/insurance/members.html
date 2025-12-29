@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Membres - Assurance Santé BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/members.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Membres" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-label">Total Membres</div>
+                <div class="stat-value" id="totalMembers">0</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-label">Actifs</div>
+                <div class="stat-value" id="activeMembers">0</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-label">En Attente</div>
+                <div class="stat-value" id="pendingMembers">0</div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-label">Expirés</div>
+                <div class="stat-value" id="expiredMembers">0</div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-header">
+                <h2>Liste des Membres</h2>
+                <div class="filter-controls">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Rechercher un membre..." onkeyup="searchMembers()">
+                    <div class="filter-buttons">
+                        <button onclick="filterMembers('all')" class="filter-btn">Tous</button>
+                        <button onclick="filterMembers('active')" class="filter-btn">Actifs</button>
+                        <button onclick="filterMembers('pending')" class="filter-btn">En Attente</button>
+                    </div>
+                </div>
+            </div>
+            <div id="membersList" class="members-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        let allMembers = [];
+        let currentFilter = 'all';
+
+        async function loadMembers() {
+            try {
+                const response = await fetch('/api/v1/insurance/subscriptions/');
+                const data = await response.json();
+                allMembers = data.results || data;
+                updateStats();
+                renderMembers(allMembers);
+            } catch (error) {
+                console.error('Error loading members:', error);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalMembers').textContent = allMembers.length;
+            document.getElementById('activeMembers').textContent = allMembers.filter(m => m.status === 'active').length;
+            document.getElementById('pendingMembers').textContent = allMembers.filter(m => m.status === 'pending').length;
+            const expiredCount = allMembers.filter(m => {
+                if (m.end_date) {
+                    return new Date(m.end_date) < new Date();
+                }
+                return false;
+            }).length;
+            document.getElementById('expiredMembers').textContent = expiredCount;
+        }
+
+        function filterMembers(filter) {
+            currentFilter = filter;
+            let filtered = allMembers;
+            if (filter === 'active') filtered = allMembers.filter(m => m.status === 'active');
+            if (filter === 'pending') filtered = allMembers.filter(m => m.status === 'pending');
+            renderMembers(filtered);
+        }
+
+        function searchMembers() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = allMembers;
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'active') filtered = filtered.filter(m => m.status === 'active');
+                if (currentFilter === 'pending') filtered = filtered.filter(m => m.status === 'pending');
+            }
+            if (query) {
+                filtered = filtered.filter(m =>
+                    (m.card_number && m.card_number.toLowerCase().includes(query)) ||
+                    (m.policy_number && m.policy_number.toLowerCase().includes(query))
+                );
+            }
+            renderMembers(filtered);
+        }
+
+        function renderMembers(members) {
+            const container = document.getElementById('membersList');
+            if (members.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #718096; padding: 40px;">Aucun membre trouvé</p>';
+                return;
+            }
+            container.innerHTML = members.map(member => {
+                const statusColors = {
+                    active: { bg: '#d1fae5', text: '#065f46' },
+                    pending: { bg: '#fef3c7', text: '#92400e' },
+                    cancelled: { bg: '#fee2e2', text: '#991b1b' },
+                    suspended: { bg: '#e5e7eb', text: '#374151' }
+                };
+                const status = member.status || 'pending';
+                const color = statusColors[status] || statusColors.pending;
+                const isExpired = member.end_date && new Date(member.end_date) < new Date();
+
+                return `
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div>
+                            <h3 style="margin: 0 0 8px 0; color: #2d3748; font-size: 18px;">Carte N° ${member.card_number || 'N/A'}</h3>
+                            <p style="color: #718096; margin: 0; font-size: 14px;">Police: ${member.policy_number || 'N/A'}</p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <span style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; background: ${color.bg}; color: ${color.text};">
+                                ${status === 'active' ? 'Actif' : status === 'pending' ? 'En Attente' : status === 'cancelled' ? 'Annulé' : 'Suspendu'}
+                            </span>
+                            ${isExpired ? '<span style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #fee2e2; color: #991b1b;">Expiré</span>' : ''}
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Date Début</div>
+                            <div style="font-weight: 600; color: #2d3748;">${member.start_date ? new Date(member.start_date).toLocaleDateString('fr-FR') : 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Date Fin</div>
+                            <div style="font-weight: 600; color: #2d3748;">${member.end_date ? new Date(member.end_date).toLocaleDateString('fr-FR') : 'Indéterminée'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Prime Mensuelle</div>
+                            <div style="font-weight: 600; color: #2d3748;">${member.premium_amount_local ? member.premium_amount_local.formatted : (member.monthly_premium ? member.monthly_premium.toLocaleString() + ' FCFA' : 'N/A')}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Nombre Bénéficiaires</div>
+                            <div style="font-weight: 600; color: #2d3748;">${member.beneficiaries_count || 0}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        loadMembers();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

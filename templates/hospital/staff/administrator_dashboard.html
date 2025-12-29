@@ -1,0 +1,167 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Administrateur - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital_administrator_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="hospital_administrator" page_title="Tableau de Bord Administrateur" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_hospital_administrator.html" %}
+
+    <div class="main-content">
+        <div class="administrator-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Personnel Actif</h3>
+                    <p class="stat-value">{{ active_staff }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Départements</h3>
+                    <p class="stat-value">{{ departments_count }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Lits Disponibles</h3>
+                    <p class="stat-value">{{ available_beds }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Occupancy Rate</h3>
+                    <p class="stat-value">{{ occupancy_rate }}%</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Personnel par Rôle</h2>
+                    </div>
+                    <div class="staff-stats">
+                        {% for role_stat in staff_by_role %}
+                            <div class="role-stat-card">
+                                <h4>{{ role_stat.role_display }}</h4>
+                                <p class="count">{{ role_stat.count }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Départements</h2>
+                        <button class="btn-add" onclick="openAddDepartmentModal()">
+                            <span>+</span> Nouveau Département
+                        </button>
+                    </div>
+                    <div class="departments-list">
+                        {% for department in departments %}
+                            <div class="department-card">
+                                <div class="department-info">
+                                    <h4>{{ department.name }}</h4>
+                                    <p class="head-name">Chef: {{ department.head_name }}</p>
+                                    <p class="location">{{ department.location }}</p>
+                                    <p class="staff-count">Personnel: {{ department.staff_count }}</p>
+                                </div>
+                                <div class="department-actions">
+                                    <button class="btn-sm btn-edit" onclick="editDepartment('{{ department.id }}')">Modifier</button>
+                                    <button class="btn-sm btn-view" onclick="viewDepartment('{{ department.id }}')">Détails</button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Lits par Département</h2>
+                    </div>
+                    <div class="beds-stats">
+                        {% for bed_stat in beds_by_department %}
+                            <div class="bed-stat-card">
+                                <h4>{{ bed_stat.department_name }}</h4>
+                                <div class="bed-counts">
+                                    <div class="bed-status available">
+                                        <span class="label">Disponibles</span>
+                                        <span class="count">{{ bed_stat.available }}</span>
+                                    </div>
+                                    <div class="bed-status occupied">
+                                        <span class="label">Occupés</span>
+                                        <span class="count">{{ bed_stat.occupied }}</span>
+                                    </div>
+                                    <div class="bed-status total">
+                                        <span class="label">Total</span>
+                                        <span class="count">{{ bed_stat.total }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Activités Récentes</h2>
+                    </div>
+                    <div class="recent-activities">
+                        <div class="activity-item">
+                            <p class="activity-description">{{ recent_admissions }} nouvelles admissions aujourd'hui</p>
+                            <p class="activity-time">Aujourd'hui</p>
+                        </div>
+                        <div class="activity-item">
+                            <p class="activity-description">{{ recent_discharges }} sorties aujourd'hui</p>
+                            <p class="activity-time">Aujourd'hui</p>
+                        </div>
+                        <div class="activity-item">
+                            <p class="activity-description">{{ recent_appointments }} rendez-vous programmés</p>
+                            <p class="activity-time">Aujourd'hui</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addDepartmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouveau Département</h3>
+                <span class="close" onclick="closeModal('addDepartmentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addDepartmentForm" onsubmit="submitNewDepartment(event)">
+                    <div class="form-group">
+                        <label for="departmentName">Nom du Département</label>
+                        <input type="text" id="departmentName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="departmentHead">Chef de Département</label>
+                        <input type="text" id="departmentHead" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="departmentLocation">Emplacement</label>
+                        <input type="text" id="departmentLocation" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="departmentDescription">Description</label>
+                        <textarea id="departmentDescription" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('addDepartmentModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Créer Département</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/hospital_administrator_dashboard.js' %}"></script>
+</body>
+</html>
+

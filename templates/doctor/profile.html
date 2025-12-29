@@ -1,0 +1,544 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profile-page.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Profil" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="email" value="{{ user.email }}" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone *</label>
+                        <input type="tel" id="phone_number" value="{{ user.phone_number }}" {% if
+                            user.has_blue_checkmark %}disabled{% endif %} required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date de Naissance</label>
+                        <input type="date" id="date_of_birth" value="{{ user.date_of_birth|date:'Y-m-d' }}" {% if
+                            user.has_blue_checkmark %}disabled{% endif %}>
+                    </div>
+                    <div class="form-group">
+                        <label>Genre</label>
+                        <select id="gender" {% if user.has_blue_checkmark %}disabled{% endif %}>
+                            <option value="">Sélectionner</option>
+                            <option value="male" {% if user.gender=='male' %}selected{% endif %}>Homme</option>
+                            <option value="female" {% if user.gender=='female' %}selected{% endif %}>Femme</option>
+                            <option value="other" {% if user.gender=='other' %}selected{% endif %}>Autre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h3>Adresse</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Adresse Complète</label>
+                        <textarea id="address" rows="3" {% if user.has_blue_checkmark %}disabled{% endif
+                            %}>{{ user.address }}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Ville</label>
+                        <input type="text" id="city" value="{{ user.city }}" {% if user.has_blue_checkmark %}disabled{%
+                            endif %}>
+                    </div>
+                    <div class="form-group">
+                        <label>Pays</label>
+                        <input type="text" id="country" value="{{ user.country }}" {% if user.has_blue_checkmark
+                            %}disabled{% endif %}>
+                    </div>
+                </div>
+
+                {% if not user.has_blue_checkmark %}
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Enregistrer les Modifications</button>
+                    <button type="button" onclick="window.location.href='/doctor/dashboard/'"
+                        class="btn btn-secondary">Annuler</button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="content-section">
+            <h2>Informations Professionnelles</h2>
+            <form id="professionalForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Spécialisation *</label>
+                        <select id="specialization" {% if user.has_blue_checkmark %}disabled{% endif %} required>
+                            <option value="">Sélectionner</option>
+                            <option value="general_practice" {% if doctor_data and
+                                doctor_data.specialization=='general_practice' %}selected{% endif %}>Médecine Générale
+                            </option>
+                            <option value="cardiology" {% if doctor_data and doctor_data.specialization=='cardiology'
+                                %}selected{% endif %}>Cardiologie</option>
+                            <option value="dermatology" {% if doctor_data and doctor_data.specialization=='dermatology'
+                                %}selected{% endif %}>Dermatologie</option>
+                            <option value="pediatrics" {% if doctor_data and doctor_data.specialization=='pediatrics'
+                                %}selected{% endif %}>Pédiatrie</option>
+                            <option value="psychiatry" {% if doctor_data and doctor_data.specialization=='psychiatry'
+                                %}selected{% endif %}>Psychiatrie</option>
+                            <option value="orthopedics" {% if doctor_data and doctor_data.specialization=='orthopedics'
+                                %}selected{% endif %}>Orthopédie</option>
+                            <option value="neurology" {% if doctor_data and doctor_data.specialization=='neurology'
+                                %}selected{% endif %}>Neurologie</option>
+                            <option value="oncology" {% if doctor_data and doctor_data.specialization=='oncology'
+                                %}selected{% endif %}>Oncologie</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Numéro de Licence *</label>
+                        <input type="text" id="license_number"
+                            value="{% if doctor_data %}{{ doctor_data.license_number }}{% endif %}" {% if
+                            user.has_blue_checkmark %}disabled{% endif %} required>
+                    </div>
+                    <div class="form-group">
+                        <label>Années d'Expérience</label>
+                        <input type="number" id="years_of_experience"
+                            value="{% if doctor_data %}{{ doctor_data.years_of_experience }}{% endif %}" {% if
+                            user.has_blue_checkmark %}disabled{% endif %} min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Frais de Consultation (CFA)</label>
+                        <input type="number" id="consultation_fee"
+                            value="{% if doctor_data %}{{ doctor_data.consultation_fee }}{% endif %}" {% if
+                            user.has_blue_checkmark %}disabled{% endif %} min="0">
+                    </div>
+                </div>
+
+                <div class="form-group mt-20">
+                    <label>Biographie</label>
+                    <textarea id="bio" rows="4" {% if user.has_blue_checkmark %}disabled{% endif
+                        %}>{% if doctor_data %}{{ doctor_data.bio }}{% endif %}</textarea>
+                </div>
+
+                <div class="form-group mt-20">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="is_available_for_telemedicine" {% if doctor_data and
+                            doctor_data.is_available_for_telemedicine %}checked{% endif %} {% if user.has_blue_checkmark
+                            %}disabled{% endif %}>
+                        Disponible pour la Télémédecine
+                    </label>
+                </div>
+
+                {% if not user.has_blue_checkmark %}
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Enregistrer les Modifications</button>
+                    <button type="button" onclick="window.location.href='/doctor/dashboard/'"
+                        class="btn btn-secondary">Annuler</button>
+                </div>
+                {% else %}
+                <div class="form-actions">
+                    <button type="button" onclick="requestModification()" class="btn btn-primary">
+                        Demander une Modification
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="content-section">
+            <h2>Affiliations Hospitalières</h2>
+            {% if is_hospital_staff %}
+            <div class="locked-notice">
+                <strong>ℹ️ Affiliation Gérée par l'Hôpital</strong>
+                <p>Votre compte a été créé par un hôpital. Votre affiliation est gérée par l'hôpital et ne peut pas être modifiée.</p>
+            </div>
+            {% endif %}
+
+            <div id="affiliationsContainer">
+                <!-- Affiliations will be loaded here -->
+            </div>
+
+            {% if can_manage_affiliations %}
+            <button type="button" class="btn btn-primary mt-20" onclick="showAddAffiliationModal()">
+                + Ajouter une Affiliation
+            </button>
+            {% endif %}
+        </div>
+
+        <div class="content-section">
+            <h2>Documents de Vérification</h2>
+            <p class="description">
+                Téléchargez vos documents officiels pour la vérification par l'administrateur.
+            </p>
+            
+            <div class="document-upload-section">
+                <div class="document-grid">
+                    <div class="document-upload-card">
+                        <input type="file" id="license_document" name="license_document" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="license_document">
+                            <div class="document-icon">📄</div>
+                            <div class="document-title">Licence Médicale</div>
+                            <div class="document-description">Copie de votre licence d'exercice</div>
+                            <span class="document-status pending">En attente</span>
+                        </label>
+                    </div>
+
+                    <div class="document-upload-card">
+                        <input type="file" id="diploma_document" name="diploma_document" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="diploma_document">
+                            <div class="document-icon">🎓</div>
+                            <div class="document-title">Diplôme Médical</div>
+                            <div class="document-description">Diplôme de médecine ou spécialisation</div>
+                            <span class="document-status pending">En attente</span>
+                        </label>
+                    </div>
+
+                    <div class="document-upload-card">
+                        <input type="file" id="id_document" name="id_document" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="id_document">
+                            <div class="document-icon">🆔</div>
+                            <div class="document-title">Pièce d'Identité</div>
+                            <div class="document-description">CNI, Passeport ou autre document officiel</div>
+                            <span class="document-status pending">En attente</span>
+                        </label>
+                    </div>
+
+                    <div class="document-upload-card">
+                        <input type="file" id="other_document" name="other_document" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="other_document">
+                            <div class="document-icon">📎</div>
+                            <div class="document-title">Autres Documents</div>
+                            <div class="document-description">Certificats, attestations, etc.</div>
+                            <span class="document-status pending">En attente</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                full_name: document.getElementById('full_name').value,
+                phone_number: document.getElementById('phone_number').value,
+                date_of_birth: document.getElementById('date_of_birth').value,
+                gender: document.getElementById('gender').value,
+                address: document.getElementById('address').value,
+                city: document.getElementById('city').value,
+                country: document.getElementById('country').value
+            };
+
+            try {
+                const response = await fetchApi('core/participants/{{ user.uid }}/', {
+                    method: 'PATCH',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Profil mis à jour avec succès');
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert('Erreur: ' + (error.detail || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        });
+
+        document.getElementById('professionalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                participant: '{{ user.uid }}',
+                specialization: document.getElementById('specialization').value,
+                license_number: document.getElementById('license_number').value,
+                years_of_experience: parseInt(document.getElementById('years_of_experience').value) || 0,
+                consultation_fee: parseInt(document.getElementById('consultation_fee').value) || 0,
+                bio: document.getElementById('bio').value,
+                is_available_for_telemedicine: document.getElementById('is_available_for_telemedicine').checked
+            };
+
+            try {
+                const method = {{ doctor_data }} ? 'PUT' : 'POST';
+                const url = {{ doctor_data }} ? '/api/v1/doctor/{{ doctor_data.id }}/' : '/api/v1/doctor/';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('✅ Données professionnelles enregistrées avec succès!');
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erreur: ' + (error.detail || JSON.stringify(error)));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Erreur de connexion. Veuillez réessayer.');
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function requestModification() {
+            const reason = prompt('Veuillez décrire les modifications que vous souhaitez apporter:');
+            if (!reason) return;
+
+            alert('Votre demande de modification a été soumise. Un administrateur l\'examinera prochainement.\n\nFonctionnalité complète en cours de développement.');
+        }
+
+        // Affiliation Management Functions
+        async function loadAffiliations() {
+            try {
+                const response = await fetchApi('doctor/affiliations/');
+                const affiliations = await response.json();
+
+                const container = document.getElementById('affiliationsContainer');
+
+                if (affiliations.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🏥</div>
+                            <p>Vous n'êtes affilié à aucun hôpital pour le moment</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = affiliations.map(affiliation => `
+                    <div class="affiliation-item">
+                        <div class="affiliation-item-header">
+                            <div>
+                                <h4>${affiliation.hospital_name}</h4>
+                                <p>Affilié depuis: ${new Date(affiliation.affiliation_date).toLocaleDateString('fr-FR')}</p>
+                                ${affiliation.department_id ? `<p>Département: ${affiliation.department_id}</p>` : ''}
+                                ${affiliation.is_primary ? '<span class="badge badge-primary">Principal</span>' : ''}
+                            </div>
+                            <div class="affiliation-actions">
+                                ${!affiliation.is_primary && !affiliation.is_locked ? `
+                                    <button type="button" class="btn btn-outline" onclick="setPrimaryAffiliation('${affiliation.id}')">
+                                        Définir comme principal
+                                    </button>
+                                ` : ''}
+                                ${!affiliation.is_locked ? `
+                                    <button type="button" class="btn btn-danger" onclick="removeAffiliation('${affiliation.id}')">
+                                        Retirer
+                                    </button>
+                                ` : '<span class="affiliation-locked">🔒 Géré par l\'hôpital</span>'}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading affiliations:', error);
+            }
+        }
+
+        async function showAddAffiliationModal() {
+            // Get list of hospitals
+            try {
+                const response = await fetchApi('core/participants/?role=hospital&limit=100');
+                const data = await response.json();
+                const hospitals = data.results || data;
+
+                const hospitalOptions = hospitals.map(h =>
+                    `<option value="${h.uid}">${h.full_name}</option>`
+                ).join('');
+
+                const modal = document.createElement('div');
+                modal.innerHTML = `
+                    <div class="modal-overlay">
+                        <div class="modal-content">
+                            <h3>Ajouter une Affiliation</h3>
+                            <form id="affiliationForm">
+                                <div class="form-group">
+                                    <label>Sélectionner un Hôpital *</label>
+                                    <select id="hospital_id" required>
+                                        <option value="">-- Choisir --</option>
+                                        ${hospitalOptions}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 10px;">
+                                        <input type="checkbox" id="is_primary">
+                                        Définir comme affiliation principale
+                                    </label>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                                    <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Annuler</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                document.getElementById('affiliationForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await addAffiliation();
+                    modal.remove();
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur lors du chargement des hôpitaux');
+            }
+        }
+
+        async function addAffiliation() {
+            const hospitalId = document.getElementById('hospital_id').value;
+            const isPrimary = document.getElementById('is_primary').checked;
+
+            try {
+                const response = await fetchApi('doctor/affiliations/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        hospital_id: hospitalId,
+                        is_primary: isPrimary
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✅ Affiliation ajoutée avec succès!');
+                    loadAffiliations();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erreur: ' + (error.detail || error.message || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Erreur de connexion');
+            }
+        }
+
+        async function setPrimaryAffiliation(affiliationId) {
+            if (!confirm('Définir cette affiliation comme principale?')) return;
+
+            try {
+                const response = await fetchApi(`doctor/affiliations/${affiliationId}/set_primary/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                if (response.ok) {
+                    alert('✅ Affiliation principale mise à jour!');
+                    loadAffiliations();
+                } else {
+                    alert('❌ Erreur lors de la mise à jour');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Erreur de connexion');
+            }
+        }
+
+        async function removeAffiliation(affiliationId) {
+            if (!confirm('Retirer cette affiliation?')) return;
+
+            try {
+                const response = await fetchApi(`doctor/affiliations/${affiliationId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                if (response.ok) {
+                    alert('✅ Affiliation retirée avec succès!');
+                    loadAffiliations();
+                } else {
+                    alert('❌ Erreur lors du retrait');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Erreur de connexion');
+            }
+        }
+
+        // Load affiliations on page load
+        {% if can_manage_affiliations or is_hospital_staff %}
+        loadAffiliations();
+        {% endif %}
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

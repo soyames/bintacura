@@ -1,0 +1,11 @@
+<div class="form-group">
+    <label class="form-label" for="{{ id }}">{{ label }}</label>
+    <textarea
+        id="{{ id }}"
+        name="{{ name }}"
+        class="form-textarea"
+        placeholder="{{ placeholder|default:'' }}"
+        rows="{{ rows|default:'4' }}"
+        {% if required %}required{% endif %}
+    >{{ value }}</textarea>
+</div>

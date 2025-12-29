@@ -1,0 +1,128 @@
+{% load static %}
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">✕</button>
+        <div class="sidebar-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="logo-img">
+        </div>
+        <div class="sidebar-user">
+            <div class="sidebar-user-avatar">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+            <div class="sidebar-user-info">
+                <h3>{{ request.user.full_name|default:"Pharmacie" }}</h3>
+                <p>{{ request.user.email }}</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Gestion</div>
+            <a href="/pharmacy/prescriptions/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">💊</span>
+                <span class="sidebar-menu-item-text">Prescriptions</span>
+            </a>
+            <a href="/pharmacy/inventory/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">📦</span>
+                <span class="sidebar-menu-item-text">Inventaire</span>
+            </a>
+            <a href="/pharmacy/orders/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🛒</span>
+                <span class="sidebar-menu-item-text">Commandes</span>
+            </a>
+            <a href="/pharmacy/patients/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">👥</span>
+                <span class="sidebar-menu-item-text">Patients</span>
+            </a>
+            <a href="/pharmacy/suppliers/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🏭</span>
+                <span class="sidebar-menu-item-text">Fournisseurs</span>
+            </a>
+            <a href="/pharmacy/services/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🏷️</span>
+                <span class="sidebar-menu-item-text">Services</span>
+            </a>
+            <a href="/pharmacy/staff/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">👨‍💼</span>
+                <span class="sidebar-menu-item-text">Personnel</span>
+            </a>
+            <a href="/pharmacy/reports/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">📊</span>
+                <span class="sidebar-menu-item-text">Rapports</span>
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Finances & ERP</div>
+            <a href="/pharmacy/wallet/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">💳</span>
+                <span class="sidebar-menu-item-text">Portefeuille</span>
+            </a>
+            <a href="/pharmacy/bonus-configs/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">💰</span>
+                <span class="sidebar-menu-item-text">Bonus Médecins</span>
+            </a>
+            <a href="/pharmacy/financial/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">📊</span>
+                <span class="sidebar-menu-item-text">Comptabilité</span>
+            </a>
+            <a href="/pharmacy/hr/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">👔</span>
+                <span class="sidebar-menu-item-text">RH & Paie</span>
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Paramètres</div>
+
+            <div class="setting-toggle" onclick="toggleDarkMode()">
+                <div class="setting-info">
+                    <span class="setting-icon">🌙</span>
+                    <span>Mode Sombre</span>
+                </div>
+                <div class="toggle-switch" id="darkModeToggle">
+                    <div class="toggle-switch-slider"></div>
+                </div>
+            </div>
+
+            <div class="setting-toggle" onclick="toggleNotifications()">
+                <div class="setting-info">
+                    <span class="setting-icon">🔔</span>
+                    <span>Notifications</span>
+                </div>
+                <div class="toggle-switch active" id="notificationsToggle">
+                    <div class="toggle-switch-slider"></div>
+                </div>
+            </div>
+
+            <div class="setting-select">
+                <label class="setting-select-label">
+                    <span class="setting-icon">🌍</span>
+                    <span>Langue</span>
+                </label>
+                <select id="languageSelect" aria-label="Sélection de langue" onchange="changeLanguage(this.value)">
+                    <option value="fr">Français</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Compte</div>
+            <a href="/pharmacy/profile/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">👤</span>
+                <span class="sidebar-menu-item-text">Profil</span>
+            </a>
+            <a href="/pharmacy/settings/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">⚙️</span>
+                <span class="sidebar-menu-item-text">Paramètres</span>
+            </a>
+            <a href="/logout/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🚪</span>
+                <span class="sidebar-menu-item-text">Déconnexion</span>
+            </a>
+        </div>
+    </nav>
+</aside>
+

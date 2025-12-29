@@ -1,0 +1,491 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion du Personnel - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_staff.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Gestion du Personnel</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/pharmacy/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy.html" %}
+
+    <div class="main-content">
+        <div class="staff-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Total Personnel</span>
+                        <span class="stat-value" id="totalStaff">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Actifs</span>
+                        <span class="stat-value" id="activeStaff">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💊</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Pharmaciens</span>
+                        <span class="stat-value" id="pharmacistsCount">0</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Caissiers</span>
+                        <span class="stat-value" id="cashiersCount">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Rechercher par nom ou email..." class="search-input">
+                </div>
+                <div class="filters">
+                    <select id="roleFilter" class="filter-select" onchange="filterStaff()">
+                        <option value="">Tous les rôles</option>
+                        <option value="manager">Gestionnaire</option>
+                        <option value="pharmacist">Pharmacien</option>
+                        <option value="cashier">Caissier</option>
+                        <option value="inventory_clerk">Magasinier</option>
+                        <option value="delivery_person">Livreur</option>
+                    </select>
+                    <select id="statusFilter" class="filter-select" onchange="filterStaff()">
+                        <option value="">Tous les statuts</option>
+                        <option value="active">Actif</option>
+                        <option value="inactive">Inactif</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="loadingState" class="loading-state">
+                <div class="spinner"></div>
+                <p>Chargement du personnel...</p>
+            </div>
+
+            <div id="staffTable" class="staff-table" style="display: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Rôle</th>
+                            <th>Date d'embauche</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="staffTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">👥</div>
+                <h3>Aucun membre du personnel</h3>
+                <p>Commencez par ajouter des membres à votre équipe</p>
+                <button class="btn-primary" onclick="openStaffModal()">
+                    ➕ Ajouter un membre
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="staffModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ajouter un membre</h2>
+                <button class="close-btn" onclick="closeStaffModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="staffForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="staffId" name="staff_id">
+
+                    <div class="form-group">
+                        <label for="fullName">Nom complet *</label>
+                        <input type="text" id="fullName" name="full_name" required placeholder="Ex: Jean Dupont">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" required placeholder="jean.dupont@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="phone_number">Téléphone *</label>
+                            <input type="tel" id="phone_number" name="phone_number" required placeholder="Ex: +229 97000000">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Rôle *</label>
+                        <select id="role" name="role" required onchange="updatePermissions()">
+                            <option value="">Sélectionner un rôle</option>
+                            <option value="manager">Gestionnaire</option>
+                            <option value="pharmacist">Pharmacien</option>
+                            <option value="cashier">Caissier</option>
+                            <option value="inventory_clerk">Magasinier</option>
+                            <option value="delivery_person">Livreur</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hireDate">Date d'embauche *</label>
+                        <input type="date" id="hireDate" name="hire_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="isActive" name="is_active" checked>
+                            Actif
+                        </label>
+                    </div>
+
+                    <div class="permissions-section">
+                        <h3>Permissions</h3>
+                        <div class="permissions-grid">
+                            <label class="permission-label">
+                                <input type="checkbox" id="canManageInventory" name="can_manage_inventory">
+                                <span>Gérer l'inventaire</span>
+                            </label>
+                            <label class="permission-label">
+                                <input type="checkbox" id="canProcessOrders" name="can_process_orders">
+                                <span>Traiter les commandes</span>
+                            </label>
+                            <label class="permission-label">
+                                <input type="checkbox" id="canHandleSales" name="can_handle_sales">
+                                <span>Gérer les ventes</span>
+                            </label>
+                            <label class="permission-label">
+                                <input type="checkbox" id="canManageStaff" name="can_manage_staff">
+                                <span>Gérer le personnel</span>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeStaffModal()">Annuler</button>
+                <button class="btn-primary" onclick="saveStaff()">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        let staffData = [];
+
+        document.getElementById('hireDate').valueAsDate = new Date();
+
+        loadStaff();
+
+        async function loadStaff() {
+            const loading = document.getElementById('loadingState');
+            const table = document.getElementById('staffTable');
+            const empty = document.getElementById('emptyState');
+
+            loading.style.display = 'block';
+            table.style.display = 'none';
+            empty.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/v1/pharmacy/staff/', {
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                const data = await response.json();
+
+                staffData = data;
+                updateStats(data);
+
+                loading.style.display = 'none';
+
+                if (data.length > 0) {
+                    renderStaffTable(data);
+                    table.style.display = 'block';
+                } else {
+                    empty.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading staff:', error);
+                loading.style.display = 'none';
+                empty.style.display = 'block';
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('totalStaff').textContent = data.length;
+            document.getElementById('activeStaff').textContent = data.filter(s => s.is_active).length;
+            document.getElementById('pharmacistsCount').textContent = data.filter(s => s.role === 'pharmacist').length;
+            document.getElementById('cashiersCount').textContent = data.filter(s => s.role === 'cashier').length;
+        }
+
+        function renderStaffTable(staff) {
+            const tbody = document.getElementById('staffTableBody');
+
+            const roleLabels = {
+                'manager': 'Gestionnaire',
+                'pharmacist': 'Pharmacien',
+                'cashier': 'Caissier',
+                'inventory_clerk': 'Magasinier',
+                'delivery_person': 'Livreur'
+            };
+
+            tbody.innerHTML = staff.map(member => `
+                <tr>
+                    <td>${escapeHtml(member.full_name)}</td>
+                    <td>${escapeHtml(member.email)}</td>
+                    <td>${escapeHtml(member.phone_number)}</td>
+                    <td><span class="role-badge role-${member.role}">${roleLabels[member.role] || member.role}</span></td>
+                    <td>${formatDate(member.hire_date)}</td>
+                    <td>
+                        <span class="status-badge ${member.is_active ? 'status-active' : 'status-inactive'}">
+                            ${member.is_active ? 'Actif' : 'Inactif'}
+                        </span>
+                    </td>
+                    <td class="actions-cell">
+                        <button class="btn-icon" onclick='editStaff(${JSON.stringify(member)})' title="Modifier">
+                            ✏️
+                        </button>
+                        <button class="btn-icon" onclick="toggleStaffStatus('${member.id}', ${!member.is_active})" title="${member.is_active ? 'Désactiver' : 'Activer'}">
+                            ${member.is_active ? '🚫' : '✅'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text ? text.replace(/[&<>"']/g, m => map[m]) : '';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR');
+        }
+
+        function openStaffModal() {
+            document.getElementById('modalTitle').textContent = 'Ajouter un membre';
+            document.getElementById('staffForm').reset();
+            document.getElementById('staffId').value = '';
+            document.getElementById('hireDate').valueAsDate = new Date();
+            document.getElementById('isActive').checked = true;
+            document.getElementById('staffModal').classList.add('active');
+        }
+
+        function closeStaffModal() {
+            document.getElementById('staffModal').classList.remove('active');
+            document.getElementById('staffForm').reset();
+        }
+
+        function editStaff(member) {
+            document.getElementById('modalTitle').textContent = 'Modifier un membre';
+            document.getElementById('staffId').value = member.id;
+            document.getElementById('fullName').value = member.full_name;
+            document.getElementById('email').value = member.email;
+            document.getElementById('phone_number').value = member.phone_number;
+            document.getElementById('role').value = member.role;
+            document.getElementById('hireDate').value = member.hire_date;
+            document.getElementById('isActive').checked = member.is_active;
+            document.getElementById('canManageInventory').checked = member.can_manage_inventory;
+            document.getElementById('canProcessOrders').checked = member.can_process_orders;
+            document.getElementById('canHandleSales').checked = member.can_handle_sales;
+            document.getElementById('canManageStaff').checked = member.can_manage_staff;
+
+            document.getElementById('staffModal').classList.add('active');
+        }
+
+        function updatePermissions() {
+            const role = document.getElementById('role').value;
+            const permissions = {
+                'manager': {
+                    can_manage_inventory: true,
+                    can_process_orders: true,
+                    can_handle_sales: true,
+                    can_manage_staff: true
+                },
+                'pharmacist': {
+                    can_manage_inventory: true,
+                    can_process_orders: true,
+                    can_handle_sales: true,
+                    can_manage_staff: false
+                },
+                'cashier': {
+                    can_manage_inventory: false,
+                    can_process_orders: false,
+                    can_handle_sales: true,
+                    can_manage_staff: false
+                },
+                'inventory_clerk': {
+                    can_manage_inventory: true,
+                    can_process_orders: false,
+                    can_handle_sales: false,
+                    can_manage_staff: false
+                },
+                'delivery_person': {
+                    can_manage_inventory: false,
+                    can_process_orders: true,
+                    can_handle_sales: false,
+                    can_manage_staff: false
+                }
+            };
+
+            if (permissions[role]) {
+                document.getElementById('canManageInventory').checked = permissions[role].can_manage_inventory;
+                document.getElementById('canProcessOrders').checked = permissions[role].can_process_orders;
+                document.getElementById('canHandleSales').checked = permissions[role].can_handle_sales;
+                document.getElementById('canManageStaff').checked = permissions[role].can_manage_staff;
+            }
+        }
+
+        async function saveStaff() {
+            const form = document.getElementById('staffForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const staffId = document.getElementById('staffId').value;
+            const formData = new FormData(form);
+            const data = {
+                full_name: formData.get('full_name'),
+                email: formData.get('email'),
+                phone_number: formData.get('phone_number'),
+                role: formData.get('role'),
+                hire_date: formData.get('hire_date'),
+                is_active: document.getElementById('isActive').checked,
+                can_manage_inventory: document.getElementById('canManageInventory').checked,
+                can_process_orders: document.getElementById('canProcessOrders').checked,
+                can_handle_sales: document.getElementById('canHandleSales').checked,
+                can_manage_staff: document.getElementById('canManageStaff').checked
+            };
+
+            try {
+                const url = staffId ? `/api/v1/pharmacy/staff/${staffId}/` : '/api/v1/pharmacy/staff/';
+                const method = staffId ? 'PATCH' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(staffId ? 'Membre modifié avec succès!' : 'Membre ajouté avec succès!');
+                    closeStaffModal();
+                    loadStaff();
+                } else {
+                    alert('Erreur: ' + (result.message || JSON.stringify(result)));
+                }
+            } catch (error) {
+                console.error('Error saving staff:', error);
+                alert('Une erreur est survenue lors de l\'enregistrement');
+            }
+        }
+
+        async function toggleStaffStatus(staffId, newStatus) {
+            if (!confirm(newStatus ? 'Activer ce membre?' : 'Désactiver ce membre?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/pharmacy/staff/${staffId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ is_active: newStatus })
+                });
+
+                if (response.ok) {
+                    alert('Statut mis à jour avec succès!');
+                    loadStaff();
+                } else {
+                    alert('Erreur lors de la mise à jour du statut');
+                }
+            } catch (error) {
+                console.error('Error toggling status:', error);
+                alert('Une erreur est survenue');
+            }
+        }
+
+        function filterStaff() {
+            const roleFilter = document.getElementById('roleFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            let filtered = staffData;
+
+            if (roleFilter) {
+                filtered = filtered.filter(s => s.role === roleFilter);
+            }
+
+            if (statusFilter) {
+                const isActive = statusFilter === 'active';
+                filtered = filtered.filter(s => s.is_active === isActive);
+            }
+
+            if (searchTerm) {
+                filtered = filtered.filter(s =>
+                    s.full_name.toLowerCase().includes(searchTerm) ||
+                    s.email.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            renderStaffTable(filtered);
+        }
+
+        document.getElementById('searchInput').addEventListener('input', filterStaff);
+    </script>
+</body>
+</html>
+

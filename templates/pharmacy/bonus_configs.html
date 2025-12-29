@@ -1,0 +1,575 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration des Bonus - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_bonus_config.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Configuration des Bonus</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/pharmacy/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy.html" %}
+
+    <div class="main-content">
+        <div class="bonus-config-container">
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="info-card-icon">📊</div>
+                    <div class="info-card-content">
+                        <h3>Pourcentage</h3>
+                        <p>Donnez un pourcentage du montant total de chaque prescription</p>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">💵</div>
+                    <div class="info-card-content">
+                        <h3>Montant Fixe</h3>
+                        <p>Donnez un montant fixe par prescription référée</p>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">🎯</div>
+                    <div class="info-card-content">
+                        <h3>Paliers</h3>
+                        <p>Définissez des paliers basés sur le nombre de prescriptions par mois</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs-navigation">
+                <button class="tab-btn active" onclick="switchTab('active')">✅ Actives</button>
+                <button class="tab-btn" onclick="switchTab('inactive')">🚫 Inactives</button>
+                <button class="tab-btn" onclick="switchTab('all')">📋 Toutes</button>
+            </div>
+
+            <div id="activeTab" class="tab-content active">
+                <div id="loadingActive" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Chargement des configurations...</p>
+                </div>
+
+                <div id="activeConfigsGrid" class="configs-grid" style="display: none;"></div>
+
+                <div id="emptyActive" class="empty-state" style="display: none;">
+                    <div class="empty-icon">💰</div>
+                    <h3>Aucune configuration active</h3>
+                    <p>Créez des règles de bonus pour inciter les médecins à référer des patients</p>
+                    <button class="btn-primary" onclick="openConfigModal()">
+                        ➕ Créer une configuration
+                    </button>
+                </div>
+            </div>
+
+            <div id="inactiveTab" class="tab-content">
+                <div id="loadingInactive" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Chargement...</p>
+                </div>
+
+                <div id="inactiveConfigsGrid" class="configs-grid" style="display: none;"></div>
+
+                <div id="emptyInactive" class="empty-state" style="display: none;">
+                    <div class="empty-icon">🚫</div>
+                    <h3>Aucune configuration inactive</h3>
+                </div>
+            </div>
+
+            <div id="allTab" class="tab-content">
+                <div id="loadingAll" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Chargement...</p>
+                </div>
+
+                <div id="allConfigsGrid" class="configs-grid" style="display: none;"></div>
+
+                <div id="emptyAll" class="empty-state" style="display: none;">
+                    <div class="empty-icon">📋</div>
+                    <h3>Aucune configuration</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Nouvelle Configuration</h2>
+                <button class="close-btn" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="configForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="configId" name="config_id">
+
+                    <div class="form-group">
+                        <label for="doctor">Médecin (optionnel)</label>
+                        <select id="doctor" name="doctor">
+                            <option value="">Tous les médecins</option>
+                        </select>
+                        <small>Laissez vide pour appliquer à tous les médecins</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bonusType">Type de bonus *</label>
+                        <select id="bonusType" name="bonus_type" required onchange="updateBonusFields()">
+                            <option value="">Sélectionner un type</option>
+                            <option value="percentage">Pourcentage</option>
+                            <option value="fixed_amount">Montant Fixe</option>
+                            <option value="tiered">Paliers</option>
+                        </select>
+                    </div>
+
+                    <div id="percentageFields" class="bonus-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="bonusPercentage">Pourcentage (%)</label>
+                            <input type="number" id="bonusPercentage" name="bonus_percentage" min="0" max="100" step="0.01" placeholder="Ex: 5">
+                            <small>Pourcentage du montant total de la prescription</small>
+                        </div>
+                    </div>
+
+                    <div id="fixedFields" class="bonus-fields" style="display: none;">
+                        <div class="form-group">
+                            <label for="fixedBonusAmount">Montant Fixe (FCFA)</label>
+                            <input type="number" id="fixedBonusAmount" name="fixed_bonus_amount" min="0" placeholder="Ex: 1000">
+                            <small>Montant fixe par prescription référée</small>
+                        </div>
+                    </div>
+
+                    <div id="tieredFields" class="bonus-fields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="minPrescriptions">Min prescriptions/mois</label>
+                                <input type="number" id="minPrescriptions" name="min_prescriptions_per_month" min="0" placeholder="Ex: 5">
+                            </div>
+                            <div class="form-group">
+                                <label for="maxPrescriptions">Max prescriptions/mois</label>
+                                <input type="number" id="maxPrescriptions" name="max_prescriptions_per_month" min="0" placeholder="Ex: 20">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="bonusAmountForTier">Montant du bonus (FCFA)</label>
+                            <input type="number" id="bonusAmountForTier" name="bonus_amount_for_tier" min="0" placeholder="Ex: 500">
+                            <small>Montant par prescription si dans ce palier</small>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="validFrom">Valide à partir de *</label>
+                            <input type="date" id="validFrom" name="valid_from" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="validUntil">Valide jusqu'à</label>
+                            <input type="date" id="validUntil" name="valid_until">
+                            <small>Laissez vide pour une durée illimitée</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="isActive" name="is_active" checked>
+                            Configuration active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeConfigModal()">Annuler</button>
+                <button class="btn-primary" onclick="saveConfig()">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        let configsData = [];
+        let doctorsData = [];
+
+        document.getElementById('validFrom').valueAsDate = new Date();
+
+        loadDoctors();
+        loadConfigs();
+
+        async function loadDoctors() {
+            try {
+                const response = await fetch('/api/v1/users/?role=doctor', {
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                const data = await response.json();
+
+                doctorsData = data;
+                const select = document.getElementById('doctor');
+
+                data.forEach(doctor => {
+                    const option = document.createElement('option');
+                    option.value = doctor.id;
+                    option.textContent = doctor.full_name || doctor.email;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+            }
+        }
+
+        async function loadConfigs() {
+            showLoading();
+
+            try {
+                const response = await fetch('/api/v1/pharmacy/bonus-configs/', {
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                const data = await response.json();
+
+                configsData = data;
+                renderConfigs();
+            } catch (error) {
+                console.error('Error loading configs:', error);
+                showEmpty();
+            }
+        }
+
+        function renderConfigs() {
+            const activeConfigs = configsData.filter(c => c.is_active);
+            const inactiveConfigs = configsData.filter(c => !c.is_active);
+
+            renderConfigsGrid(activeConfigs, 'active');
+            renderConfigsGrid(inactiveConfigs, 'inactive');
+            renderConfigsGrid(configsData, 'all');
+        }
+
+        function renderConfigsGrid(configs, tab) {
+            const loading = document.getElementById(`loading${capitalize(tab)}`);
+            const grid = document.getElementById(`${tab}ConfigsGrid`);
+            const empty = document.getElementById(`empty${capitalize(tab)}`);
+
+            loading.style.display = 'none';
+
+            if (configs.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            const bonusTypeLabels = {
+                'percentage': 'Pourcentage',
+                'fixed_amount': 'Montant Fixe',
+                'tiered': 'Paliers'
+            };
+
+            grid.innerHTML = configs.map(config => {
+                let bonusDetails = '';
+
+                if (config.bonus_type === 'percentage') {
+                    bonusDetails = `<div class="bonus-detail-value">${config.bonus_percentage}%</div>`;
+                } else if (config.bonus_type === 'fixed_amount') {
+                    bonusDetails = `<div class="bonus-detail-value">${formatCurrency(config.fixed_bonus_amount)}</div>`;
+                } else if (config.bonus_type === 'tiered') {
+                    bonusDetails = `
+                        <div class="bonus-detail-small">
+                            ${config.min_prescriptions_per_month}-${config.max_prescriptions_per_month} prescriptions/mois
+                        </div>
+                        <div class="bonus-detail-value">${formatCurrency(config.bonus_amount_for_tier)}</div>
+                    `;
+                }
+
+                return `
+                    <div class="config-card ${config.is_active ? '' : 'config-inactive'}">
+                        <div class="config-header">
+                            <div class="config-type-badge config-type-${config.bonus_type}">
+                                ${bonusTypeLabels[config.bonus_type] || config.bonus_type}
+                            </div>
+                            <div class="config-status">
+                                ${config.is_active ? '✅ Active' : '🚫 Inactive'}
+                            </div>
+                        </div>
+                        <div class="config-body">
+                            <div class="config-doctor">
+                                <span class="config-label">Médecin:</span>
+                                <span class="config-value">${escapeHtml(config.doctor_name || 'Tous les médecins')}</span>
+                            </div>
+                            <div class="config-bonus-details">
+                                ${bonusDetails}
+                            </div>
+                            <div class="config-dates">
+                                <div class="config-date">
+                                    <span class="config-label">Du:</span>
+                                    <span class="config-value">${formatDate(config.valid_from)}</span>
+                                </div>
+                                <div class="config-date">
+                                    <span class="config-label">Au:</span>
+                                    <span class="config-value">${config.valid_until ? formatDate(config.valid_until) : 'Illimité'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-footer">
+                            <button class="btn-icon" onclick='editConfig(${JSON.stringify(config)})' title="Modifier">
+                                ✏️
+                            </button>
+                            <button class="btn-icon" onclick="toggleConfigStatus('${config.id}', ${!config.is_active})" title="${config.is_active ? 'Désactiver' : 'Activer'}">
+                                ${config.is_active ? '🚫' : '✅'}
+                            </button>
+                            <button class="btn-icon btn-danger" onclick="deleteConfig('${config.id}')" title="Supprimer">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            grid.style.display = 'grid';
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingActive').style.display = 'block';
+            document.getElementById('loadingInactive').style.display = 'block';
+            document.getElementById('loadingAll').style.display = 'block';
+        }
+
+        function showEmpty() {
+            document.getElementById('loadingActive').style.display = 'none';
+            document.getElementById('loadingInactive').style.display = 'none';
+            document.getElementById('loadingAll').style.display = 'none';
+            document.getElementById('emptyActive').style.display = 'block';
+            document.getElementById('emptyInactive').style.display = 'block';
+            document.getElementById('emptyAll').style.display = 'block';
+        }
+
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById(`${tab}Tab`).classList.add('active');
+        }
+
+        function openConfigModal() {
+            document.getElementById('modalTitle').textContent = 'Nouvelle Configuration';
+            document.getElementById('configForm').reset();
+            document.getElementById('configId').value = '';
+            document.getElementById('validFrom').valueAsDate = new Date();
+            document.getElementById('isActive').checked = true;
+            updateBonusFields();
+            document.getElementById('configModal').classList.add('active');
+            document.body.classList.add('modal-open');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.remove('active');
+            document.getElementById('configForm').reset();
+            document.body.classList.remove('modal-open');
+        }
+
+        function editConfig(config) {
+            document.getElementById('modalTitle').textContent = 'Modifier Configuration';
+            document.getElementById('configId').value = config.id;
+            document.getElementById('doctor').value = config.doctor || '';
+            document.getElementById('bonusType').value = config.bonus_type;
+            document.getElementById('bonusPercentage').value = config.bonus_percentage || '';
+            document.getElementById('fixedBonusAmount').value = config.fixed_bonus_amount || '';
+            document.getElementById('minPrescriptions').value = config.min_prescriptions_per_month || '';
+            document.getElementById('maxPrescriptions').value = config.max_prescriptions_per_month || '';
+            document.getElementById('bonusAmountForTier').value = config.bonus_amount_for_tier || '';
+            document.getElementById('validFrom').value = config.valid_from;
+            document.getElementById('validUntil').value = config.valid_until || '';
+            document.getElementById('isActive').checked = config.is_active;
+
+            updateBonusFields();
+            document.getElementById('configModal').classList.add('active');
+            document.body.classList.add('modal-open');
+        }
+
+        function updateBonusFields() {
+            const bonusType = document.getElementById('bonusType').value;
+
+            document.getElementById('percentageFields').style.display = 'none';
+            document.getElementById('fixedFields').style.display = 'none';
+            document.getElementById('tieredFields').style.display = 'none';
+
+            if (bonusType === 'percentage') {
+                document.getElementById('percentageFields').style.display = 'block';
+            } else if (bonusType === 'fixed_amount') {
+                document.getElementById('fixedFields').style.display = 'block';
+            } else if (bonusType === 'tiered') {
+                document.getElementById('tieredFields').style.display = 'block';
+            }
+        }
+
+        async function saveConfig() {
+            const form = document.getElementById('configForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const configId = document.getElementById('configId').value;
+            const formData = new FormData(form);
+            const bonusType = formData.get('bonus_type');
+
+            const data = {
+                doctor: formData.get('doctor') || null,
+                bonus_type: bonusType,
+                bonus_percentage: bonusType === 'percentage' ? formData.get('bonus_percentage') : 0,
+                fixed_bonus_amount: bonusType === 'fixed_amount' ? formData.get('fixed_bonus_amount') : 0,
+                min_prescriptions_per_month: bonusType === 'tiered' ? formData.get('min_prescriptions_per_month') : 0,
+                max_prescriptions_per_month: bonusType === 'tiered' ? formData.get('max_prescriptions_per_month') : 0,
+                bonus_amount_for_tier: bonusType === 'tiered' ? formData.get('bonus_amount_for_tier') : 0,
+                valid_from: formData.get('valid_from'),
+                valid_until: formData.get('valid_until') || null,
+                is_active: document.getElementById('isActive').checked
+            };
+
+            try {
+                const url = configId ? `/api/v1/pharmacy/bonus-configs/${configId}/` : '/api/v1/pharmacy/bonus-configs/';
+                const method = configId ? 'PATCH' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(configId ? 'Configuration modifiée avec succès!' : 'Configuration créée avec succès!');
+                    closeConfigModal();
+                    loadConfigs();
+                } else {
+                    alert('Erreur: ' + (result.message || JSON.stringify(result)));
+                }
+            } catch (error) {
+                console.error('Error saving config:', error);
+                alert('Une erreur est survenue lors de l\'enregistrement');
+            }
+        }
+
+        async function toggleConfigStatus(configId, newStatus) {
+            if (!confirm(newStatus ? 'Activer cette configuration?' : 'Désactiver cette configuration?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/pharmacy/bonus-configs/${configId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ is_active: newStatus })
+                });
+
+                if (response.ok) {
+                    alert('Statut mis à jour avec succès!');
+                    loadConfigs();
+                } else {
+                    alert('Erreur lors de la mise à jour du statut');
+                }
+            } catch (error) {
+                console.error('Error toggling status:', error);
+                alert('Une erreur est survenue');
+            }
+        }
+
+        async function deleteConfig(configId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette configuration?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/pharmacy/bonus-configs/${configId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Configuration supprimée avec succès!');
+                    loadConfigs();
+                } else {
+                    alert('Erreur lors de la suppression');
+                }
+            } catch (error) {
+                console.error('Error deleting config:', error);
+                alert('Une erreur est survenue');
+            }
+        }
+
+        function formatCurrency(amount) {
+            return (amount || 0).toLocaleString('fr-FR') + ' FCFA';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR');
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text ? text.replace(/[&<>"']/g, m => map[m]) : '';
+        }
+
+        document.getElementById('configModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfigModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('configModal');
+                if (modal.classList.contains('active')) {
+                    closeConfigModal();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+

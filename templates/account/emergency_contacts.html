@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacts d'Urgence - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <style>
+        .contacts-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+        
+        .contact-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .contact-card.primary {
+            border: 2px solid #f59e0b;
+        }
+        
+        .form-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .form-group-inline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-danger {
+            padding: 8px 16px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .badge-primary {
+            padding: 4px 12px;
+            background: #f59e0b;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .contact-info {
+            color: #718096;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="contacts-container">
+        <h1 style="margin: 0 0 10px 0; font-size: 28px; color: #2d3748;">🚨 Contacts d'Urgence</h1>
+        <p style="margin: 0 0 30px 0; color: #718096;">Gérez vos contacts en cas d'urgence médicale</p>
+        
+        {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for message in messages %}
+            <div style="padding: 12px; background: {% if message.tags == 'error' %}#fee; color: #c00{% else %}#efe; color: #080{% endif %}; border-radius: 8px; margin-bottom: 10px;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <!-- Add New Contact Form -->
+        <div class="form-section">
+            <h2 style="margin: 0 0 20px 0; font-size: 20px; color: #2d3748;">➕ Ajouter un Contact</h2>
+            
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="full_name">Nom Complet *</label>
+                    <input type="text" id="full_name" name="full_name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="relationship">Relation *</label>
+                    <select id="relationship" name="relationship" required>
+                        <option value="">Sélectionner...</option>
+                        <option value="spouse">Conjoint(e)</option>
+                        <option value="parent">Parent</option>
+                        <option value="child">Enfant</option>
+                        <option value="sibling">Frère/Sœur</option>
+                        <option value="friend">Ami(e)</option>
+                        <option value="other">Autre</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone_number">Numéro de Téléphone *</label>
+                    <input type="tel" id="phone_number" name="phone_number" required placeholder="+229 XX XX XX XX">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email (optionnel)</label>
+                    <input type="email" id="email" name="email" placeholder="email@example.com">
+                </div>
+                
+                <div class="form-group-inline">
+                    <input type="checkbox" id="is_primary" name="is_primary">
+                    <label for="is_primary" style="margin: 0;">Contact Principal</label>
+                </div>
+                
+                <button type="submit" class="btn-primary">Ajouter le Contact</button>
+            </form>
+        </div>
+        
+        <!-- Existing Contacts -->
+        <h2 style="margin: 30px 0 20px 0; font-size: 20px; color: #2d3748;">📋 Mes Contacts</h2>
+        
+        {% if contacts %}
+            {% for contact in contacts %}
+            <div class="contact-card {% if contact.is_primary %}primary{% endif %}">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <h3 style="margin: 0; font-size: 18px; color: #2d3748;">{{ contact.full_name }}</h3>
+                            {% if contact.is_primary %}
+                            <span class="badge-primary">Principal</span>
+                            {% endif %}
+                        </div>
+                        <div class="contact-info">
+                            <strong>Relation:</strong> {{ contact.get_relationship_display }}
+                        </div>
+                        <div class="contact-info">
+                            <strong>Téléphone:</strong> {{ contact.phone_number }}
+                        </div>
+                        {% if contact.email %}
+                        <div class="contact-info">
+                            <strong>Email:</strong> {{ contact.email }}
+                        </div>
+                        {% endif %}
+                        <div class="contact-info">
+                            <strong>Ajouté le:</strong> {{ contact.created_at|date:"d/m/Y" }}
+                        </div>
+                    </div>
+                    <form method="POST" action="/api/v1/preferences/emergency-contacts/{{ contact.id }}/" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="btn-danger" onclick="return confirm('Supprimer ce contact?')">Supprimer</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="background: #f7fafc; padding: 30px; text-align: center; border-radius: 12px;">
+                <p style="color: #718096; margin: 0;">Aucun contact d'urgence enregistré</p>
+                <p style="color: #718096; margin: 10px 0 0 0; font-size: 14px;">Ajoutez vos contacts pour qu'ils puissent être prévenus en cas d'urgence</p>
+            </div>
+        {% endif %}
+        
+        <a href="javascript:history.back()" class="back-link">← Retour aux Paramètres</a>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,423 @@
+:root {
+    --doctor-primary: #28a745;
+    --doctor-secondary: #20c997;
+    --doctor-dark: #1e7e34;
+    --doctor-light: rgba(40, 167, 69, 0.1);
+    --accent-color: #28a745;
+}
+
+/* Universal Page Header for All Doctor Pages */
+.page-header {
+    background: linear-gradient(135deg, var(--doctor-primary) 0%, var(--doctor-secondary) 100%) !important;
+    padding: 2.5rem !important;
+    border-radius: 12px !important;
+    color: white !important;
+    margin-bottom: 2rem !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    text-align: left !important;
+}
+
+.page-header h1 {
+    margin: 0 0 0.5rem 0 !important;
+    font-size: 2rem !important;
+    font-weight: 600 !important;
+    color: white !important;
+}
+
+.page-header p {
+    margin: 0 !important;
+    opacity: 0.95 !important;
+    font-size: 1.1rem !important;
+    color: white !important;
+}
+
+.sidebar-header {
+    background: linear-gradient(135deg, var(--doctor-primary) 0%, var(--doctor-secondary) 100%);
+}
+
+.profile-icon {
+    background: linear-gradient(135deg, var(--doctor-primary) 0%, var(--doctor-secondary) 100%);
+}
+
+.feature-card {
+    background: linear-gradient(135deg, var(--doctor-light), rgba(40, 167, 69, 0.02));
+    border-left-color: var(--doctor-primary);
+}
+
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.appointment-item {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: inherit;
+}
+
+.appointment-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.appointment-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    background: var(--doctor-light);
+    border-radius: 8px;
+    min-width: 80px;
+}
+
+.appointment-time-hour {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--doctor-primary);
+}
+
+.appointment-time-period {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.appointment-details {
+    flex: 1;
+}
+
+.appointment-patient {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.appointment-type {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.patients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.patient-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.patient-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.patient-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.patient-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--doctor-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--doctor-primary);
+}
+
+.patient-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.patient-info {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.medical-record-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.record-section {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.record-section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--doctor-primary);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--doctor-light);
+}
+
+.prescription-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.medication-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--doctor-primary);
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+}
+
+.schedule-day {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.schedule-day-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.schedule-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.schedule-slot {
+    padding: 8px;
+    background: var(--doctor-light);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--doctor-primary);
+}
+
+@media (max-width: 768px) {
+    .appointment-item {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .appointment-time {
+        width: 100%;
+    }
+
+    .patients-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 1024px) {
+    .services-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* ===== DOCTOR PATIENTS PAGE STYLES ===== */
+/* Search and Filter Bar */
+.search-filter-bar {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 40px 12px 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.search-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #718096;
+}
+
+.filter-select {
+    padding: 12px 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 15px;
+    background: white;
+    cursor: pointer;
+}
+
+/* Patient List View */
+.patient-list {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.patient-list-header {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+    padding: 15px 20px;
+    font-weight: 600;
+}
+
+.patient-item {
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    transition: background 0.2s;
+}
+
+.patient-item:hover {
+    background: #f8f9fa;
+}
+
+.patient-item:last-child {
+    border-bottom: none;
+}
+
+.patient-details {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: #718096;
+}
+
+.patient-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.patient-stats {
+    display: flex;
+    gap: 20px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.patient-stat {
+    text-align: center;
+}
+
+.patient-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.patient-stat-label {
+    font-size: 12px;
+    color: #718096;
+}
+
+.patient-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Doctor-Specific Button Overrides */
+.btn-primary {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+/* Responsive Adjustments for Patients Page */
+@media (max-width: 768px) {
+    .patient-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .patient-stats {
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .patient-actions {
+        width: 100%;
+    }
+
+    .btn {
+        flex: 1;
+        justify-content: center;
+    }
+}

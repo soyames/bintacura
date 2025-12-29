@@ -1,0 +1,299 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Anti-Scraping - BINTACURA</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <style>
+        .monitoring-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #FF6B6B;
+        }
+
+        .activities-table {
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .blocked-ip {
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-danger {
+            background: #FF6B6B;
+            color: white;
+        }
+
+        .btn-success {
+            background: #51CF66;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .refresh-btn {
+            float: right;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="mobile-header">
+        <div class="menu-icon" id="menuIcon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="mobile-logo-img">
+            ADMIN
+        </div>
+        <div class="profile-icon">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </header>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "admin/sidebar.html" %}
+
+
+    <div class="monitoring-container">
+        <h1><i class="fas fa-shield-alt"></i> Monitoring Anti-Scraping</h1>
+
+        <button class="btn btn-success refresh-btn" onclick="loadAllData()">
+            <i class="fas fa-sync"></i> Actualiser
+        </button>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3><i class="fas fa-ban"></i> IPs Bloquées</h3>
+                <div class="stat-value" id="blocked-count">0</div>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fas fa-exclamation-triangle"></i> Activités Suspectes (24h)</h3>
+                <div class="stat-value" id="suspicious-count">0</div>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fas fa-robot"></i> Bots Détectés</h3>
+                <div class="stat-value" id="bot-count">0</div>
+            </div>
+        </div>
+
+        <div class="activities-table">
+            <h2>IPs Bloquées</h2>
+            <table id="blocked-ips-table">
+                <thead>
+                    <tr>
+                        <th>Adresse IP</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="blocked-ips-body">
+                    <tr>
+                        <td colspan="2" style="text-align: center;">Chargement...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="activities-table" style="margin-top: 30px;">
+            <h2>Activités Suspectes Récentes</h2>
+            <table id="activities-table">
+                <thead>
+                    <tr>
+                        <th>Date/Heure</th>
+                        <th>IP</th>
+                        <th>User-Agent</th>
+                        <th>Chemin</th>
+                        <th>Raison</th>
+                    </tr>
+                </thead>
+                <tbody id="activities-body">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Chargement...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function loadBlockedIPs() {
+            try {
+                const response = await fetch('/api/v1/core/security/blocked_ips/', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                const data = await response.json();
+
+                document.getElementById('blocked-count').textContent = data.count || 0;
+
+                const tbody = document.getElementById('blocked-ips-body');
+                tbody.innerHTML = '';
+
+                if (data.blocked_ips && data.blocked_ips.length > 0) {
+                    data.blocked_ips.forEach(ip => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="blocked-ip">${ip}</td>
+                            <td>
+                                <button class="btn btn-danger" onclick="unblockIP('${ip}')">
+                                    <i class="fas fa-unlock"></i> Débloquer
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2" style="text-align: center;">Aucune IP bloquée</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function loadSuspiciousActivities() {
+            try {
+                const response = await fetch('/api/v1/core/security/suspicious_activities/?hours=24', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    }
+                });
+                const data = await response.json();
+
+                document.getElementById('suspicious-count').textContent = data.count || 0;
+
+                let botCount = 0;
+                if (data.activities) {
+                    botCount = data.activities.filter(a => a.reason.includes('Bot')).length;
+                }
+                document.getElementById('bot-count').textContent = botCount;
+
+                const tbody = document.getElementById('activities-body');
+                tbody.innerHTML = '';
+
+                if (data.activities && data.activities.length > 0) {
+                    data.activities.slice(0, 50).forEach(activity => {
+                        const tr = document.createElement('tr');
+                        const date = new Date(activity.timestamp);
+                        tr.innerHTML = `
+                            <td>${date.toLocaleString('fr-FR')}</td>
+                            <td class="blocked-ip">${activity.ip}</td>
+                            <td>${activity.user_agent.substring(0, 50)}...</td>
+                            <td>${activity.path}</td>
+                            <td>${activity.reason}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Aucune activité suspecte</td></tr>';
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function unblockIP(ip) {
+            if (!confirm(`Êtes-vous sûr de vouloir débloquer l'IP ${ip} ?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/core/security/unblock_ip/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                    },
+                    body: JSON.stringify({ ip: ip })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(data.message);
+                    loadAllData();
+                } else {
+                    alert('Erreur: ' + (data.error || 'Échec du déblocage'));
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du déblocage de l\'IP');
+            }
+        }
+
+        function loadAllData() {
+            loadBlockedIPs();
+            loadSuspiciousActivities();
+        }
+
+        loadAllData();
+        setInterval(loadAllData, 60000);
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

@@ -1,0 +1,484 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Lits - BINTACURA Hospital</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital_beds.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="hospital" page_title="Lits" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_hospital.html" %}
+
+    <div class="main-content">
+        <div class="beds-container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Lits</h3>
+                <p class="stat-value" id="totalBeds">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Disponibles</h3>
+                <p class="stat-value" id="availableBeds">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Occupés</h3>
+                <p class="stat-value" id="occupiedBeds">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Maintenance</h3>
+                <p class="stat-value" id="maintenanceBeds">0</p>
+            </div>
+        </div>
+
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="searchBed">Rechercher</label>
+                    <input type="text" id="searchBed" placeholder="Numéro de lit ou chambre" oninput="filterBeds()">
+                </div>
+                <div class="filter-group">
+                    <label for="filterDepartment">Département</label>
+                    <select id="filterDepartment" onchange="filterBeds()">
+                        <option value="">Tous</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterStatus">Statut</label>
+                    <select id="filterStatus" onchange="filterBeds()">
+                        <option value="">Tous</option>
+                        <option value="available">Disponible</option>
+                        <option value="occupied">Occupé</option>
+                        <option value="maintenance">Maintenance</option>
+                        <option value="reserved">Réservé</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterType">Type</label>
+                    <select id="filterType" onchange="filterBeds()">
+                        <option value="">Tous</option>
+                        <option value="standard">Standard</option>
+                        <option value="icu">Soins intensifs</option>
+                        <option value="private">Privé</option>
+                        <option value="semi_private">Semi-privé</option>
+                        <option value="pediatric">Pédiatrique</option>
+                        <option value="maternity">Maternité</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="beds-grid" id="bedsList"></div>
+    </div>
+
+    <div class="modal" id="bedModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ajouter un Lit</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="bedForm" onsubmit="saveBed(event)">
+                    <input type="hidden" id="bedId">
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="bed_number">Numéro de Lit <span class="required">*</span></label>
+                            <input type="text" id="bed_number" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="room_number">Numéro de Chambre <span class="required">*</span></label>
+                            <input type="text" id="room_number" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="floor_number">Étage <span class="required">*</span></label>
+                            <input type="text" id="floor_number" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="department">Département <span class="required">*</span></label>
+                            <select id="department" required>
+                                <option value="">Sélectionner...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bed_type">Type de Lit</label>
+                            <select id="bed_type">
+                                <option value="standard">Standard</option>
+                                <option value="icu">Soins intensifs</option>
+                                <option value="private">Privé</option>
+                                <option value="semi_private">Semi-privé</option>
+                                <option value="pediatric">Pédiatrique</option>
+                                <option value="maternity">Maternité</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Statut</label>
+                            <select id="status">
+                                <option value="available">Disponible</option>
+                                <option value="occupied">Occupé</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="reserved">Réservé</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="has_oxygen">
+                                Oxygène
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="has_monitor">
+                                Moniteur
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="is_iBINTAtion">
+                                IBINTAtion
+                            </label>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Annuler</button>
+                <button type="submit" form="bedForm" class="btn-save">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let beds = [];
+        let departments = [];
+
+        async function loadBeds() {
+            try {
+                const response = await fetch('/api/v1/hospital/beds/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erreur lors du chargement');
+
+                beds = await response.json();
+                updateStats();
+                renderBeds();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du chargement des lits');
+            }
+        }
+
+        async function loadDepartments() {
+            try {
+                const response = await fetch('/api/v1/hospital/departments/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erreur');
+
+                departments = await response.json();
+                populateDepartmentDropdowns();
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function populateDepartmentDropdowns() {
+            const modalSelect = document.getElementById('department');
+            const filterSelect = document.getElementById('filterDepartment');
+
+            modalSelect.innerHTML = '<option value="">Sélectionner...</option>';
+            filterSelect.innerHTML = '<option value="">Tous</option>';
+
+            departments.forEach(dept => {
+                const option1 = document.createElement('option');
+                option1.value = dept.id;
+                option1.textContent = dept.name;
+                modalSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = dept.id;
+                option2.textContent = dept.name;
+                filterSelect.appendChild(option2);
+            });
+        }
+
+        function updateStats() {
+            const total = beds.length;
+            const available = beds.filter(b => b.status === 'available').length;
+            const occupied = beds.filter(b => b.status === 'occupied').length;
+            const maintenance = beds.filter(b => b.status === 'maintenance').length;
+
+            document.getElementById('totalBeds').textContent = total;
+            document.getElementById('availableBeds').textContent = available;
+            document.getElementById('occupiedBeds').textContent = occupied;
+            document.getElementById('maintenanceBeds').textContent = maintenance;
+        }
+
+        function renderBeds() {
+            const container = document.getElementById('bedsList');
+
+            if (beds.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>Aucun lit trouvé</p></div>';
+                return;
+            }
+
+            container.innerHTML = beds.map(bed => `
+                <div class="bed-card ${bed.status}">
+                    <div class="bed-header">
+                        <div class="bed-number">Lit ${bed.bed_number}</div>
+                        <span class="status-badge status-${bed.status}">${getStatusLabel(bed.status)}</span>
+                    </div>
+                    <div class="bed-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Chambre</span>
+                            <span class="detail-value">${bed.room_number}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Étage</span>
+                            <span class="detail-value">${bed.floor_number}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Type</span>
+                            <span class="detail-value">${getTypeLabel(bed.bed_type)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Département</span>
+                            <span class="detail-value">${bed.department_name || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="bed-features">
+                        ${bed.has_oxygen ? '<span class="feature-badge">💨 O₂</span>' : ''}
+                        ${bed.has_monitor ? '<span class="feature-badge">📺 Moniteur</span>' : ''}
+                        ${bed.is_iBINTAtion ? '<span class="feature-badge">🚪 IBINTAtion</span>' : ''}
+                    </div>
+                    <div class="bed-actions">
+                        <button class="btn-edit" onclick="editBed('${bed.id}')">Modifier</button>
+                        <button class="btn-status" onclick="updateStatus('${bed.id}')">Changer Statut</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'available': 'Disponible',
+                'occupied': 'Occupé',
+                'maintenance': 'Maintenance',
+                'reserved': 'Réservé'
+            };
+            return labels[status] || status;
+        }
+
+        function getTypeLabel(type) {
+            const labels = {
+                'standard': 'Standard',
+                'icu': 'Soins intensifs',
+                'private': 'Privé',
+                'semi_private': 'Semi-privé',
+                'pediatric': 'Pédiatrique',
+                'maternity': 'Maternité'
+            };
+            return labels[type] || type;
+        }
+
+        function filterBeds() {
+            const search = document.getElementById('searchBed').value.toLowerCase();
+            const deptFilter = document.getElementById('filterDepartment').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const typeFilter = document.getElementById('filterType').value;
+
+            const filtered = beds.filter(bed => {
+                const matchSearch = !search ||
+                    bed.bed_number.toLowerCase().includes(search) ||
+                    bed.room_number.toLowerCase().includes(search);
+                const matchDept = !deptFilter || bed.department === deptFilter;
+                const matchStatus = !statusFilter || bed.status === statusFilter;
+                const matchType = !typeFilter || bed.bed_type === typeFilter;
+
+                return matchSearch && matchDept && matchStatus && matchType;
+            });
+
+            const container = document.getElementById('bedsList');
+            container.innerHTML = filtered.map(bed => `
+                <div class="bed-card ${bed.status}">
+                    <div class="bed-header">
+                        <div class="bed-number">Lit ${bed.bed_number}</div>
+                        <span class="status-badge status-${bed.status}">${getStatusLabel(bed.status)}</span>
+                    </div>
+                    <div class="bed-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Chambre</span>
+                            <span class="detail-value">${bed.room_number}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Étage</span>
+                            <span class="detail-value">${bed.floor_number}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Type</span>
+                            <span class="detail-value">${getTypeLabel(bed.bed_type)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Département</span>
+                            <span class="detail-value">${bed.department_name || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="bed-features">
+                        ${bed.has_oxygen ? '<span class="feature-badge">💨 O₂</span>' : ''}
+                        ${bed.has_monitor ? '<span class="feature-badge">📺 Moniteur</span>' : ''}
+                        ${bed.is_iBINTAtion ? '<span class="feature-badge">🚪 IBINTAtion</span>' : ''}
+                    </div>
+                    <div class="bed-actions">
+                        <button class="btn-edit" onclick="editBed('${bed.id}')">Modifier</button>
+                        <button class="btn-status" onclick="updateStatus('${bed.id}')">Changer Statut</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('bedId').value = '';
+            document.getElementById('modalTitle').textContent = 'Ajouter un Lit';
+            document.getElementById('bedForm').reset();
+            document.getElementById('status').value = 'available';
+            document.getElementById('bed_type').value = 'standard';
+            document.getElementById('bedModal').classList.add('active');
+        }
+
+        function editBed(id) {
+            const bed = beds.find(b => b.id === id);
+            if (!bed) return;
+
+            document.getElementById('bedId').value = bed.id;
+            document.getElementById('modalTitle').textContent = 'Modifier le Lit';
+            document.getElementById('bed_number').value = bed.bed_number;
+            document.getElementById('room_number').value = bed.room_number;
+            document.getElementById('floor_number').value = bed.floor_number;
+            document.getElementById('department').value = bed.department || '';
+            document.getElementById('bed_type').value = bed.bed_type || 'standard';
+            document.getElementById('status').value = bed.status || 'available';
+            document.getElementById('has_oxygen').checked = bed.has_oxygen || false;
+            document.getElementById('has_monitor').checked = bed.has_monitor || false;
+            document.getElementById('is_iBINTAtion').checked = bed.is_iBINTAtion || false;
+            document.getElementById('notes').value = bed.notes || '';
+            document.getElementById('bedModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('bedModal').classList.remove('active');
+        }
+
+        async function saveBed(event) {
+            event.preventDefault();
+
+            const bedId = document.getElementById('bedId').value;
+            const data = {
+                bed_number: document.getElementById('bed_number').value,
+                room_number: document.getElementById('room_number').value,
+                floor_number: document.getElementById('floor_number').value,
+                department: document.getElementById('department').value,
+                bed_type: document.getElementById('bed_type').value,
+                status: document.getElementById('status').value,
+                has_oxygen: document.getElementById('has_oxygen').checked,
+                has_monitor: document.getElementById('has_monitor').checked,
+                is_iBINTAtion: document.getElementById('is_iBINTAtion').checked,
+                notes: document.getElementById('notes').value
+            };
+
+            try {
+                const url = bedId
+                    ? `/api/v1/hospital/beds/${bedId}/`
+                    : '/api/v1/hospital/beds/';
+
+                const method = bedId ? 'PATCH' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Erreur lors de l\'enregistrement');
+
+                alert(bedId ? 'Lit mis à jour avec succès' : 'Lit créé avec succès');
+                closeModal();
+                loadBeds();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'enregistrement du lit');
+            }
+        }
+
+        async function updateStatus(id) {
+            const bed = beds.find(b => b.id === id);
+            if (!bed) return;
+
+            const newStatus = prompt('Nouveau statut (available, occupied, maintenance, reserved):', bed.status);
+            if (!newStatus || newStatus === bed.status) return;
+
+            const validStatuses = ['available', 'occupied', 'maintenance', 'reserved'];
+            if (!validStatuses.includes(newStatus)) {
+                alert('Statut invalide');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/hospital/beds/${id}/update_status/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (!response.ok) throw new Error('Erreur lors de la mise à jour');
+
+                alert('Statut mis à jour avec succès');
+                loadBeds();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la mise à jour du statut');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBeds();
+            loadDepartments();
+        });
+    </script>
+        </div>
+    </div>
+</body>
+</html>
+
+

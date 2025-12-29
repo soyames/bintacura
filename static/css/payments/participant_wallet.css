@@ -1,0 +1,495 @@
+.provider-wallet-container {
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-title {
+    font-size: 32px;
+    font-weight: bold;
+    color: #333333;
+    margin-bottom: 5px;
+}
+
+.page-subtitle {
+    font-size: 16px;
+    color: #666666;
+}
+
+.wallet-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-left: 4px solid;
+}
+
+.stat-card.stat-gross {
+    border-left-color: #007bff;
+}
+
+.stat-card.stat-net {
+    border-left-color: #28a745;
+}
+
+.stat-card.stat-fees {
+    border-left-color: #ffc107;
+}
+
+.stat-card.stat-pending {
+    border-left-color: #17a2b8;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+
+.stat-gross .stat-icon {
+    background-color: #f0f0ff;
+    color: #007bff;
+}
+
+.stat-net .stat-icon {
+    background-color: #e8f5e9;
+    color: #28a745;
+}
+
+.stat-fees .stat-icon {
+    background-color: #fff8e1;
+    color: #ffc107;
+}
+
+.stat-pending .stat-icon {
+    background-color: #e0f7fa;
+    color: #17a2b8;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: #666666;
+    margin-bottom: 5px;
+}
+
+.stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333333;
+}
+
+.stat-badge {
+    font-size: 12px;
+    color: #999999;
+    margin-top: 5px;
+}
+
+.wallet-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.section-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.section-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333333;
+    margin: 0;
+}
+
+.section-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333333;
+    margin: 0;
+}
+
+.btn-link {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.transaction-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 15px;
+    align-items: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.transaction-item:hover {
+    background-color: #f0f0f0;
+}
+
+.transaction-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e8f5e9;
+    color: #28a745;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.transaction-details {
+    flex: 1;
+}
+
+.transaction-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 4px;
+}
+
+.transaction-info {
+    font-size: 13px;
+    color: #666666;
+}
+
+.transaction-amount {
+    text-align: right;
+}
+
+.transaction-amount .amount {
+    font-size: 16px;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.transaction-amount .fee {
+    font-size: 12px;
+    color: #999999;
+    margin-top: 2px;
+}
+
+.transaction-status {
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-completed {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-processing {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-failed {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.status-scheduled {
+    background-color: #e0f7fa;
+    color: #00838f;
+}
+
+.payouts-list,
+.completed-payouts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.payout-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 15px;
+    align-items: center;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.payout-details {
+}
+
+.payout-date {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333333;
+}
+
+.payout-period {
+    font-size: 12px;
+    color: #666666;
+    margin-top: 2px;
+}
+
+.payout-amount {
+    text-align: right;
+}
+
+.payout-amount .amount {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333333;
+}
+
+.payout-amount .count {
+    font-size: 12px;
+    color: #666666;
+    margin-top: 2px;
+}
+
+.payout-status {
+}
+
+.completed-payout-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.completed-payout-item:last-child {
+    border-bottom: none;
+}
+
+.completed-payout-item .payout-date {
+    font-size: 13px;
+    color: #666666;
+}
+
+.completed-payout-item .payout-amount {
+    font-size: 14px;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.gateway-accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.gateway-account-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.gateway-account-item.default {
+    background-color: #f0f0ff;
+    border: 1px solid #007bff;
+}
+
+.account-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.account-details {
+    flex: 1;
+}
+
+.account-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333333;
+}
+
+.account-number {
+    font-size: 12px;
+    color: #666666;
+    margin-top: 2px;
+}
+
+.default-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background-color: #007bff;
+    color: white;
+    font-weight: 600;
+}
+
+.quick-actions {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.quick-actions h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 15px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    color: #333333;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.action-btn i {
+    width: 20px;
+    text-align: center;
+}
+
+.no-data,
+.no-data-sm {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999999;
+}
+
+.no-data i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.no-data p,
+.no-data-sm p {
+    font-size: 14px;
+    margin: 0;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #5568d3;
+}
+
+@media (max-width: 1024px) {
+    .wallet-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .wallet-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .transaction-item {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .transaction-amount,
+    .payout-amount {
+        text-align: left;
+    }
+}

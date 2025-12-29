@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sessions Actives - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <style>
+        .sessions-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+        
+        .session-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .session-card.current {
+            border: 2px solid #48bb78;
+        }
+        
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .session-info {
+            flex: 1;
+        }
+        
+        .session-badge {
+            padding: 4px 12px;
+            background: #48bb78;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .session-detail {
+            color: #718096;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .btn-danger {
+            padding: 8px 16px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="sessions-container">
+        <h1 style="margin: 0 0 10px 0; font-size: 28px; color: #2d3748;">💻 Sessions Actives</h1>
+        <p style="margin: 0 0 30px 0; color: #718096;">Gérez les appareils connectés à votre compte</p>
+        
+        <div style="margin-bottom: 30px;">
+            <p style="background: #e6fffa; padding: 15px; border-radius: 8px; color: #234e52;">
+                ℹ️ Vous avez {{ total_sessions }} session{% if total_sessions > 1 %}s{% endif %} active{% if total_sessions > 1 %}s{% endif %}
+            </p>
+        </div>
+        
+        {% for session in sessions %}
+        <div class="session-card {% if session.is_current %}current{% endif %}">
+            <div class="session-header">
+                <div class="session-info">
+                    <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #2d3748;">
+                        {{ session.device }}
+                    </h3>
+                </div>
+                {% if session.is_current %}
+                <span class="session-badge">Session Actuelle</span>
+                {% else %}
+                <button class="btn-danger" onclick="revokeSession('{{ session.session_key }}')">Révoquer</button>
+                {% endif %}
+            </div>
+            <div class="session-detail">
+                📍 Adresse IP: {{ session.ip_address }}
+            </div>
+            <div class="session-detail">
+                🕐 Dernière activité: {{ session.last_activity|date:"d/m/Y H:i" }}
+            </div>
+        </div>
+        {% endfor %}
+        
+        <a href="javascript:history.back()" class="back-link">← Retour aux Paramètres</a>
+    </div>
+    
+    <script>
+        function revokeSession(sessionKey) {
+            if (confirm('Voulez-vous vraiment révoquer cette session?')) {
+                // In full implementation, make API call to revoke session
+                alert('Fonctionnalité de révocation en cours de développement');
+            }
+        }
+    </script>
+</body>
+</html>
+

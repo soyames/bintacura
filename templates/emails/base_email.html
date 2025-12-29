@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="{% if language %}{{ language }}{% else %}fr{% endif %}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{% block email_title %}BintaCura - Notification{% endblock %}</title>
+    <style>
+        /* Base Styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .email-wrapper {
+            width: 100%;
+            background-color: #f5f7fa;
+            padding: 20px 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .header-logo {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        /* Content Styles */
+        .content {
+            padding: 30px 20px;
+            background-color: white;
+        }
+
+        .content h2 {
+            color: #4a90e2;
+            font-size: 22px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .content h3 {
+            color: #357abd;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .content p {
+            margin: 15px 0;
+            color: #333;
+        }
+
+        .content ul {
+            padding-left: 20px;
+            margin: 15px 0;
+        }
+
+        .content li {
+            margin: 8px 0;
+            color: #555;
+        }
+
+        .content a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+
+        .content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Box Components */
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #4a90e2;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #1e5a8e;
+            font-size: 14px;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .warning-box p {
+            margin: 0;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .success-box p {
+            margin: 0;
+            color: #155724;
+            font-size: 14px;
+        }
+
+        .danger-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .danger-box p {
+            margin: 0;
+            color: #721c24;
+            font-size: 14px;
+        }
+
+        /* Button Styles */
+        .cta-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .cta-button:hover {
+            background: linear-gradient(135deg, #357abd 0%, #2868a8 100%);
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 20px 0;
+        }
+
+        /* Footer Styles */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        .footer a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media only screen and (max-width: 600px) {
+            .container {
+                margin: 0 10px;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .cta-button {
+                display: block;
+                padding: 12px 20px;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .email-wrapper {
+                background-color: white;
+            }
+
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+
+<body>
+    <div class="email-wrapper">
+        <div class="container">
+            <!-- Email Header -->
+            <div class="header">
+                {% block header %}
+                <div class="header-logo">🏥</div>
+                <h1>BintaCura</h1>
+                <p>Votre plateforme de santé numérique</p>
+                {% endblock %}
+            </div>
+
+            <!-- Email Content -->
+            <div class="content">
+                {% block content %}
+                <!-- Override this block with email-specific content -->
+                {% endblock %}
+
+                <!-- Email Signature -->
+                {% block signature %}
+                    {% include 'emails/partials/signature.html' %}
+                {% endblock %}
+            </div>
+
+            <!-- Email Footer with Disclaimer -->
+            {% block footer %}
+                {% include 'emails/partials/disclaimer.html' with is_automated=is_automated current_year=current_year %}
+            {% endblock %}
+        </div>
+    </div>
+</body>
+
+</html>

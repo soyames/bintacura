@@ -1,0 +1,270 @@
+:root {
+    --hospital-primary: #dc3545;
+    --hospital-secondary: #c82333;
+    --hospital-light: rgba(220, 53, 69, 0.1);
+    --accent-color: #dc3545;
+}
+
+.sidebar-header {
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-secondary) 100%);
+}
+
+.profile-icon {
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-secondary) 100%);
+}
+
+.department-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.department-item {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.department-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.department-info {
+    flex: 1;
+}
+
+.department-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.department-stats {
+    font-size: 14px;
+    color: #666;
+}
+
+.department-capacity {
+    text-align: center;
+    padding: 15px;
+    background: var(--hospital-light);
+    border-radius: 8px;
+    min-width: 100px;
+}
+
+.capacity-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--hospital-primary);
+}
+
+.capacity-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.beds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.bed-item {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.bed-item.occupied {
+    background: var(--hospital-light);
+    border: 2px solid var(--hospital-primary);
+}
+
+.bed-item.available {
+    background: rgba(40, 167, 69, 0.1);
+    border: 2px solid #28a745;
+}
+
+.bed-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.bed-number {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.bed-status {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.staff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.staff-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.staff-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.staff-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.staff-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--hospital-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--hospital-primary);
+}
+
+.staff-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.staff-role {
+    font-size: 14px;
+    color: #666;
+}
+
+.staff-department {
+    font-size: 13px;
+    color: #888;
+}
+
+.admissions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admission-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.admission-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.admission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.admission-patient {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.admission-bed {
+    font-size: 14px;
+    color: #666;
+}
+
+.equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.equipment-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid var(--hospital-primary);
+}
+
+.equipment-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.equipment-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.equipment-status.operational {
+    background: rgba(40, 167, 69, 0.2);
+    color: #1e7e34;
+}
+
+.equipment-status.maintenance {
+    background: rgba(255, 193, 7, 0.2);
+    color: #856404;
+}
+
+.equipment-status.out-of-service {
+    background: var(--hospital-light);
+    color: var(--hospital-secondary);
+}
+
+@media (max-width: 768px) {
+    .department-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+
+    .beds-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .staff-grid,
+    .equipment-grid {
+        grid-template-columns: 1fr;
+    }
+}

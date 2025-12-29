@@ -1,0 +1,6 @@
+{% comment %}
+Custom hCaptcha Widget Template
+Overrides the default template to prevent duplicate script loading
+The script is loaded manually in the page head for better control
+{% endcomment %}
+<div {% include "django/forms/widgets/attrs.html" %}></div>

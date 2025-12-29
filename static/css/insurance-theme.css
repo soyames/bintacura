@@ -1,0 +1,217 @@
+:root {
+    --insurance-primary: #6f42c1;
+    --insurance-primary-dark: #5a32a3;
+    --insurance-primary-light: #8c68cd;
+    --insurance-secondary: #6c757d;
+    --insurance-light: rgba(111, 66, 193, 0.1);
+    --insurance-accent: #6f42c1;
+    --insurance-success: #28a745;
+    --insurance-warning: #ffc107;
+    --insurance-danger: #dc3545;
+    --insurance-info: #17a2b8;
+}
+
+.top-nav {
+    background: linear-gradient(135deg, var(--insurance-primary) 0%, var(--insurance-primary-dark) 100%);
+}
+
+.btn-primary,
+.btn-profile-primary,
+.action-btn.btn-primary {
+    background: linear-gradient(135deg, var(--insurance-primary) 0%, var(--insurance-primary-dark) 100%);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover,
+.btn-profile-primary:hover,
+.action-btn.btn-primary:hover {
+    background: linear-gradient(135deg, var(--insurance-primary-dark) 0%, var(--insurance-primary) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+}
+
+.sidebar-header {
+    background: linear-gradient(135deg, var(--insurance-primary) 0%, var(--insurance-secondary) 100%);
+}
+
+.nav-user-avatar,
+.sidebar-user-avatar,
+.profile-avatar-large {
+    background: linear-gradient(135deg, var(--insurance-primary) 0%, var(--insurance-primary-light) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.sidebar-menu-item.active,
+.sidebar-menu-item:hover {
+    background: var(--insurance-light);
+    border-left: 4px solid var(--insurance-primary);
+}
+
+.stat-card {
+    border-left: 4px solid var(--insurance-primary);
+}
+
+.page-header {
+    background: linear-gradient(135deg, var(--insurance-primary) 0%, var(--insurance-primary-dark) 100%);
+    color: white;
+}
+
+.card-header,
+.content-section-header {
+    background: var(--insurance-light);
+    border-left: 4px solid var(--insurance-primary);
+}
+
+.badge-primary,
+.status-badge.confirmed {
+    background: var(--insurance-primary);
+    color: white;
+}
+
+.link-primary,
+a.primary-link {
+    color: var(--insurance-primary);
+}
+
+.link-primary:hover,
+a.primary-link:hover {
+    color: var(--insurance-primary-dark);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+    border-color: var(--insurance-primary);
+    box-shadow: 0 0 0 0.2rem var(--insurance-light);
+}
+
+.toggle-switch.active {
+    background: var(--insurance-primary);
+}
+
+.progress-bar {
+    background: var(--insurance-primary);
+}
+
+.tab-btn.active {
+    border-bottom: 3px solid var(--insurance-primary);
+    color: var(--insurance-primary);
+}
+
+.calendar-day.today {
+    background: var(--insurance-light);
+    border: 2px solid var(--insurance-primary);
+}
+
+.appointment-dot.status-confirmed,
+.status-confirmed {
+    background: var(--insurance-success);
+}
+
+.appointment-dot.status-pending,
+.status-pending {
+    background: var(--insurance-warning);
+}
+
+.appointment-dot.status-cancelled,
+.status-cancelled {
+    background: var(--insurance-danger);
+}
+
+.book-btn,
+.search-btn {
+    background: var(--insurance-primary);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.book-btn:hover,
+.search-btn:hover {
+    background: var(--insurance-primary-dark);
+    transform: translateY(-2px);
+}
+
+.time-slot.selected {
+    background: var(--insurance-primary);
+    color: white;
+    border: 2px solid var(--insurance-primary-dark);
+}
+
+.doctor-card:hover {
+    border-color: var(--insurance-primary);
+    box-shadow: 0 4px 15px rgba(111, 66, 193, 0.2);
+}
+
+.specialty-badge {
+    background: var(--insurance-light);
+    color: var(--insurance-primary);
+}
+
+.status-online {
+    color: var(--insurance-success);
+}
+
+.consultation-fee {
+    background: var(--insurance-light);
+    border-left: 4px solid var(--insurance-primary);
+}
+
+.alert-profile.success {
+    background: #d4edda;
+    border-left: 4px solid var(--insurance-success);
+    color: #155724;
+}
+
+.alert-profile.error {
+    background: #f8d7da;
+    border-left: 4px solid var(--insurance-danger);
+    color: #721c24;
+}
+
+.profile-section-title {
+    color: var(--insurance-primary);
+}
+
+.role-badge {
+    background: var(--insurance-primary);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.verification-badge.verified {
+    background: var(--insurance-success);
+    color: white;
+}
+
+.nav-back-btn {
+    background: var(--insurance-primary);
+    color: #ffffff;
+}
+
+.nav-back-btn:hover {
+    background: var(--insurance-primary-dark);
+}
+
+.menu-toggle-btn span {
+    background: var(--insurance-primary);
+}
+
+.nav-page-title {
+    color: var(--insurance-primary);
+}
+
+.top-nav .nav-center {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}

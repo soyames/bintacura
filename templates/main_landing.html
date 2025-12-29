@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BINTACURA - Plateforme de Santé Numérique</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main_landing.css' %}">
+</head>
+
+<body>
+    <div class="menu-overlay" id="menuOverlay"></div>
+
+    <nav class="nav-menu" id="navMenu">
+        <div class="nav-menu-header">
+            <h2>Menu</h2>
+        </div>
+        <div class="nav-menu-items">
+            <a href="/info/about/" class="nav-menu-item">
+                <span class="nav-menu-item-icon">ℹ️</span>
+                <span>À Propos</span>
+            </a>
+            <a href="/info/services/" class="nav-menu-item">
+                <span class="nav-menu-item-icon">🏥</span>
+                <span>Nos Services</span>
+            </a>
+            <a href="/info/privacy/" class="nav-menu-item">
+                <span class="nav-menu-item-icon">🔒</span>
+                <span>Confidentialité</span>
+            </a>
+            <a href="/info/terms/" class="nav-menu-item">
+                <span class="nav-menu-item-icon">📄</span>
+                <span>Conditions d'Utilisation</span>
+            </a>
+            <a href="/info/contact/" class="nav-menu-item">
+                <span class="nav-menu-item-icon">📧</span>
+                <span>Contact</span>
+            </a>
+            <a href="/info/help/" class="nav-menu-item">
+                <span class="nav-menu-item-icon">❓</span>
+                <span>Aide & Support</span>
+            </a>
+            <a href="{% url 'analytics_survey:survey_stats' %}" class="nav-menu-item">
+                <span class="nav-menu-item-icon">📊</span>
+                <span>Survey</span>
+            </a>
+            <a href="/info/faq/" class="nav-menu-item">
+                <span class="nav-menu-item-icon">💬</span>
+                <span>FAQ</span>
+            </a>
+        </div>
+    </nav>
+
+    <header class="landing-header">
+        <div class="hamburger-menu" id="hamburgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="landing-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA Logo">
+        </div>
+        <a href="/auth/login/" class="header-login-btn">Connexion</a>
+    </header>
+
+    <main class="landing-content">
+        <h1 class="landing-title">Bienvenue sur BINTACURA</h1>
+        <p class="landing-subtitle">
+            Votre plateforme de santé numérique complète. Choisissez votre portail pour accéder à vos services.
+        </p>
+
+        <div class="portals-grid">
+            <a href="/auth/login/?next=/patient/dashboard/" class="portal-card patient">
+                <div class="portal-icon">👤</div>
+                <h2 class="portal-name">Portail Patient</h2>
+                <p class="portal-description">
+                    Gérez vos rendez-vous, consultez votre carnet de santé, et communiquez avec vos médecins.
+                </p>
+                <button class="portal-btn">Accéder</button>
+            </a>
+
+            <a href="/auth/login/?next=/doctor/dashboard/" class="portal-card doctor">
+                <div class="portal-icon">👨‍⚕️</div>
+                <h2 class="portal-name">Portail Médecin</h2>
+                <p class="portal-description">
+                    Gérez vos patients, leurs dossiers médicaux, et vos consultations en ligne.
+                </p>
+                <button class="portal-btn">Accéder</button>
+            </a>
+
+            <a href="/auth/login/?next=/hospital/dashboard/" class="portal-card hospital">
+                <div class="portal-icon">🏥</div>
+                <h2 class="portal-name">Portail Hôpital</h2>
+                <p class="portal-description">
+                    Administrez votre établissement, gérez le personnel et les patients hospitalisés.
+                </p>
+                <button class="portal-btn">Accéder</button>
+            </a>
+
+            <a href="/auth/login/?next=/pharmacy/dashboard/" class="portal-card pharmacy">
+                <div class="portal-icon">💊</div>
+                <h2 class="portal-name">Portail Pharmacie</h2>
+                <p class="portal-description">
+                    Gérez les prescriptions, votre stock de médicaments et les commandes patients.
+                </p>
+                <button class="portal-btn">Accéder</button>
+            </a>
+
+            <a href="/auth/login/?next=/insurance/dashboard/" class="portal-card insurance">
+                <div class="portal-icon">🛡️</div>
+                <h2 class="portal-name">Portail Assurance</h2>
+                <p class="portal-description">
+                    Traitez les demandes de remboursement et gérez les polices d'assurance santé.
+                </p>
+                <button class="portal-btn">Accéder</button>
+            </a>
+            <a href="/survey/" class="portal-card contact">
+                <div class="portal-icon">📧</div>
+                <h2 class="portal-name">Contribuer</h2>
+                <p class="portal-description">
+                   Vos avis comptent! Participez à notre enquête pour améliorer cette plateforme et nos services.
+                </p>
+                <button class="portal-btn">Soumettre</button>
+            </a>
+        </div>
+    </main>
+
+    <footer class="landing-footer">
+        <p>&copy; 2025 BINTACURA. Tous droits réservés. | Plateforme de Santé Numérique</p>
+    </footer>
+
+    <script>
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const navMenu = document.getElementById('navMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
+
+        function toggleMenu() {
+            hamburgerMenu.classList.toggle('active');
+            navMenu.classList.toggle('active');
+            menuOverlay.classList.toggle('active');
+        }
+
+        hamburgerMenu.addEventListener('click', toggleMenu);
+        menuOverlay.addEventListener('click', toggleMenu);
+
+        document.querySelectorAll('.nav-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                toggleMenu();
+            });
+        });
+    </script>
+</body>
+
+</html>

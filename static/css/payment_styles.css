@@ -1,0 +1,448 @@
+/* Payment Modal Styles */
+.payment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.payment-modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.payment-modal-content h3 {
+    margin: 0 0 15px 0;
+    font-size: 22px;
+    color: #333;
+    text-align: center;
+}
+
+.payment-amount {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #007bff;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f0f8ff;
+    border-radius: 12px;
+}
+
+.payment-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 25px 0;
+}
+
+.payment-option-btn {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.payment-option-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.payment-option-btn:active {
+    transform: translateY(0);
+}
+
+.payment-option-btn:nth-child(2) {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.payment-option-btn:nth-child(3) {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.payment-cancel-btn {
+    width: 100%;
+    padding: 14px;
+    background: #f1f3f5;
+    color: #666;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.payment-cancel-btn:hover {
+    background: #e0e0e0;
+}
+
+/* Transaction Card Enhancements */
+.transaction-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 16px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.transaction-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.transaction-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.transaction-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.transaction-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.transaction-date {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 6px;
+}
+
+.transaction-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.transaction-status {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-processing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-cancelled {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.status-reversed {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.payment-method-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    background: #e7f3ff;
+    color: #007bff;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.transaction-ref {
+    font-size: 10px;
+    color: #6c757d;
+    font-family: monospace;
+}
+
+.transaction-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.transaction-amount {
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.amount-positive {
+    color: #28a745;
+}
+
+.amount-negative {
+    color: #dc3545;
+}
+
+.download-receipt-btn {
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.download-receipt-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+}
+
+/* Provider Card Styles */
+.provider-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.provider-card:hover {
+    border-color: #007bff;
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.15);
+    transform: translateY(-4px);
+}
+
+.provider-card.selected {
+    border-color: #28a745;
+    background: #f0fff4;
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.2);
+}
+
+.provider-avatar {
+    font-size: 56px;
+    margin-bottom: 12px;
+}
+
+.provider-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.provider-specialty,
+.provider-address {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.provider-fee {
+    font-size: 14px;
+    font-weight: 700;
+    color: #28a745;
+    margin: 10px 0;
+}
+
+.provider-services {
+    font-size: 12px;
+    color: #007bff;
+    margin-top: 8px;
+}
+
+.provider-rating {
+    font-size: 13px;
+    color: #ffc107;
+    margin-top: 10px;
+}
+
+.provider-phone {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+/* Time Slot Styles */
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.time-slot {
+    padding: 12px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.time-slot:hover {
+    border-color: #007bff;
+    background: #f0f8ff;
+}
+
+.time-slot.selected {
+    border-color: #28a745;
+    background: #d4edda;
+    color: #155724;
+}
+
+.time-slot.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f8f9fa;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #999;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.empty-state p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* Loading & Error Messages */
+.loading-message,
+.info-message,
+.error-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.error-message {
+    color: #dc3545;
+}
+
+.btn-retry {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-retry:hover {
+    background: #0056b3;
+    transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .payment-modal-content {
+        max-width: 95%;
+        padding: 20px;
+    }
+    
+    .payment-amount {
+        font-size: 24px;
+    }
+    
+    .transaction-card {
+        flex-wrap: wrap;
+    }
+    
+    .transaction-right {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+    
+    .time-slots {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 8px;
+    }
+}

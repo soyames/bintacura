@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demandes - Assurance Santé BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/claims.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Réclamations" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="content-section">
+            <div class="tabs-container">
+                <button class="tab-btn active" onclick="switchTab('claims')">Demandes de Remboursement</button>
+                <button class="tab-btn" onclick="switchTab('enquiries')">Demandes de Pré-Approbation</button>
+            </div>
+
+            <div id="claimsTab" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card submitted">
+                        <div class="stat-label">Soumises</div>
+                        <div class="stat-value" id="submittedCount">-</div>
+                    </div>
+                    <div class="stat-card review">
+                        <div class="stat-label">En Révision</div>
+                        <div class="stat-value" id="reviewCount">-</div>
+                    </div>
+                    <div class="stat-card approved">
+                        <div class="stat-label">Approuvées</div>
+                        <div class="stat-value" id="approvedCount">-</div>
+                    </div>
+                    <div class="stat-card paid">
+                        <div class="stat-label">Payées</div>
+                        <div class="stat-value" id="paidCount">-</div>
+                    </div>
+                </div>
+
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="filterClaims('all')">Toutes</button>
+                    <button class="filter-btn" onclick="filterClaims('submitted')">Soumises</button>
+                    <button class="filter-btn" onclick="filterClaims('underReview')">En Révision</button>
+                    <button class="filter-btn" onclick="filterClaims('approved')">Approuvées</button>
+                    <button class="filter-btn" onclick="filterClaims('paid')">Payées</button>
+                </div>
+
+                <div id="claimsList" class="claims-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">⏳</div>
+                        <p>Chargement des demandes...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="enquiriesTab" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card pending">
+                        <div class="stat-label">En Attente</div>
+                        <div class="stat-value" id="pendingCount">-</div>
+                    </div>
+                    <div class="stat-card review">
+                        <div class="stat-label">En Révision</div>
+                        <div class="stat-value" id="enquiryReviewCount">-</div>
+                    </div>
+                    <div class="stat-card approved">
+                        <div class="stat-label">Approuvées</div>
+                        <div class="stat-value" id="enquiryApprovedCount">-</div>
+                    </div>
+                    <div class="stat-card rejected">
+                        <div class="stat-label">Rejetées</div>
+                        <div class="stat-value" id="rejectedCount">-</div>
+                    </div>
+                </div>
+
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="filterEnquiries('all')">Toutes</button>
+                    <button class="filter-btn" onclick="filterEnquiries('pending')">En Attente</button>
+                    <button class="filter-btn" onclick="filterEnquiries('under_review')">En Révision</button>
+                    <button class="filter-btn" onclick="filterEnquiries('approved')">Approuvées</button>
+                    <button class="filter-btn" onclick="filterEnquiries('rejected')">Rejetées</button>
+                </div>
+
+                <div id="enquiriesList" class="claims-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">⏳</div>
+                        <p>Chargement des demandes...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="claimDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalClaimNumber">Détails de la Réclamation</h3>
+                <button class="close-btn" onclick="closeClaimModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="claimDetailBody">
+            </div>
+            <div class="modal-footer" id="claimModalActions">
+            </div>
+        </div>
+    </div>
+
+    <div id="enquiryDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalEnquiryNumber">Détails de la Demande</h3>
+                <button class="close-btn" onclick="closeEnquiryModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="enquiryDetailBody">
+            </div>
+            <div class="modal-footer" id="enquiryModalActions">
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/claims.js' %}"></script>
+    <script src="{% static 'js/enquiries.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
+

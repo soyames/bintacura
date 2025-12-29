@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Facture #{{ receipt.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/payments/receipt.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="receipt-container">
+    <div class="receipt-wrapper">
+        <!-- Header Section -->
+        <div class="receipt-header">
+            <div class="company-logo">
+                <img src="{% static 'img/logo.png' %}" alt="BINTACURA Logo" class="logo-image">
+                <div class="company-details">
+                    <p><strong>BINTACURA</strong></p>
+                    <p>Healthcare Platform</p>
+                    <p>RCCM: VTC/BJ/2024</p>
+                    <p>IFU: {{ company_ifu }}</p>
+                    <p>Tel: {{ company_phone }}</p>
+                    <p class="small-text">{{ company_address }}</p>
+                </div>
+            </div>
+            <div class="invoice-details">
+                <h2>Facture #{{ receipt.invoice_number|default:receipt.receipt_number }}</h2>
+                <p class="status-badge status-{{ receipt.payment_status|lower }}">
+                    {{ receipt.get_payment_status_display }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Billing Information -->
+        <div class="billing-section">
+            <div class="billing-party">
+                <h3>Payer à</h3>
+                <div class="party-details">
+                    <p><strong>BINTACURA</strong></p>
+                    <p>Healthcare Platform</p>
+                    <p>RCCM: VTC/BJ/2024</p>
+                    <p>IFU: {{ company_ifu }}</p>
+                    <p>Tel: {{ company_phone }}</p>
+                    <p>{{ company_address }}</p>
+                </div>
+            </div>
+            <div class="billing-party">
+                <h3>Facturé à</h3>
+                <div class="party-details">
+                    <p><strong>{{ receipt.issued_to_name|default:receipt.issued_to.full_name }}</strong></p>
+                    <p>{{ receipt.issued_to.email }}</p>
+                    {% if receipt.issued_to_address %}
+                    <p>{{ receipt.issued_to_address }}</p>
+                    {% endif %}
+                    {% if receipt.issued_to_city %}
+                    <p>{{ receipt.issued_to_city }}{% if receipt.issued_to_country %}, {{ receipt.issued_to_country }}{% endif %}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment and Date Information -->
+        <div class="payment-info-section">
+            <div class="info-block">
+                <h4>Mode de paiement</h4>
+                <p>{{ receipt.payment_gateway|default:"Stripe" }} - {{ receipt.payment_method }}</p>
+            </div>
+            <div class="info-block">
+                <h4>Date de facturation</h4>
+                <p>{{ receipt.billing_date|date:"d/m/Y"|default:receipt.issued_at|date:"d/m/Y" }}</p>
+            </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="line-items-section">
+            <h3>Items de la facture</h3>
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Descriptif</th>
+                        <th>Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in receipt.line_items %}
+                    <tr>
+                        <td>{{ item.description }}{% if item.taxable %} *{% endif %}</td>
+                        <td class="amount-cell">{{ item.amount|floatformat:2 }} {{ receipt.currency }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td>{{ receipt.service_details.description|default:"Service de santé" }} *</td>
+                        <td class="amount-cell">{{ receipt.subtotal|floatformat:2 }} {{ receipt.currency }}</td>
+                    </tr>
+                    {% endfor %}
+                    
+                    {% if receipt.platform_fee and receipt.platform_fee > 0 %}
+                    <tr>
+                        <td>Frais de transaction (Plateforme)</td>
+                        <td class="amount-cell">{{ receipt.platform_fee|floatformat:2 }} {{ receipt.currency }}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    <tr class="subtotal-row">
+                        <td><strong>Sous-total</strong></td>
+                        <td class="amount-cell"><strong>{{ receipt.subtotal|floatformat:2 }} {{ receipt.currency }}</strong></td>
+                    </tr>
+                    
+                    {% if receipt.tax_amount and receipt.tax_amount > 0 %}
+                    <tr>
+                        <td>{{ receipt.tax_rate }}% TVA</td>
+                        <td class="amount-cell">{{ receipt.tax_amount|floatformat:2 }} {{ receipt.currency }}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if receipt.discount_amount and receipt.discount_amount > 0 %}
+                    <tr>
+                        <td>Crédit</td>
+                        <td class="amount-cell">-{{ receipt.discount_amount|floatformat:2 }} {{ receipt.currency }}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    <tr class="total-row">
+                        <td><strong>Total</strong></td>
+                        <td class="amount-cell"><strong>{{ receipt.total_amount|floatformat:2 }} {{ receipt.currency }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="tax-note">* Indique un article taxable.</p>
+        </div>
+
+        <!-- Transaction Details -->
+        {% if receipt.transaction_reference or receipt.gateway_transaction_id %}
+        <div class="transactions-section">
+            <h3>Transactions</h3>
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Date de la transaction</th>
+                        <th>Passerelle</th>
+                        <th>Transaction #</th>
+                        <th>Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ receipt.payment_date|date:"d/m/Y"|default:receipt.issued_at|date:"d/m/Y" }}</td>
+                        <td>{{ receipt.payment_gateway|default:"-" }}</td>
+                        <td>{{ receipt.gateway_transaction_id|default:receipt.transaction_reference|default:"-" }}</td>
+                        <td class="amount-cell">{{ receipt.total_amount|floatformat:2 }} {{ receipt.currency }}</td>
+                    </tr>
+                    {% if receipt.discount_amount and receipt.discount_amount > 0 %}
+                    <tr>
+                        <td>{{ receipt.issued_at|date:"d/m/Y" }}</td>
+                        <td>-</td>
+                        <td></td>
+                        <td class="amount-cell">-{{ receipt.discount_amount|floatformat:2 }} {{ receipt.currency }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="balance-row">
+                        <td colspan="3"><strong>Solde</strong></td>
+                        <td class="amount-cell"><strong>{{ receipt.total_amount|floatformat:2 }} {{ receipt.currency }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="receipt-actions">
+            <button onclick="printReceipt()" class="btn btn-primary btn-print">
+                <i class="fas fa-print"></i> Imprimer
+            </button>
+            <a href="{% url portal|add:':download-invoice' receipt.id %}" class="btn btn-secondary btn-download">
+                <i class="fas fa-download"></i> Télécharger
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <div class="receipt-footer">
+            <p>Ce reçu a été généré automatiquement.</p>
+            <p>Pour toute question, contactez support@BINTACURA.com</p>
+            <p><strong>Merci d'utiliser BINTACURA!</strong></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/payments/receipt.js' %}"></script>
+{% endblock %}
+

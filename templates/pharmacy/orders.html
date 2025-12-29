@@ -1,0 +1,1993 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commandes - Pharmacie Centrale BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_orders.css' %}">
+    <style>
+        /* Modern Order Management System Styles - Pharmacy Green Theme */
+        :root[data-theme="light"] {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --shadow: rgba(0, 0, 0, 0.08);
+            --accent-primary: #10b981;
+            --accent-secondary: #059669;
+            --accent-tertiary: #34d399;
+            --success: #10b981;
+            --warning: #fbbf24;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding-top: 60px;
+        }
+
+        .main-content {
+            padding: 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Modern Page Header */
+        .page-header-orders {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-left-orders {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-icon-orders {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .header-text-orders h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+        }
+
+        .header-text-orders p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .header-actions-orders {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-orders {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-orders {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-primary-orders:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-secondary-orders {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary-orders:hover {
+            border-color: var(--accent-primary);
+        }
+
+        /* Stats Grid */
+        .stats-grid-orders {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card-orders {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .stat-card-orders:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px var(--shadow);
+            border-color: var(--accent-primary);
+        }
+
+        .stat-card-orders:active {
+            transform: translateY(-2px);
+        }
+
+        .stat-card-orders::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .stat-card-orders.pending::before {
+            background: #ffc107;
+        }
+
+        .stat-card-orders.confirmed::before {
+            background: #17a2b8;
+        }
+
+        .stat-card-orders.processing::before {
+            background: #fd7e14;
+        }
+
+        .stat-card-orders.ready::before {
+            background: #007bff;
+        }
+
+        .stat-card-orders.completed::before {
+            background: #28a745;
+        }
+
+        .stat-card-orders.cancelled::before {
+            background: #dc3545;
+        }
+
+        .stat-header-orders {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon-orders {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-icon-orders.yellow {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+
+        .stat-icon-orders.cyan {
+            background: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+        }
+
+        .stat-icon-orders.orange {
+            background: rgba(253, 126, 20, 0.1);
+            color: #fd7e14;
+        }
+
+        .stat-icon-orders.blue {
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
+        }
+
+        .stat-icon-orders.green {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .stat-icon-orders.red {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .stat-value-orders {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-label-orders {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--danger);
+        }
+
+        /* Tabs */
+        .orders-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border-color);
+            overflow-x: auto;
+            padding-bottom: 0;
+        }
+
+        .tab-btn-orders {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn-orders.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .tab-btn-orders:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .tab-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Toolbar */
+        .orders-toolbar {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .toolbar-row-orders {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper-orders {
+            flex: 1;
+            min-width: 280px;
+            position: relative;
+        }
+
+        .search-icon-orders {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .search-input-orders {
+            width: 100%;
+            padding: 12px 16px 12px 48px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 14px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .search-input-orders:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .filter-select-orders {
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .filter-select-orders:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* Orders Grid/List */
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .order-card-modern {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .order-card-modern:hover {
+            box-shadow: 0 8px 20px var(--shadow);
+            transform: translateY(-2px);
+        }
+
+        .order-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .order-info-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .order-type-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .order-type-icon.doctor {
+            background: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+        }
+
+        .order-type-icon.hospital {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .order-type-icon.pharmacy {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .order-type-icon.patient {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .order-main-info h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+        }
+
+        .order-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .order-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .order-status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .order-status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .order-status-badge.pending {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
+
+        .order-status-badge.confirmed {
+            background: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+        }
+
+        .order-status-badge.processing {
+            background: rgba(253, 126, 20, 0.1);
+            color: #fd7e14;
+        }
+
+        .order-status-badge.ready {
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
+        }
+
+        .order-status-badge.completed {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .order-status-badge.cancelled {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+
+        .order-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .order-detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .order-detail-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .order-detail-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .order-items-section {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .order-items-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .order-items-header h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .items-count-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .order-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .order-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .order-item-row:last-child {
+            border-bottom: none;
+        }
+
+        .order-item-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .order-item-quantity {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 0 16px;
+        }
+
+        .order-item-price {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .order-total-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 2px solid var(--border-color);
+            margin-top: 12px;
+        }
+
+        .order-total-label {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .order-total-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .order-actions-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .order-action-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .order-action-btn.view {
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
+        }
+
+        .order-action-btn.view:hover {
+            background: rgba(0, 123, 255, 0.2);
+        }
+
+        .order-action-btn.accept {
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--success);
+        }
+
+        .order-action-btn.accept:hover {
+            background: rgba(40, 167, 69, 0.2);
+        }
+
+        .order-action-btn.process {
+            background: rgba(253, 126, 20, 0.1);
+            color: #fd7e14;
+        }
+
+        .order-action-btn.process:hover {
+            background: rgba(253, 126, 20, 0.2);
+        }
+
+        .order-action-btn.complete {
+            background: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+        }
+
+        .order-action-btn.complete:hover {
+            background: rgba(23, 162, 184, 0.2);
+        }
+
+        .order-action-btn.cancel {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--danger);
+        }
+
+        .order-action-btn.cancel:hover {
+            background: rgba(220, 53, 69, 0.2);
+        }
+
+        .order-action-btn.print {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .order-action-btn.print:hover {
+            border-color: var(--accent-primary);
+        }
+
+        /* Empty State */
+        .empty-state-orders {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            text-align: center;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            box-shadow: 0 2px 8px var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .empty-icon-orders {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            font-size: 48px;
+            color: var(--accent-primary);
+        }
+
+        .empty-state-orders h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+        }
+
+        .empty-state-orders p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            max-width: 400px;
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 16px;
+            }
+
+            .page-header-orders {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-actions-orders {
+                width: 100%;
+            }
+
+            .btn-orders {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .stats-grid-orders {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .order-details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .order-action-btn {
+                min-width: 100px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid-orders {
+                grid-template-columns: 1fr;
+            }
+
+            .order-info-left {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy" page_title="Commandes" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy.html" %}
+
+    <div class="main-content">
+        <!-- Modern Page Header -->
+        <div class="page-header-orders">
+            <div class="header-left-orders">
+                <div class="header-icon-orders">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                </div>
+                <div class="header-text-orders">
+                    <h1>Gestion des Commandes</h1>
+                    <p>Gérez les commandes de médecins, hôpitaux et autres pharmacies</p>
+                </div>
+            </div>
+            <div class="header-actions-orders">
+                <button class="btn-orders btn-secondary-orders" onclick="exportOrders()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Exporter
+                </button>
+                <button class="btn-orders btn-secondary-orders" onclick="printOrders()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    Imprimer
+                </button>
+                <button class="btn-orders btn-primary-orders" onclick="refreshOrders()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    Actualiser
+                </button>
+            </div>
+        </div>
+
+        <!-- Enhanced Stats Grid - Clickable Cards -->
+        <div class="stats-grid-orders">
+            <div class="stat-card-orders pending" onclick="filterOrdersByStatus('pending')" title="Cliquez pour voir toutes les commandes en attente">
+                <div class="stat-header-orders">
+                    <div class="stat-icon-orders yellow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value-orders">{{ pending_orders|default:0 }}</div>
+                <div class="stat-label-orders">En Attente</div>
+                <div class="stat-change positive">↑ Nouvelles commandes</div>
+            </div>
+
+            <div class="stat-card-orders confirmed" onclick="filterOrdersByStatus('confirmed')" title="Cliquez pour voir toutes les commandes confirmées">
+                <div class="stat-header-orders">
+                    <div class="stat-icon-orders cyan">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value-orders">{{ confirmed_orders|default:0 }}</div>
+                <div class="stat-label-orders">Confirmées</div>
+                <div class="stat-change">À préparer</div>
+            </div>
+
+            <div class="stat-card-orders processing" onclick="filterOrdersByStatus('processing')" title="Cliquez pour voir toutes les commandes en préparation">
+                <div class="stat-header-orders">
+                    <div class="stat-icon-orders orange">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value-orders">{{ processing_orders|default:0 }}</div>
+                <div class="stat-label-orders">En Préparation</div>
+                <div class="stat-change">En cours</div>
+            </div>
+
+            <div class="stat-card-orders ready" onclick="filterOrdersByStatus('ready')" title="Cliquez pour voir toutes les commandes prêtes">
+                <div class="stat-header-orders">
+                    <div class="stat-icon-orders blue">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value-orders">{{ ready_orders|default:0 }}</div>
+                <div class="stat-label-orders">Prêtes</div>
+                <div class="stat-change">À livrer</div>
+            </div>
+
+            <div class="stat-card-orders completed" onclick="filterOrdersByStatus('completed')" title="Cliquez pour voir toutes les commandes livrées">
+                <div class="stat-header-orders">
+                    <div class="stat-icon-orders green">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value-orders">{{ completed_orders|default:0 }}</div>
+                <div class="stat-label-orders">Livrées</div>
+                <div class="stat-change positive">↑ +12% ce mois</div>
+            </div>
+
+            <div class="stat-card-orders cancelled" onclick="filterOrdersByStatus('cancelled')" title="Cliquez pour voir toutes les commandes annulées">
+                <div class="stat-header-orders">
+                    <div class="stat-icon-orders red">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-value-orders">{{ cancelled_orders|default:0 }}</div>
+                <div class="stat-label-orders">Annulées</div>
+                <div class="stat-change negative">↓ -3% ce mois</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="orders-tabs">
+            <button class="tab-btn-orders active" onclick="switchTab('all')" data-tab="all">
+                Toutes
+                <span class="tab-badge">{{ orders.count|default:0 }}</span>
+            </button>
+            <button class="tab-btn-orders" onclick="switchTab('pending')" data-tab="pending">
+                En Attente
+                <span class="tab-badge">{{ pending_orders|default:0 }}</span>
+            </button>
+            <button class="tab-btn-orders" onclick="switchTab('confirmed')" data-tab="confirmed">
+                Confirmées
+                <span class="tab-badge">{{ confirmed_orders|default:0 }}</span>
+            </button>
+            <button class="tab-btn-orders" onclick="switchTab('processing')" data-tab="processing">
+                En Préparation
+                <span class="tab-badge">{{ processing_orders|default:0 }}</span>
+            </button>
+            <button class="tab-btn-orders" onclick="switchTab('ready')" data-tab="ready">
+                Prêtes
+                <span class="tab-badge">{{ ready_orders|default:0 }}</span>
+            </button>
+            <button class="tab-btn-orders" onclick="switchTab('completed')" data-tab="completed">
+                Livrées
+                <span class="tab-badge">{{ completed_orders|default:0 }}</span>
+            </button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="orders-toolbar">
+            <div class="toolbar-row-orders">
+                <div class="search-wrapper-orders">
+                    <svg class="search-icon-orders" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchOrdersInput" class="search-input-orders" placeholder="Rechercher par N° commande, patient, docteur...">
+                </div>
+                <select id="sourceFilter" class="filter-select-orders" onchange="filterBySource(this.value)">
+                    <option value="">Toutes sources</option>
+                    <option value="doctor">Médecins</option>
+                    <option value="hospital">Hôpitaux</option>
+                    <option value="pharmacy">Pharmacies</option>
+                    <option value="patient">Patients</option>
+                </select>
+                <select id="priorityFilter" class="filter-select-orders" onchange="filterByPriority(this.value)">
+                    <option value="">Toutes priorités</option>
+                    <option value="urgent">Urgente</option>
+                    <option value="high">Haute</option>
+                    <option value="normal">Normale</option>
+                    <option value="low">Basse</option>
+                </select>
+                <select id="dateFilter" class="filter-select-orders" onchange="filterByDate(this.value)">
+                    <option value="">Toutes dates</option>
+                    <option value="today">Aujourd'hui</option>
+                    <option value="yesterday">Hier</option>
+                    <option value="week">Cette semaine</option>
+                    <option value="month">Ce mois</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Action Panel (dynamically populated) -->
+        <div id="actionPanel" style="display: none; margin-bottom: 24px;"></div>
+
+        <!-- Orders List -->
+        <div class="orders-list" id="ordersList">
+            {% if orders %}
+                {% for order in orders %}
+                <div class="order-card-modern" data-status="{{ order.status }}" data-source="{{ order.source|default:'patient' }}">
+                    <div class="order-card-header">
+                        <div class="order-info-left">
+                            <div class="order-type-icon {% if order.source == 'doctor' %}doctor{% elif order.source == 'hospital' %}hospital{% elif order.source == 'pharmacy' %}pharmacy{% else %}patient{% endif %}">
+                                {% if order.source == 'doctor' %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2v6a2 2 0 0 0 2 2h6"></path>
+                                        <path d="M4 7V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"></path>
+                                        <path d="M9 15h6"></path>
+                                        <path d="M12 12v6"></path>
+                                    </svg>
+                                {% elif order.source == 'hospital' %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                                        <line x1="6" y1="1" x2="6" y2="4"></line>
+                                        <line x1="10" y1="1" x2="10" y2="4"></line>
+                                        <line x1="14" y1="1" x2="14" y2="4"></line>
+                                    </svg>
+                                {% elif order.source == 'pharmacy' %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="3" y1="9" x2="21" y2="9"></line>
+                                        <line x1="9" y1="21" x2="9" y2="9"></line>
+                                    </svg>
+                                {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            <div class="order-main-info">
+                                <h3>Commande #{{ order.id|stringformat:"04d" }}</h3>
+                                <div class="order-meta">
+                                    <span class="order-meta-item">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        {{ order.patient.full_name|default:"Patient" }}
+                                    </span>
+                                    <span class="order-meta-item">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        {{ order.created_at|date:"d M Y à H:i"|default:"Aujourd'hui" }}
+                                    </span>
+                                    {% if order.source %}
+                                    <span class="order-meta-item">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                        </svg>
+                                        {% if order.source == 'doctor' %}Médecin{% elif order.source == 'hospital' %}Hôpital{% elif order.source == 'pharmacy' %}Pharmacie{% else %}Patient{% endif %}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="order-status-badge {% if order.status == 'pending' %}pending{% elif order.status == 'confirmed' %}confirmed{% elif order.status == 'processing' %}processing{% elif order.status == 'ready' %}ready{% elif order.status == 'completed' %}completed{% elif order.status == 'cancelled' %}cancelled{% endif %}">
+                            {% if order.status == 'pending' %}
+                                En Attente
+                            {% elif order.status == 'confirmed' %}
+                                Confirmée
+                            {% elif order.status == 'processing' %}
+                                En Préparation
+                            {% elif order.status == 'ready' %}
+                                Prête
+                            {% elif order.status == 'completed' %}
+                                Livrée
+                            {% elif order.status == 'cancelled' %}
+                                Annulée
+                            {% else %}
+                                {{ order.get_status_display }}
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="order-details-grid">
+                        <div class="order-detail-item">
+                            <div class="order-detail-label">N° de Commande</div>
+                            <div class="order-detail-value">ORD-{{ order.id|stringformat:"08d" }}</div>
+                        </div>
+                        {% if order.doctor %}
+                        <div class="order-detail-item">
+                            <div class="order-detail-label">Prescrit par</div>
+                            <div class="order-detail-value">Dr. {{ order.doctor.full_name }}</div>
+                        </div>
+                        {% endif %}
+                        <div class="order-detail-item">
+                            <div class="order-detail-label">Articles</div>
+                            <div class="order-detail-value">{{ order.items.count|default:0 }} produit{{ order.items.count|default:0|pluralize }}</div>
+                        </div>
+                        {% if order.priority %}
+                        <div class="order-detail-item">
+                            <div class="order-detail-label">Priorité</div>
+                            <div class="order-detail-value">{{ order.get_priority_display|default:"Normale" }}</div>
+                        </div>
+                        {% endif %}
+                        <div class="order-detail-item">
+                            <div class="order-detail-label">Contact</div>
+                            <div class="order-detail-value">{{ order.patient.phone_number|default:"N/A" }}</div>
+                        </div>
+                        {% if order.delivery_address %}
+                        <div class="order-detail-item">
+                            <div class="order-detail-label">Adresse</div>
+                            <div class="order-detail-value">{{ order.delivery_address|truncatewords:5 }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if order.items.all %}
+                    <div class="order-items-section">
+                        <div class="order-items-header">
+                            <h4>Produits Commandés</h4>
+                            <span class="items-count-badge">{{ order.items.count }}</span>
+                        </div>
+                        <div class="order-items-list">
+                            {% for item in order.items.all %}
+                            <div class="order-item-row">
+                                <div class="order-item-name">{{ item.medication.name }}</div>
+                                <div class="order-item-quantity">Qté: {{ item.quantity }}</div>
+                                <div class="order-item-price">{{ item.price|default:"0" }} FCFA</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if order.total_amount %}
+                        <div class="order-total-section">
+                            <div class="order-total-label">Total</div>
+                            <div class="order-total-value">{{ order.total_amount|floatformat:0 }} FCFA</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="order-actions-bar">
+                        <button class="order-action-btn view" onclick="viewOrderDetails('{{ order.id }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            Voir Détails
+                        </button>
+                        {% if order.status == 'pending' %}
+                        <button class="order-action-btn accept" onclick="acceptOrder('{{ order.id }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Accepter
+                        </button>
+                        {% elif order.status == 'confirmed' %}
+                        <button class="order-action-btn process" onclick="startProcessing('{{ order.id }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Commencer
+                        </button>
+                        {% elif order.status == 'processing' %}
+                        <button class="order-action-btn complete" onclick="markAsReady('{{ order.id }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                            Marquer Prête
+                        </button>
+                        {% elif order.status == 'ready' %}
+                        <button class="order-action-btn complete" onclick="completeOrder('{{ order.id }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                            Livrer
+                        </button>
+                        {% endif %}
+                        <button class="order-action-btn print" onclick="printOrder('{{ order.id }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                <rect x="6" y="14" width="12" height="8"></rect>
+                            </svg>
+                            Imprimer
+                        </button>
+                        {% if order.status != 'completed' and order.status != 'cancelled' %}
+                        <button class="order-action-btn cancel" onclick="cancelOrder('{{ order.id }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                            Annuler
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state-orders">
+                    <div class="empty-icon-orders">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                    </div>
+                    <h3>Aucune commande</h3>
+                    <p>Il n'y a actuellement aucune commande enregistrée. Les nouvelles commandes apparaîtront ici automatiquement.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Filter orders by status (triggered by stat card clicks)
+        function filterOrdersByStatus(status) {
+            // Activate the corresponding tab
+            switchTab(status);
+            
+            // Scroll to orders list
+            document.getElementById('ordersList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            // Show action panel for the status
+            showStatusActionPanel(status);
+        }
+
+        // Show action panel based on status
+        function showStatusActionPanel(status) {
+            const panel = document.getElementById('actionPanel');
+            if (!panel) return;
+            
+            // Update panel content based on status
+            let panelContent = '';
+            let actionButtons = '';
+            
+            switch(status) {
+                case 'pending':
+                    panelContent = `
+                        <div style="background: rgba(251, 191, 36, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #fbbf24;">
+                            <h4 style="margin: 0 0 8px 0; color: #f59e0b; font-size: 16px;">⏳ Commandes en Attente</h4>
+                            <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">Ces commandes doivent être validées. Vérifiez la disponibilité des produits avant d'accepter.</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button onclick="bulkAcceptOrders()" class="btn-orders btn-primary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                Accepter Sélectionnées
+                            </button>
+                            <button onclick="bulkRejectOrders()" class="btn-orders btn-secondary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                                Rejeter Sélectionnées
+                            </button>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'confirmed':
+                    panelContent = `
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+                            <h4 style="margin: 0 0 8px 0; color: #2563eb; font-size: 16px;">✓ Commandes Confirmées</h4>
+                            <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">Ces commandes sont prêtes à être préparées. Commencez la préparation des produits.</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button onclick="bulkStartProcessing()" class="btn-orders btn-primary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                                Commencer la Préparation
+                            </button>
+                            <button onclick="printPickingList()" class="btn-orders btn-secondary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                    <rect x="6" y="14" width="12" height="8"></rect>
+                                </svg>
+                                Imprimer Liste de Préparation
+                            </button>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'processing':
+                    panelContent = `
+                        <div style="background: rgba(253, 126, 20, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #fd7e14;">
+                            <h4 style="margin: 0 0 8px 0; color: #ea580c; font-size: 16px;">📦 Commandes en Préparation</h4>
+                            <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">Ces commandes sont en cours de préparation. Marquez-les comme prêtes une fois terminées.</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button onclick="bulkMarkReady()" class="btn-orders btn-primary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                Marquer Prêtes
+                            </button>
+                            <button onclick="checkInventory()" class="btn-orders btn-secondary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                </svg>
+                                Vérifier Inventaire
+                            </button>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'ready':
+                    panelContent = `
+                        <div style="background: rgba(16, 185, 129, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+                            <h4 style="margin: 0 0 8px 0; color: #059669; font-size: 16px;">🚚 Commandes Prêtes</h4>
+                            <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">Ces commandes sont prêtes à être livrées ou retirées. Procédez à la livraison.</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button onclick="bulkMarkDelivered()" class="btn-orders btn-primary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="1" y="3" width="15" height="13"></rect>
+                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                                </svg>
+                                Marquer Livrées
+                            </button>
+                            <button onclick="printDeliveryNotes()" class="btn-orders btn-secondary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                                Bon de Livraison
+                            </button>
+                            <button onclick="notifyCustomers()" class="btn-orders btn-secondary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
+                                Notifier Clients
+                            </button>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'completed':
+                    panelContent = `
+                        <div style="background: rgba(16, 185, 129, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #10b981;">
+                            <h4 style="margin: 0 0 8px 0; color: #059669; font-size: 16px;">✅ Commandes Livrées</h4>
+                            <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">Ces commandes ont été livrées avec succès. Vous pouvez consulter l'historique et générer des rapports.</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button onclick="generateInvoices()" class="btn-orders btn-primary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                                Générer Factures
+                            </button>
+                            <button onclick="exportCompletedOrders()" class="btn-orders btn-secondary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Exporter Rapport
+                            </button>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'cancelled':
+                    panelContent = `
+                        <div style="background: rgba(239, 68, 68, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #ef4444;">
+                            <h4 style="margin: 0 0 8px 0; color: #dc2626; font-size: 16px;">❌ Commandes Annulées</h4>
+                            <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">Ces commandes ont été annulées. Consultez les raisons d'annulation pour améliorer le service.</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <button onclick="viewCancellationReasons()" class="btn-orders btn-primary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                Voir Raisons
+                            </button>
+                            <button onclick="restockCancelledItems()" class="btn-orders btn-secondary-orders">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                </svg>
+                                Réintégrer au Stock
+                            </button>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            panel.innerHTML = panelContent;
+            panel.style.display = 'block';
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab-btn-orders');
+            const orders = document.querySelectorAll('.order-card-modern');
+            
+            tabs.forEach(t => {
+                if (t.dataset.tab === tab) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+
+            orders.forEach(order => {
+                if (tab === 'all') {
+                    order.style.display = 'block';
+                } else {
+                    if (order.dataset.status === tab) {
+                        order.style.display = 'block';
+                    } else {
+                        order.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // Search functionality
+        document.getElementById('searchOrdersInput')?.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const orders = document.querySelectorAll('.order-card-modern');
+            
+            orders.forEach(order => {
+                const text = order.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    order.style.display = 'block';
+                } else {
+                    order.style.display = 'none';
+                }
+            });
+        });
+
+        // Filter by source
+        function filterBySource(source) {
+            const orders = document.querySelectorAll('.order-card-modern');
+            
+            orders.forEach(order => {
+                if (!source || order.dataset.source === source) {
+                    order.style.display = 'block';
+                } else {
+                    order.style.display = 'none';
+                }
+            });
+        }
+
+        // Filter by priority
+        function filterByPriority(priority) {
+            const orders = document.querySelectorAll('.order-card-modern');
+            
+            orders.forEach(order => {
+                const priorityText = order.querySelector('.order-detail-value')?.textContent.toLowerCase();
+                if (!priority || (priorityText && priorityText.includes(priority))) {
+                    order.style.display = 'block';
+                } else {
+                    order.style.display = 'none';
+                }
+            });
+        }
+
+        // Filter by date
+        function filterByDate(dateRange) {
+            const today = new Date();
+            const orders = document.querySelectorAll('.order-card-modern');
+            
+            orders.forEach(order => {
+                const dateText = order.querySelector('.order-meta-item:nth-child(2)')?.textContent;
+                if (!dateRange) {
+                    order.style.display = 'block';
+                    return;
+                }
+                
+                // In production, parse the date and filter accordingly
+                order.style.display = 'block';
+            });
+        }
+
+        // View order details
+        function viewOrderDetails(orderId) {
+            window.location.href = `/pharmacy/orders/${orderId}/`;
+        }
+
+        // Accept order
+        function acceptOrder(orderId) {
+            if (confirm('Accepter cette commande?')) {
+                fetch(`/pharmacy/orders/${orderId}/accept/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Commande acceptée avec succès!');
+                        location.reload();
+                    } else {
+                        alert('Erreur lors de l\'acceptation de la commande.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de l\'acceptation de la commande.');
+                });
+            }
+        }
+
+        // Start processing order
+        function startProcessing(orderId) {
+            if (confirm('Commencer la préparation de cette commande?')) {
+                fetch(`/pharmacy/orders/${orderId}/start-processing/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Préparation commencée!');
+                        location.reload();
+                    } else {
+                        alert('Erreur lors du démarrage de la préparation.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors du démarrage de la préparation.');
+                });
+            }
+        }
+
+        // Mark order as ready
+        function markAsReady(orderId) {
+            if (confirm('Marquer cette commande comme prête?')) {
+                fetch(`/pharmacy/orders/${orderId}/mark-ready/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Commande marquée comme prête!');
+                        location.reload();
+                    } else {
+                        alert('Erreur lors du marquage.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors du marquage.');
+                });
+            }
+        }
+
+        // Complete order
+        function completeOrder(orderId) {
+            if (confirm('Marquer cette commande comme livrée?')) {
+                fetch(`/pharmacy/orders/${orderId}/complete/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Commande livrée avec succès!');
+                        location.reload();
+                    } else {
+                        alert('Erreur lors de la livraison.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de la livraison.');
+                });
+            }
+        }
+
+        // Cancel order
+        function cancelOrder(orderId) {
+            const reason = prompt('Raison de l\'annulation:');
+            if (reason) {
+                fetch(`/pharmacy/orders/${orderId}/cancel/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ reason: reason })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Commande annulée.');
+                        location.reload();
+                    } else {
+                        alert('Erreur lors de l\'annulation.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de l\'annulation.');
+                });
+            }
+        }
+
+        // Print order
+        function printOrder(orderId) {
+            window.open(`/pharmacy/orders/${orderId}/print/`, '_blank');
+        }
+
+        // Export orders with modal for format selection
+        function exportOrders() {
+            const exportModal = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;" onclick="this.remove()">
+                    <div style="background: white; padding: 30px; border-radius: 16px; max-width: 500px; width: 90%;" onclick="event.stopPropagation()">
+                        <h3 style="margin: 0 0 20px 0; color: #10b981;">Exporter les Commandes</h3>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Format d'export:</label>
+                            <select id="exportFormat" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                                <option value="excel">Excel (.xlsx)</option>
+                                <option value="csv">CSV (.csv)</option>
+                                <option value="pdf">PDF (.pdf)</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Statut des commandes:</label>
+                            <select id="exportStatus" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                                <option value="all">Toutes les commandes</option>
+                                <option value="pending">En Attente</option>
+                                <option value="confirmed">Confirmées</option>
+                                <option value="processing">En Préparation</option>
+                                <option value="ready">Prêtes</option>
+                                <option value="completed">Livrées</option>
+                                <option value="cancelled">Annulées</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Période:</label>
+                            <select id="exportPeriod" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                                <option value="today">Aujourd'hui</option>
+                                <option value="yesterday">Hier</option>
+                                <option value="week">Cette Semaine</option>
+                                <option value="month" selected>Ce Mois</option>
+                                <option value="quarter">Ce Trimestre</option>
+                                <option value="year">Cette Année</option>
+                                <option value="all">Toute la Période</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="this.closest('div[style*=fixed]').remove()" style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; background: white; border-radius: 8px; font-weight: 600; cursor: pointer;">Annuler</button>
+                            <button onclick="downloadOrdersExport()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Exporter</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', exportModal);
+        }
+
+        function downloadOrdersExport() {
+            const format = document.getElementById('exportFormat').value;
+            const status = document.getElementById('exportStatus').value;
+            const period = document.getElementById('exportPeriod').value;
+            
+            // Show loading
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Export en cours...';
+            
+            // In production, this would trigger actual export
+            window.location.href = `/pharmacy/orders/export/?format=${format}&status=${status}&period=${period}`;
+            
+            // Close modal after short delay
+            setTimeout(() => {
+                document.querySelector('div[style*="position: fixed"]')?.remove();
+            }, 1000);
+        }
+
+        // Print orders with options
+        function printOrders() {
+            const printModal = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;" onclick="this.remove()">
+                    <div style="background: white; padding: 30px; border-radius: 16px; max-width: 500px; width: 90%;" onclick="event.stopPropagation()">
+                        <h3 style="margin: 0 0 20px 0; color: #10b981;">Imprimer les Commandes</h3>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Type de document:</label>
+                            <select id="printType" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                                <option value="summary">Résumé des Commandes</option>
+                                <option value="detailed">Détails Complets</option>
+                                <option value="picking">Liste de Préparation</option>
+                                <option value="delivery">Bons de Livraison</option>
+                                <option value="invoices">Factures</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">Commandes à imprimer:</label>
+                            <select id="printFilter" style="width: 100%; padding: 10px; border: 2px solid #e5e7eb; border-radius: 8px;">
+                                <option value="visible">Commandes Affichées</option>
+                                <option value="all">Toutes les Commandes</option>
+                                <option value="today">Commandes d'Aujourd'hui</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="this.closest('div[style*=fixed]').remove()" style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; background: white; border-radius: 8px; font-weight: 600; cursor: pointer;">Annuler</button>
+                            <button onclick="executePrintOrders()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Imprimer</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', printModal);
+        }
+
+        function executePrintOrders() {
+            const printType = document.getElementById('printType').value;
+            const printFilter = document.getElementById('printFilter').value;
+            
+            // Close modal
+            document.querySelector('div[style*="position: fixed"]')?.remove();
+            
+            // Open print view in new window
+            window.open(`/pharmacy/orders/print/?type=${printType}&filter=${printFilter}`, '_blank');
+        }
+
+        // Refresh orders with animation
+        function refreshOrders() {
+            const btn = event.target.closest('button');
+            const icon = btn.querySelector('svg');
+            
+            // Add spinning animation
+            icon.style.animation = 'spin 1s linear infinite';
+            btn.disabled = true;
+            
+            // Add CSS for spin animation if not exists
+            if (!document.getElementById('spinAnimation')) {
+                const style = document.createElement('style');
+                style.id = 'spinAnimation';
+                style.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+                document.head.appendChild(style);
+            }
+            
+            // Reload after animation
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        }
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Auto-refresh every 2 minutes for new orders
+        setInterval(() => {
+            const currentTab = document.querySelector('.tab-btn-orders.active')?.dataset.tab;
+            if (currentTab === 'pending' || currentTab === 'all') {
+                // In production, use AJAX to fetch new orders without full page reload
+                console.log('Checking for new orders...');
+            }
+        }, 120000); // 2 minutes
+
+        // Bulk action functions
+        function bulkAcceptOrders() {
+            const selectedOrders = getSelectedOrders();
+            if (selectedOrders.length === 0) {
+                alert('Veuillez sélectionner au moins une commande');
+                return;
+            }
+            
+            if (confirm(`Accepter ${selectedOrders.length} commande(s)?`)) {
+                selectedOrders.forEach(orderId => acceptOrder(orderId));
+            }
+        }
+
+        function bulkRejectOrders() {
+            const selectedOrders = getSelectedOrders();
+            if (selectedOrders.length === 0) {
+                alert('Veuillez sélectionner au moins une commande');
+                return;
+            }
+            
+            const reason = prompt('Raison du rejet:');
+            if (reason) {
+                selectedOrders.forEach(orderId => cancelOrder(orderId));
+            }
+        }
+
+        function bulkStartProcessing() {
+            const selectedOrders = getSelectedOrders();
+            if (selectedOrders.length === 0) {
+                alert('Veuillez sélectionner au moins une commande');
+                return;
+            }
+            
+            if (confirm(`Commencer la préparation de ${selectedOrders.length} commande(s)?`)) {
+                selectedOrders.forEach(orderId => startProcessing(orderId));
+            }
+        }
+
+        function bulkMarkReady() {
+            const selectedOrders = getSelectedOrders();
+            if (selectedOrders.length === 0) {
+                alert('Veuillez sélectionner au moins une commande');
+                return;
+            }
+            
+            if (confirm(`Marquer ${selectedOrders.length} commande(s) comme prêtes?`)) {
+                selectedOrders.forEach(orderId => markAsReady(orderId));
+            }
+        }
+
+        function bulkMarkDelivered() {
+            const selectedOrders = getSelectedOrders();
+            if (selectedOrders.length === 0) {
+                alert('Veuillez sélectionner au moins une commande');
+                return;
+            }
+            
+            if (confirm(`Marquer ${selectedOrders.length} commande(s) comme livrées?`)) {
+                selectedOrders.forEach(orderId => completeOrder(orderId));
+            }
+        }
+
+        function getSelectedOrders() {
+            const checkboxes = document.querySelectorAll('.order-card-modern input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Additional action functions
+        function printPickingList() {
+            const status = document.querySelector('.tab-btn-orders.active')?.dataset.tab;
+            window.open(`/pharmacy/orders/picking-list/?status=${status}`, '_blank');
+        }
+
+        function printDeliveryNotes() {
+            const selectedOrders = getSelectedOrders();
+            if (selectedOrders.length === 0) {
+                alert('Veuillez sélectionner des commandes');
+                return;
+            }
+            window.open(`/pharmacy/orders/delivery-notes/?ids=${selectedOrders.join(',')}`, '_blank');
+        }
+
+        function notifyCustomers() {
+            const selectedOrders = getSelectedOrders();
+            if (selectedOrders.length === 0) {
+                alert('Veuillez sélectionner des commandes');
+                return;
+            }
+            
+            if (confirm(`Envoyer des notifications à ${selectedOrders.length} client(s)?`)) {
+                fetch('/pharmacy/orders/notify-customers/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ order_ids: selectedOrders })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.success ? 'Notifications envoyées!' : 'Erreur lors de l\'envoi');
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        function checkInventory() {
+            window.location.href = '/pharmacy/inventory/';
+        }
+
+        function generateInvoices() {
+            const selectedOrders = getSelectedOrders();
+            if (selectedOrders.length === 0) {
+                alert('Veuillez sélectionner des commandes');
+                return;
+            }
+            window.open(`/pharmacy/orders/invoices/?ids=${selectedOrders.join(',')}`, '_blank');
+        }
+
+        function exportCompletedOrders() {
+            window.location.href = '/pharmacy/orders/export/?status=completed';
+        }
+
+        function viewCancellationReasons() {
+            const modal = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center; overflow-y: auto;" onclick="this.remove()">
+                    <div style="background: white; padding: 30px; border-radius: 16px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+                        <h3 style="margin: 0 0 20px 0; color: #ef4444;">Raisons d'Annulation</h3>
+                        <div style="margin-bottom: 20px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f9fafb;">
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Commande</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Raison</th>
+                                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cancellationReasonsBody">
+                                    <tr>
+                                        <td colspan="3" style="padding: 20px; text-align: center; color: #6b7280;">Chargement...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button onclick="this.closest('div[style*=fixed]').remove()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Fermer</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modal);
+            
+            // In production, fetch actual cancellation reasons
+            setTimeout(() => {
+                document.getElementById('cancellationReasonsBody').innerHTML = `
+                    <tr>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">#0001</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Produit non disponible</td>
+                        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">Aujourd'hui</td>
+                    </tr>
+                `;
+            }, 500);
+        }
+
+        function restockCancelledItems() {
+            if (confirm('Réintégrer tous les articles des commandes annulées au stock?')) {
+                fetch('/pharmacy/orders/restock-cancelled/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.success ? 'Articles réintégrés au stock!' : 'Erreur');
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Orders page loaded');
+            
+            // Play notification sound for new pending orders (in production)
+            const pendingCount = parseInt('{{ pending_orders|default:0 }}');
+            if (pendingCount > 0) {
+                // Notification logic here
+            }
+            
+            // Add checkboxes to order cards for bulk actions
+            const orderCards = document.querySelectorAll('.order-card-modern');
+            orderCards.forEach((card, index) => {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = card.dataset.orderId || index;
+                checkbox.style.cssText = 'position: absolute; top: 24px; right: 24px; width: 20px; height: 20px; cursor: pointer; accent-color: #10b981;';
+                card.style.position = 'relative';
+                card.insertBefore(checkbox, card.firstChild);
+            });
+        });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+

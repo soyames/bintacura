@@ -1,0 +1,7 @@
+<div class="empty-state">
+    <div class="empty-state-icon">{{ icon|default:'📭' }}</div>
+    <div class="empty-state-text">{{ message|default:'Aucune donnée disponible' }}</div>
+    {% if action_url %}
+    <a href="{{ action_url }}" class="btn btn-primary" style="margin-top: 20px;">{{ action_text|default:'Ajouter' }}</a>
+    {% endif %}
+</div>

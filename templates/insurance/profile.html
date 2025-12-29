@@ -1,0 +1,360 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil - Assurance Santé BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Profil" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="content-section">
+            <h2>Informations Générales</h2>
+            <p class="description">
+                Complétez les informations de votre compagnie pour la vérification.
+            </p>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nom de l'Entreprise <span class="required">*</span></label>
+                    <input type="text" value="{{ request.user.full_name }}" placeholder="Nom de la compagnie..." required>
+                </div>
+
+                <div class="form-group">
+                    <label>Numéro de Licence <span class="required">*</span></label>
+                    <input type="text" placeholder="INS-XXXX-XXXX" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Professionnel</label>
+                    <input type="email" value="{{ request.user.email }}" disabled>
+                </div>
+
+                <div class="form-group">
+                    <label>Téléphone</label>
+                    <input type="tel" value="{{ request.user.phone_number }}" placeholder="Ex: +229 97000000">
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label>Adresse Complète</label>
+                    <textarea placeholder="Adresse du siège social..." rows="3">{{ request.user.address }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Ville</label>
+                    <input type="text" value="{{ request.user.city }}" placeholder="Ville">
+                </div>
+
+                <div class="form-group">
+                    <label>Pays</label>
+                    <input type="text" value="{{ request.user.country }}" placeholder="Cameroun">
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Documents de Vérification</h2>
+            <p class="description">
+                Téléchargez les documents officiels de votre compagnie pour la vérification.
+            </p>
+            
+            <div class="document-upload-section">
+                <div class="document-grid">
+                    <div class="document-upload-card">
+                        <input type="file" id="insurance_license" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="insurance_license">
+                            <div class="document-icon">📄</div>
+                            <div class="document-title">Licence d'Assurance</div>
+                            <div class="document-description">Autorisation d'opérer</div>
+                            <span class="document-status pending">En attente</span>
+                        </label>
+                    </div>
+
+                    <div class="document-upload-card">
+                        <input type="file" id="company_registration" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="company_registration">
+                            <div class="document-icon">🏢</div>
+                            <div class="document-title">Enregistrement Commercial</div>
+                            <div class="document-description">Registre du commerce</div>
+                            <span class="document-status pending">En attente</span>
+                        </label>
+                    </div>
+
+                    <div class="document-upload-card">
+                        <input type="file" id="financial_statement" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="financial_statement">
+                            <div class="document-icon">💰</div>
+                            <div class="document-title">États Financiers</div>
+                            <div class="document-description">Dernier bilan financier</div>
+                            <span class="document-status pending">En attente</span>
+                        </label>
+                    </div>
+
+                    <div class="document-upload-card">
+                        <input type="file" id="regulatory_approval" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="regulatory_approval">
+                            <div class="document-icon">✅</div>
+                            <div class="document-title">Approbation Réglementaire</div>
+                            <div class="document-description">Certificat de conformité</div>
+                            <span class="document-status pending">En attente</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>👔 Représentant Légal <span class="required">*</span></h2>
+            <p class="description">
+                Informations du représentant légal autorisé à agir au nom de la compagnie.
+            </p>
+
+            {% if legal_representative %}
+            <div class="status-box success">
+                <div class="status-box-content">
+                    <span class="status-box-icon">{% if legal_representative.is_verified %}✅{% else %}⏳{% endif %}</span>
+                    <div>
+                        <strong>Statut:</strong>
+                        {% if legal_representative.is_verified %}
+                        <span class="status-verified">Vérifié</span>
+                        {% else %}
+                        <span class="status-pending">En cours de vérification</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="status-box warning">
+                <div class="status-box-content">
+                    <span class="status-box-icon">⚠️</span>
+                    <div>
+                        <strong>Attention:</strong> Vous devez enregistrer un représentant légal pour compléter votre profil.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nom Complet du Représentant <span class="required">*</span></label>
+                    <input type="text" id="rep_full_name" value="{% if legal_representative %}{{ legal_representative.full_name }}{% endif %}" placeholder="Prénom et nom" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Professionnel <span class="required">*</span></label>
+                    <input type="email" id="rep_email" value="{% if legal_representative %}{{ legal_representative.email }}{% endif %}" placeholder="email@compagnie.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Téléphone <span class="required">*</span></label>
+                    <input type="tel" id="rep_phone" value="{% if legal_representative %}{{ legal_representative.phone_number }}{% endif %}" placeholder="+229 XX XX XX XX" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Poste/Fonction <span class="required">*</span></label>
+                    <select id="rep_position" required>
+                        <option value="">Sélectionner...</option>
+                        <option value="ceo" {% if legal_representative.position == 'ceo' %}selected{% endif %}>PDG / Directeur Général</option>
+                        <option value="director" {% if legal_representative.position == 'director' %}selected{% endif %}>Directeur</option>
+                        <option value="general_manager" {% if legal_representative.position == 'general_manager' %}selected{% endif %}>Directeur Général</option>
+                        <option value="managing_director" {% if legal_representative.position == 'managing_director' %}selected{% endif %}>Directeur Exécutif</option>
+                        <option value="president" {% if legal_representative.position == 'president' %}selected{% endif %}>Président</option>
+                        <option value="vice_president" {% if legal_representative.position == 'vice_president' %}selected{% endif %}>Vice-Président</option>
+                        <option value="legal_officer" {% if legal_representative.position == 'legal_officer' %}selected{% endif %}>Responsable Juridique</option>
+                        <option value="authorized_signatory" {% if legal_representative.position == 'authorized_signatory' %}selected{% endif %}>Signataire Autorisé</option>
+                        <option value="other" {% if legal_representative.position == 'other' %}selected{% endif %}>Autre</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="position_other_group" style="display: none;">
+                    <label>Préciser le Poste</label>
+                    <input type="text" id="rep_position_other" value="{% if legal_representative %}{{ legal_representative.position_other }}{% endif %}" placeholder="Titre du poste">
+                </div>
+
+                <div class="form-group">
+                    <label>Type de Pièce d'Identité <span class="required">*</span></label>
+                    <select id="rep_id_type" required>
+                        <option value="">Sélectionner...</option>
+                        <option value="passport" {% if legal_representative.id_type == 'passport' %}selected{% endif %}>Passeport</option>
+                        <option value="national_id" {% if legal_representative.id_type == 'national_id' %}selected{% endif %}>Carte d'Identité Nationale</option>
+                        <option value="drivers_license" {% if legal_representative.id_type == 'drivers_license' %}selected{% endif %}>Permis de Conduire</option>
+                        <option value="other" {% if legal_representative.id_type == 'other' %}selected{% endif %}>Autre Pièce Officielle</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Numéro de Pièce d'Identité <span class="required">*</span></label>
+                    <input type="text" id="rep_id_number" value="{% if legal_representative %}{{ legal_representative.id_number }}{% endif %}" placeholder="Numéro d'identification" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Date d'Expiration de la Pièce</label>
+                    <input type="date" id="rep_id_expiry" value="{% if legal_representative.id_expiry_date %}{{ legal_representative.id_expiry_date|date:'Y-m-d' }}{% endif %}">
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label>Portée de l'Autorisation</label>
+                    <textarea id="rep_authorization" rows="3" placeholder="Décrivez les pouvoirs et l'autorité de signature...">{% if legal_representative %}{{ legal_representative.authorization_scope }}{% endif %}</textarea>
+                </div>
+            </div>
+
+            <div class="document-upload-section" style="margin-top: 25px;">
+                <h3 style="margin-bottom: 15px;">Documents du Représentant</h3>
+                <div class="document-grid">
+                    <div class="document-upload-card">
+                        <input type="file" id="rep_id_front" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="rep_id_front">
+                            <div class="document-icon">🪪</div>
+                            <div class="document-title">Pièce d'Identité (Recto)</div>
+                            <div class="document-description">Photo ou scan recto</div>
+                            <span class="document-status {% if legal_representative.id_document_front %}uploaded{% else %}pending{% endif %}">
+                                {% if legal_representative.id_document_front %}Téléchargé{% else %}Requis{% endif %}
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="document-upload-card">
+                        <input type="file" id="rep_id_back" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="rep_id_back">
+                            <div class="document-icon">🪪</div>
+                            <div class="document-title">Pièce d'Identité (Verso)</div>
+                            <div class="document-description">Photo ou scan verso</div>
+                            <span class="document-status {% if legal_representative.id_document_back %}uploaded{% else %}optional{% endif %}">
+                                {% if legal_representative.id_document_back %}Téléchargé{% else %}Optionnel{% endif %}
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="document-upload-card">
+                        <input type="file" id="rep_proof_position" accept=".pdf,.jpg,.jpeg,.png">
+                        <label for="rep_proof_position">
+                            <div class="document-icon">📜</div>
+                            <div class="document-title">Preuve de Fonction</div>
+                            <div class="document-description">Lettre de nomination, résolution...</div>
+                            <span class="document-status {% if legal_representative.proof_of_position %}uploaded{% else %}optional{% endif %}">
+                                {% if legal_representative.proof_of_position %}Téléchargé{% else %}Recommandé{% endif %}
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn-save" onclick="saveProfile()">
+                <span>💾</span> Enregistrer les Modifications
+            </button>
+            <button type="button" class="btn-cancel" onclick="window.location.href='/insurance/dashboard/'">
+                <span>✖️</span> Annuler
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        if (menuIcon) menuIcon.addEventListener('click', toggleSidebar);
+        if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        // Show/hide "Other position" field
+        const positionSelect = document.getElementById('rep_position');
+        const positionOtherGroup = document.getElementById('position_other_group');
+        
+        if (positionSelect) {
+            positionSelect.addEventListener('change', function() {
+                if (this.value === 'other') {
+                    positionOtherGroup.style.display = 'block';
+                } else {
+                    positionOtherGroup.style.display = 'none';
+                }
+            });
+            
+            // Trigger on load if "other" is selected
+            if (positionSelect.value === 'other') {
+                positionOtherGroup.style.display = 'block';
+            }
+        }
+
+        function saveProfile() {
+            // Collect all form data
+            const formData = new FormData();
+            
+            // Basic info
+            formData.append('full_name', document.querySelector('input[type="text"]').value);
+            
+            // Legal representative info
+            const repData = {
+                full_name: document.getElementById('rep_full_name').value,
+                email: document.getElementById('rep_email').value,
+                phone_number: document.getElementById('rep_phone').value,
+                position: document.getElementById('rep_position').value,
+                position_other: document.getElementById('rep_position_other').value,
+                id_type: document.getElementById('rep_id_type').value,
+                id_number: document.getElementById('rep_id_number').value,
+                id_expiry_date: document.getElementById('rep_id_expiry').value,
+                authorization_scope: document.getElementById('rep_authorization').value,
+            };
+            
+            // Validate required fields
+            if (!repData.full_name || !repData.email || !repData.phone_number || !repData.position || !repData.id_type || !repData.id_number) {
+                alert('Veuillez remplir tous les champs requis du représentant légal (*)');
+                return;
+            }
+            
+            // Add files
+            const idFront = document.getElementById('rep_id_front').files[0];
+            const idBack = document.getElementById('rep_id_back').files[0];
+            const proofPosition = document.getElementById('rep_proof_position').files[0];
+            
+            if (idFront) formData.append('id_document_front', idFront);
+            if (idBack) formData.append('id_document_back', idBack);
+            if (proofPosition) formData.append('proof_of_position', proofPosition);
+            
+            // Add JSON data
+            for (const [key, value] of Object.entries(repData)) {
+                formData.append(key, value);
+            }
+            
+            // TODO: Send to API
+            alert('Profil et représentant légal enregistrés avec succès!\n\nEn attente de vérification par l\'administrateur.');
+            
+            // In production, use:
+            // fetch('/api/v1/insurance/profile/legal-representative/', {
+            //     method: 'POST',
+            //     body: formData
+            // }).then(response => response.json())
+            //   .then(data => alert('Sauvegardé avec succès!'))
+            //   .catch(error => alert('Erreur: ' + error));
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

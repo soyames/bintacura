@@ -1,0 +1,164 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Technicien de Laboratoire - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/lab_technician_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="lab_technician" page_title="Tableau de Bord Laboratoire" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_lab_technician.html" %}
+
+    <div class="main-content">
+        <div class="lab-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Tests en Attente</h3>
+                    <p class="stat-value">{{ pending_tests|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Tests en Cours</h3>
+                    <p class="stat-value">{{ in_progress_tests|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Tests Aujourd'hui</h3>
+                    <p class="stat-value">{{ today_tests }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Urgences</h3>
+                    <p class="stat-value">{{ urgent_tests|length }}</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Tests Urgents</h2>
+                    </div>
+                    <div class="tests-list urgent">
+                        {% if urgent_tests %}
+                            {% for test in urgent_tests %}
+                                <div class="test-card urgent">
+                                    <div class="test-info">
+                                        <h4>{{ test.patient.full_name }}</h4>
+                                        <p class="test-type">{{ test.test_type }}</p>
+                                        <p class="requested-by">Demandé par: Dr. {{ test.doctor.full_name }}</p>
+                                        <p class="request-time">{{ test.requested_at|date:"d/m/Y H:i" }}</p>
+                                    </div>
+                                    <div class="test-actions">
+                                        <button class="btn-sm btn-start" onclick="startTest('{{ test.id }}')">Commencer</button>
+                                        <button class="btn-sm btn-view" onclick="viewTest('{{ test.id }}')">Détails</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucun test urgent</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Tests en Attente</h2>
+                    </div>
+                    <div class="tests-list">
+                        {% if pending_tests %}
+                            {% for test in pending_tests %}
+                                <div class="test-card">
+                                    <div class="test-info">
+                                        <h4>{{ test.patient.full_name }}</h4>
+                                        <p class="test-type">{{ test.test_type }}</p>
+                                        <p class="requested-by">Demandé par: Dr. {{ test.doctor.full_name }}</p>
+                                        <p class="request-time">{{ test.requested_at|date:"d/m/Y H:i" }}</p>
+                                    </div>
+                                    <div class="test-actions">
+                                        <button class="btn-sm btn-start" onclick="startTest('{{ test.id }}')">Commencer</button>
+                                        <button class="btn-sm btn-view" onclick="viewTest('{{ test.id }}')">Détails</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucun test en attente</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Tests en Cours</h2>
+                    </div>
+                    <div class="tests-list in-progress">
+                        {% if in_progress_tests %}
+                            {% for test in in_progress_tests %}
+                                <div class="test-card in-progress">
+                                    <div class="test-info">
+                                        <h4>{{ test.patient.full_name }}</h4>
+                                        <p class="test-type">{{ test.test_type }}</p>
+                                        <p class="started-at">Commencé: {{ test.started_at|date:"H:i" }}</p>
+                                    </div>
+                                    <div class="test-actions">
+                                        <button class="btn-sm btn-complete" onclick="completeTest('{{ test.id }}')">Terminer</button>
+                                        <button class="btn-sm btn-results" onclick="enterResults('{{ test.id }}')">Résultats</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucun test en cours</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="testResultsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Enregistrer Résultats</h3>
+                <span class="close" onclick="closeModal('testResultsModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="testResultsForm" onsubmit="submitTestResults(event)">
+                    <input type="hidden" id="testId">
+                    <div class="form-group">
+                        <label for="testResults">Résultats</label>
+                        <textarea id="testResults" rows="6" required placeholder="Entrez les résultats du test..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="interpretation">Interprétation</label>
+                        <select id="interpretation" required>
+                            <option value="">Sélectionner</option>
+                            <option value="normal">Normal</option>
+                            <option value="abnormal">Anormal</option>
+                            <option value="critical">Critique</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" rows="3" placeholder="Notes additionnelles..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="attachments">Joindre Fichiers</label>
+                        <input type="file" id="attachments" multiple accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('testResultsModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Soumettre Résultats</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/lab_technician_dashboard.js' %}"></script>
+</body>
+</html>
+

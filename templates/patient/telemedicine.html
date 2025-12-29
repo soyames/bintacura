@@ -1,0 +1,521 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Télémédecine - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/telemedicine.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Télémédecine</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="telemedicine-container">
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchTab('search')">
+                    <i class="fas fa-search"></i> Rechercher un Médecin
+                </button>
+                <button class="tab-btn" onclick="switchTab('upcoming')">
+                    <i class="fas fa-calendar-check"></i> Rendez-vous à Venir
+                </button>
+                <button class="tab-btn" onclick="switchTab('history')">
+                    <i class="fas fa-history"></i> Historique
+                </button>
+            </div>
+
+            <!-- Search Tab -->
+            <div id="searchTab" class="tab-content active">
+                <div class="search-section">
+                    <div class="search-bar">
+                        <input type="text" class="search-input" id="searchInput"
+                            placeholder="Rechercher par nom, spécialité..." oninput="filterDoctors()">
+                        <select class="filter-select" id="specialtyFilter" onchange="filterDoctors()">
+                            <option value="">Toutes les spécialités</option>
+                            {% for code, name in specializations %}
+                            <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="search-btn" onclick="filterDoctors()">
+                            <i class="fas fa-search"></i> Rechercher
+                        </button>
+                    </div>
+                </div>
+
+                <div class="doctors-grid" id="doctorsGrid">
+                    {% if doctors %}
+                    {% for doctor in doctors %}
+                    <div class="doctor-card" data-specialty="{{ doctor.doctor_data.specialization }}">
+                        <div class="doctor-header">
+                            <div class="doctor-avatar">
+                                {{ doctor.full_name|slice:":1"|upper }}
+                            </div>
+                            <div class="doctor-info">
+                                <h3>Dr. {{ doctor.full_name }}</h3>
+                                <span class="specialty-badge">{{ doctor.doctor_data.get_specialization_display }}</span>
+                                <div class="rating">
+                                    <span class="stars">
+                                        {% with rating=doctor.doctor_data.rating|floatformat:0|add:"0" %}
+                                        {% for i in "12345" %}
+                                        {% if forloop.counter <= rating %}⭐{% endif %}{% endfor %}
+                                        {% endwith %}
+                                    </span>
+                                    <span style="margin-left: 8px; font-weight: 600; color: #2c3e50;">
+                                        {% if doctor.doctor_data.total_reviews > 0 %}
+                                            {{ doctor.doctor_data.rating|floatformat:1 }}/5
+                                            <span style="font-size: 0.85em; color: #7f8c8d; font-weight: 400;">
+                                                · {{ doctor.doctor_data.total_reviews }} avis
+                                            </span>
+                                        {% else %}
+                                            Nouveau médecin
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if doctor.is_active %}
+                        <div class="status-online">
+                            <span class="status-dot"></span>
+                            Disponible pour consultation
+                        </div>
+                        {% endif %}
+
+                        <div class="doctor-details">
+                            <div class="detail-item">
+                                <i class="fas fa-graduation-cap"></i>
+                                <span>{{ doctor.doctor_data.years_of_experience }} ans d'expérience</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-language"></i>
+                                <span>{{ doctor.doctor_data.languages_spoken|join:", " }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-stethoscope"></i>
+                                <span>{{ doctor.doctor_data.total_consultations }} consultations</span>
+                            </div>
+                            {% if doctor.doctor_data.bio %}
+                            <div class="detail-item">
+                                <i class="fas fa-info-circle"></i>
+                                <span>{{ doctor.doctor_data.bio|truncatewords:20 }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="consultation-fee">
+                            <span class="fee-label">Consultation vidéo</span>
+                            <span class="fee-amount convert-currency" data-amount-cents="{{ doctor.doctor_data.consultation_fee }}">{{ doctor.doctor_data.consultation_fee|floatformat:2 }} USD</span>
+                        </div>
+
+                        <button class="book-btn"
+                            onclick="openBookingModal('{{ doctor.uid }}', '{{ doctor.full_name }}', '{{ doctor.doctor_data.consultation_fee }}')">
+                            <i class="fas fa-video"></i> Demander une Consultation
+                        </button>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">👨‍⚕️</div>
+                        <div class="empty-title">Aucun médecin disponible</div>
+                        <div class="empty-text">Il n'y a pas de médecins disponibles pour la télémédecine pour le
+                            moment.</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Upcoming Appointments Tab -->
+            <div id="upcomingTab" class="tab-content">
+                {% if upcoming_appointments %}
+                {% for appointment in upcoming_appointments %}
+                <div class="appointment-card">
+                    <div class="appointment-header">
+                        <div class="appointment-doctor">
+                            <div class="appointment-avatar">
+                                {{ appointment.doctor.full_name|slice:":1"|upper }}
+                            </div>
+                            <div class="appointment-info">
+                                <h4>Dr. {{ appointment.doctor.full_name }}</h4>
+                                <div class="appointment-specialty">{{
+                                    appointment.doctor.doctor_data.get_specialization_display }}</div>
+                            </div>
+                        </div>
+                        <span class="appointment-status status-{{ appointment.status }}">
+                            {{ appointment.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="appointment-details">
+                        <div class="detail-box">
+                            <i class="fas fa-calendar"></i>
+                            <div>
+                                <div class="detail-text">Date</div>
+                                <div class="detail-value">{{ appointment.appointment_date|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+                        <div class="detail-box">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <div class="detail-text">Heure</div>
+                                <div class="detail-value">{{ appointment.appointment_time|time:"H:i" }}</div>
+                            </div>
+                        </div>
+                        <div class="detail-box">
+                            <i class="fas fa-money-bill"></i>
+                            <div>
+                                <div class="detail-text">Coût</div>
+                                <div class="detail-value convert-currency" data-amount-cents="{{ appointment.consultation_fee }}">{{ appointment.consultation_fee|floatformat:2 }} USD</div>
+                            </div>
+                        </div>
+                        <div class="detail-box">
+                            <i class="fas fa-credit-card"></i>
+                            <div>
+                                <div class="detail-text">Paiement</div>
+                                <div class="detail-value">{{ appointment.get_payment_status_display }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if appointment.reason %}
+                    <div class="detail-item" style="margin-top: 15px;">
+                        <i class="fas fa-notes-medical"></i>
+                        <span><strong>Motif:</strong> {{ appointment.reason }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="appointment-actions">
+                        {% if appointment.status == 'confirmed' %}
+                        <button class="action-btn btn-primary" onclick="joinConsultation('{{ appointment.id }}')">
+                            <i class="fas fa-video"></i> Rejoindre la Consultation
+                        </button>
+                        {% endif %}
+                        {% if appointment.status == 'pending' %}
+                        <button class="action-btn btn-danger" onclick="cancelAppointment('{{ appointment.id }}')">
+                            <i class="fas fa-times"></i> Annuler
+                        </button>
+                        {% endif %}
+                        <button class="action-btn btn-secondary"
+                            onclick="viewAppointmentDetails('{{ appointment.id }}')">
+                            <i class="fas fa-info-circle"></i> Détails
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📅</div>
+                    <div class="empty-title">Aucun rendez-vous à venir</div>
+                    <div class="empty-text">Vous n'avez pas de consultations de télémédecine planifiées.</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- History Tab -->
+            <div id="historyTab" class="tab-content">
+                {% if previous_consultations %}
+                {% for appointment in previous_consultations %}
+                <div class="appointment-card">
+                    <div class="appointment-header">
+                        <div class="appointment-doctor">
+                            <div class="appointment-avatar">
+                                {{ appointment.doctor.full_name|slice:":1"|upper }}
+                            </div>
+                            <div class="appointment-info">
+                                <h4>Dr. {{ appointment.doctor.full_name }}</h4>
+                                <div class="appointment-specialty">{{
+                                    appointment.doctor.doctor_data.get_specialization_display }}</div>
+                            </div>
+                        </div>
+                        <span class="appointment-status status-{{ appointment.status }}">
+                            {{ appointment.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="appointment-details">
+                        <div class="detail-box">
+                            <i class="fas fa-calendar"></i>
+                            <div>
+                                <div class="detail-text">Date</div>
+                                <div class="detail-value">{{ appointment.appointment_date|date:"d/m/Y" }}</div>
+                            </div>
+                        </div>
+                        <div class="detail-box">
+                            <i class="fas fa-clock"></i>
+                            <div>
+                                <div class="detail-text">Heure</div>
+                                <div class="detail-value">{{ appointment.appointment_time|time:"H:i" }}</div>
+                            </div>
+                        </div>
+                        <div class="detail-box">
+                            <i class="fas fa-money-bill"></i>
+                            <div>
+                                <div class="detail-text">Coût</div>
+                                <div class="detail-value convert-currency" data-amount-cents="{{ appointment.consultation_fee }}">{{ appointment.consultation_fee|floatformat:2 }} USD</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if appointment.notes %}
+                    <div class="detail-item" style="margin-top: 15px;">
+                        <i class="fas fa-file-medical"></i>
+                        <span><strong>Notes:</strong> {{ appointment.notes|truncatewords:30 }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="appointment-actions">
+                        <button class="action-btn btn-secondary"
+                            onclick="viewConsultationRecord('{{ appointment.id }}')">
+                            <i class="fas fa-file-alt"></i> Voir le Compte Rendu
+                        </button>
+                        {% if appointment.status == 'completed' and not appointment.rating %}
+                        <button class="action-btn btn-primary" onclick="rateConsultation('{{ appointment.id }}')">
+                            <i class="fas fa-star"></i> Évaluer
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-title">Aucune consultation passée</div>
+                    <div class="empty-text">Votre historique de consultations de télémédecine apparaîtra ici.</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Demander une Consultation</h2>
+                <button class="close-btn" onclick="closeModal('bookingModal')">&times;</button>
+            </div>
+            <form id="bookingForm" method="POST" action="/patient/book-telemedicine/">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="doctor_id" id="doctorId">
+
+                    <div class="form-group">
+                        <label class="form-label">Médecin</label>
+                        <input type="text" class="form-input" id="doctorName" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Date souhaitée</label>
+                        <input type="date" class="form-input" name="appointment_date" id="appointmentDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Créneaux horaires disponibles</label>
+                        <div class="time-slots-grid" id="timeSlotsGrid">
+                            <div class="time-slot" onclick="selectTimeSlot(this, '09:00')">09:00</div>
+                            <div class="time-slot" onclick="selectTimeSlot(this, '10:00')">10:00</div>
+                            <div class="time-slot" onclick="selectTimeSlot(this, '11:00')">11:00</div>
+                            <div class="time-slot" onclick="selectTimeSlot(this, '14:00')">14:00</div>
+                            <div class="time-slot" onclick="selectTimeSlot(this, '15:00')">15:00</div>
+                            <div class="time-slot" onclick="selectTimeSlot(this, '16:00')">16:00</div>
+                            <div class="time-slot" onclick="selectTimeSlot(this, '17:00')">17:00</div>
+                        </div>
+                        <input type="hidden" name="appointment_time" id="appointmentTime" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Motif de la consultation</label>
+                        <textarea class="form-textarea" name="reason"
+                            placeholder="Décrivez brièvement la raison de votre consultation..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Symptômes (optionnel)</label>
+                        <textarea class="form-textarea" name="symptoms"
+                            placeholder="Décrivez vos symptômes si applicable..."></textarea>
+                    </div>
+
+                    <div class="consultation-fee">
+                        <span class="fee-label">Coût de la consultation</span>
+                        <span class="fee-amount" id="modalFee">0 CFA</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="action-btn btn-secondary"
+                        onclick="closeModal('bookingModal')">Annuler</button>
+                    <button type="submit" class="action-btn btn-primary">
+                        <i class="fas fa-check"></i> Confirmer la Demande
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.closest('.tab-btn').classList.add('active');
+        }
+
+        // Filter doctors
+        function filterDoctors() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const specialty = document.getElementById('specialtyFilter').value.toLowerCase();
+            const doctorCards = document.querySelectorAll('.doctor-card');
+
+            doctorCards.forEach(card => {
+                const cardText = card.textContent.toLowerCase();
+                const cardSpecialty = card.getAttribute('data-specialty').toLowerCase();
+
+                const matchesSearch = searchQuery === '' || cardText.includes(searchQuery);
+                const matchesSpecialty = specialty === '' || cardSpecialty === specialty;
+
+                if (matchesSearch && matchesSpecialty) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Open booking modal
+        function openBookingModal(doctorId, doctorName, fee) {
+            document.getElementById('doctorId').value = doctorId;
+            document.getElementById('doctorName').value = 'Dr. ' + doctorName;
+            document.getElementById('modalFee').textContent = fee + ' CFA';
+
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('appointmentDate').setAttribute('min', today);
+            document.getElementById('appointmentDate').value = today;
+
+            document.getElementById('bookingModal').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Select time slot
+        let selectedTime = null;
+        function selectTimeSlot(element, time) {
+            // Remove previous selection
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+
+            // Select new slot
+            element.classList.add('selected');
+            selectedTime = time;
+            document.getElementById('appointmentTime').value = time;
+        }
+
+        // Join consultation
+        function joinConsultation(appointmentId) {
+            window.location.href = `/patient/video-consultation/${appointmentId}/`;
+        }
+
+        // Cancel appointment
+        function cancelAppointment(appointmentId) {
+            if (confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous ?')) {
+                fetch(`/api/v1/appointments/appointments/${appointmentId}/cancel/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Rendez-vous annulé avec succès');
+                            location.reload();
+                        } else {
+                            alert('Erreur lors de l\'annulation');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Erreur de connexion');
+                    });
+            }
+        }
+
+        // View appointment details
+        function viewAppointmentDetails(appointmentId) {
+            window.location.href = `/patient/appointments/${appointmentId}/`;
+        }
+
+        // View consultation record
+        function viewConsultationRecord(appointmentId) {
+            window.location.href = `/patient/consultations/${appointmentId}/record/`;
+        }
+
+        // Rate consultation
+        function rateConsultation(appointmentId) {
+            window.location.href = `/patient/consultations/${appointmentId}/rate/`;
+        }
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function (event) {
+            const modal = document.getElementById('bookingModal');
+            if (event.target === modal) {
+                closeModal('bookingModal');
+            }
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

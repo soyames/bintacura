@@ -1,0 +1,15 @@
+<span class="appointment-status {{ status|lower }}">
+    {% if status == 'confirmed' %}
+        Confirmé
+    {% elif status == 'pending' %}
+        En Attente
+    {% elif status == 'in_progress' %}
+        En Cours
+    {% elif status == 'completed' %}
+        Terminé
+    {% elif status == 'cancelled' %}
+        Annulé
+    {% else %}
+        {{ status }}
+    {% endif %}
+</span>

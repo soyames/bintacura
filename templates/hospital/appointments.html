@@ -1,0 +1,1022 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rendez-vous - Hôpital BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="hospital" page_title="Rendez-vous" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_hospital.html" %}
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -320px;
+    width: 320px;
+    height: 100vh;
+    background: #ffffff;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
+    transition: left 0.3s ease;
+    z-index: 1001;
+    overflow-y: auto;
+}
+
+:root[data-theme="dark"] .sidebar {
+    background: #2d2d2d;
+}
+
+.sidebar.active {
+    left: 0;
+}
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--overlay);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.sidebar-header {
+    padding: 20px;
+    color: white;
+    position: relative;
+}
+
+.sidebar-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 24px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.sidebar-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logo {
+    display: none;
+}
+
+.logo-img {
+    height: 40px;
+    width: auto;
+    filter: brightness(0) invert(1);
+}
+
+.logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+}
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.sidebar-user-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.sidebar-user-info h3 {
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.sidebar-user-info p {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.sidebar-nav {
+    padding: 16px 0;
+}
+
+.sidebar-section {
+    margin-bottom: 24px;
+}
+
+.sidebar-section-title {
+    padding: 8px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+}
+
+.sidebar-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.sidebar-menu-item:hover {
+    background: var(--bg-primary);
+}
+
+.sidebar-menu-item-icon {
+    width: 24px;
+    margin-right: 12px;
+    font-size: 20px;
+}
+
+.sidebar-menu-item-text {
+    flex: 1;
+    font-size: 14px;
+}
+
+.sidebar-menu-item-badge {
+    background: #dc3545;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.setting-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    cursor: pointer;
+}
+
+.setting-toggle:hover {
+    background: var(--bg-primary);
+}
+
+.setting-info {
+    display: flex;
+    align-items: center;
+}
+
+.setting-icon {
+    width: 24px;
+    margin-right: 12px;
+    font-size: 20px;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    background: #ccc;
+    border-radius: 13px;
+    transition: background 0.3s;
+}
+
+.toggle-switch.active {
+    background: var(--accent-color);
+}
+
+.toggle-switch-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: left 0.3s;
+}
+
+.toggle-switch.active .toggle-switch-slider {
+    left: 25px;
+}
+
+.setting-select {
+    padding: 12px 20px;
+}
+
+.setting-select-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.setting-select select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.stat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.stat-icon.red {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.stat-icon.blue {
+    background: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+.stat-icon.green {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.stat-icon.orange {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.stat-icon.purple {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin: 24px 16px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.view-all-btn {
+    background: transparent;
+    color: var(--accent-color);
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.help-badge {
+    background: var(--accent-color);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.carousel-container {
+    position: relative;
+    overflow: hidden;
+    margin: 16px;
+    border-radius: 12px;
+    height: 180px;
+}
+
+.carousel {
+    display: flex;
+    transition: transform 0.3s ease;
+}
+
+.carousel-slide {
+    min-width: 100%;
+    height: 180px;
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.9), rgba(108, 117, 125, 0.9));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.carousel-slide h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.carousel-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #333;
+}
+
+.carousel-nav.prev {
+    left: 10px;
+}
+
+.carousel-nav.next {
+    right: 10px;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 0 16px;
+    margin-bottom: 24px;
+}
+
+.service-card {
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-color);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px var(--shadow);
+}
+
+.service-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+}
+
+.service-title {
+    color: var(--accent-color);
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.appointment-btn {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 16px;
+    margin: 0 16px 24px;
+    border-radius: 28px;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 12px var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.appointment-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px var(--shadow);
+}
+
+.appointments-list {
+    padding: 0 16px;
+    margin-bottom: 24px;
+}
+
+.appointment-item {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px var(--shadow);
+    display: flex;
+    gap: 12px;
+}
+
+.appointment-time {
+    background: var(--accent-color);
+    color: white;
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    min-width: 60px;
+}
+
+.appointment-time-hour {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.appointment-time-period {
+    font-size: 11px;
+}
+
+.appointment-details {
+    flex: 1;
+}
+
+.appointment-patient {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.appointment-type {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.appointment-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.appointment-status.confirmed {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.appointment-status.pending {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.department-list {
+    padding: 0 16px;
+    margin-bottom: 24px;
+}
+
+.department-item {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.department-info {
+    flex: 1;
+}
+
+.department-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.department-stats {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.department-capacity {
+    text-align: right;
+}
+
+.capacity-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.capacity-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+@media (min-width: 768px) {
+    .mobile-header {
+        padding: 16px 32px;
+    }
+
+    .logo {
+        font-size: 24px;
+    }
+
+    .sidebar {
+        width: 360px;
+        left: -360px;
+    }
+
+    .carousel-container {
+        margin: 24px 32px;
+        height: 240px;
+    }
+
+    .carousel-slide {
+        height: 240px;
+    }
+
+    .carousel-slide h3 {
+        font-size: 20px;
+    }
+
+    .stats-container {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        padding: 24px 32px;
+        max-width: 1200px;
+        margin: 0 auto 24px;
+    }
+
+    .section-title {
+        margin: 32px 32px 20px;
+        font-size: 24px;
+    }
+
+    .services-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        padding: 0 32px;
+        max-width: 1200px;
+        margin: 0 auto 32px;
+    }
+
+    .service-card {
+        padding: 24px 20px;
+    }
+
+    .service-icon {
+        width: 70px;
+        height: 70px;
+        font-size: 40px;
+    }
+
+    .service-title {
+        font-size: 16px;
+    }
+
+    .appointment-btn {
+        max-width: 500px;
+        margin: 0 auto 32px;
+        display: block;
+    }
+
+    .appointments-list {
+        padding: 0 32px;
+        max-width: 1200px;
+        margin: 0 auto 32px;
+    }
+
+    .department-list {
+        padding: 0 32px;
+        max-width: 1200px;
+        margin: 0 auto 32px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .services-grid {
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 1200px;
+        gap: 20px;
+    }
+
+    .carousel-container {
+        max-width: 1200px;
+        margin: 24px auto;
+        height: 300px;
+    }
+
+    .carousel-slide {
+        height: 300px;
+    }
+
+    .carousel-slide h3 {
+        font-size: 24px;
+    }
+
+    .appointment-btn {
+        max-width: 600px;
+    }
+}
+    </style>
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header" style="background: linear-gradient(135deg, #dc3545, #bd2130);">
+            <div class="sidebar-logo">
+                <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="logo-img">
+                
+            </div>
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" onclick="window.location.href='/hospital/profile/'"
+                    style="cursor: pointer;">HP</div>
+                <div class="sidebar-user-info">
+                    <h3>Hôpital</h3>
+                    <p>hospital@BINTACURA.com</p>
+                </div>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Navigation</div>
+                <a href="/hospital/dashboard/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">📊</span>
+                    <span class="sidebar-menu-item-text">Tableau de Bord</span>
+                </a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Compte</div>
+                <a href="/logout/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">🚪</span>
+                    <span class="sidebar-menu-item-text">Déconnexion</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+    <header class="mobile-header">
+        <div class="menu-icon" id="menuIcon"><span></span><span></span><span></span></div>
+        <div class="logo"><img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="mobile-logo-img">HOSPITAL</div>
+        <div class="profile-icon">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </header>
+    <main class="main-content">
+        <div style="margin-bottom: 20px;">
+            <button onclick="window.location.href='/hospital/dashboard/'"
+                style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">←</span> Retour au Dashboard
+            </button>
+        </div>
+        <div
+            style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; text-align: center;">
+            <h1 style="font-size: 32px; color: #2d3748; margin-bottom: 15px;">📅 Gestion des Rendez-vous</h1>
+            <p style="color: #718096; font-size: 18px;">Gérez les rendez-vous et assignez le personnel</p>
+        </div>
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div style="font-size: 32px; font-weight: bold; color: #ffc107;">{{ pending_count|default:0 }}</div>
+                <div style="color: #718096; margin-top: 5px;">En Attente</div>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div style="font-size: 32px; font-weight: bold; color: #28a745;">{{ today_count|default:0 }}</div>
+                <div style="color: #718096; margin-top: 5px;">Aujourd'hui</div>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div style="font-size: 32px; font-weight: bold; color: #17a2b8;">{{ upcoming_count|default:0 }}</div>
+                <div style="color: #718096; margin-top: 5px;">À Venir</div>
+            </div>
+        </div>
+        <div
+            style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px;">
+            <h2 style="margin-bottom: 20px;">🔔 Demandes en Attente</h2>
+            <div style="display: grid; gap: 15px;">
+                {% if pending_appointments %}
+                {% for apt in pending_appointments %}
+                <div style="background: #fff3cd; padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 15px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 5px;">{{ apt.patient.full_name
+                                }}</div>
+                            <div style="color: #666; font-size: 14px; margin-bottom: 3px;">📅 {{
+                                apt.appointment_date|date:"d/m/Y" }} à {{ apt.appointment_time|date:"H:i" }}</div>
+                            <div style="color: #666; font-size: 14px;">{{ apt.get_type_display }}</div>
+                            {% if apt.service %}<div
+                                style="margin-top: 5px; font-size: 13px; color: #dc3545; font-weight: 600;">
+                                🏷️ {{ apt.service.name }}</div>{% endif %}
+                            {% if apt.reason %}<div style="margin-top: 8px; font-size: 13px; color: #555;">Motif: {{
+                                apt.reason }}</div>{% endif %}
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button onclick="showAssignModal('{{ apt.id }}')"
+                                style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                👨‍⚕️ Assigner
+                            </button>
+                            <button onclick="cancelAppointment('{{ apt.id }}')"
+                                style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                ❌ Refuser
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="padding: 40px; text-align: center; color: #718096;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">✅</div>
+                    <div style="font-size: 16px;">Aucune demande en attente</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div
+            style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px;">
+            <h2 style="margin-bottom: 20px;">📆 Rendez-vous d'Aujourd'hui</h2>
+            <div style="display: grid; gap: 15px;">
+                {% if today_appointments %}
+                {% for apt in today_appointments %}
+                <div style="background: #d4edda; padding: 20px; border-radius: 10px; border-left: 4px solid #28a745;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 15px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 5px;">{{ apt.patient.full_name
+                                }}</div>
+                            <div style="color: #666; font-size: 14px; margin-bottom: 3px;">🕐 {{
+                                apt.appointment_time|date:"H:i" }}</div>
+                            {% if apt.doctor %}<div style="color: #666; font-size: 14px;">👨‍⚕️ {{ apt.doctor.full_name
+                                }}</div>{% endif %}
+                            {% if apt.service %}<div
+                                style="margin-top: 5px; font-size: 13px; color: #dc3545; font-weight: 600;">
+                                🏷️ {{ apt.service.name }}</div>{% endif %}
+                            {% if apt.reason %}<div style="margin-top: 8px; font-size: 13px; color: #555;">{{ apt.reason
+                                }}</div>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="padding: 40px; text-align: center; color: #718096;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                    <div style="font-size: 16px;">Aucun rendez-vous aujourd'hui</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="margin-bottom: 20px;">📋 Rendez-vous à Venir</h2>
+            <div style="display: grid; gap: 15px;">
+                {% if upcoming_appointments %}
+                {% for apt in upcoming_appointments %}
+                <div style="background: #d1ecf1; padding: 20px; border-radius: 10px; border-left: 4px solid #17a2b8;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 15px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 5px;">{{ apt.patient.full_name
+                                }}</div>
+                            <div style="color: #666; font-size: 14px; margin-bottom: 3px;">📅 {{
+                                apt.appointment_date|date:"d/m/Y" }} à {{ apt.appointment_time|date:"H:i" }}</div>
+                            {% if apt.doctor %}
+                            <div style="color: #666; font-size: 14px;">👨‍⚕️ {{ apt.doctor.full_name }}</div>
+                            {% else %}
+                            <div style="color: #ffc107; font-size: 14px;">⚠️ Non assigné</div>
+                            {% endif %}
+                        </div>
+                        {% if not apt.doctor %}
+                        <button onclick="showAssignModal('{{ apt.id }}')"
+                            style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            👨‍⚕️ Assigner
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="padding: 40px; text-align: center; color: #718096;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📅</div>
+                    <div style="font-size: 16px;">Aucun rendez-vous à venir</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+    <div id="assignModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 style="margin: 0; color: #2d3748;">👨‍⚕️ Assigner Personnel</h2>
+                <button onclick="closeAssignModal()"
+                    style="background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">×</button>
+            </div>
+            <form id="assignForm" onsubmit="submitAssign(event)">
+                <input type="hidden" id="assign_appointment_id">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Sélectionner un
+                        membre du personnel *</label>
+                    <select id="assign_staff_id" required
+                        style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <option value="">-- Sélectionner --</option>
+                        {% for staff in available_staff %}
+                        <option value="{{ staff.uid }}">{{ staff.full_name }} - {{ staff.get_staff_role_display }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit"
+                        style="flex: 1; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Confirmer</button>
+                    <button type="button" onclick="closeAssignModal()"
+                        style="flex: 1; padding: 12px; background: #e2e8f0; color: #2d3748; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) { sidebar.classList.remove('active'); sidebarOverlay.classList.remove('active'); menuIcon.classList.remove('active'); } else { sidebar.classList.add('active'); sidebarOverlay.classList.add('active'); menuIcon.classList.add('active'); }
+        }
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+        function showAssignModal(appointmentId) {
+            document.getElementById('assign_appointment_id').value = appointmentId;
+            document.getElementById('assignModal').style.display = 'flex';
+        }
+        function closeAssignModal() {
+            document.getElementById('assignModal').style.display = 'none';
+            document.getElementById('assignForm').reset();
+        }
+        async function submitAssign(event) {
+            event.preventDefault();
+            const data = {
+                action: 'assign',
+                appointment_id: document.getElementById('assign_appointment_id').value,
+                staff_id: document.getElementById('assign_staff_id').value
+            };
+            try {
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    closeAssignModal();
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de l\'assignation: ' + error.message);
+            }
+        }
+        async function cancelAppointment(appointmentId) {
+            const reason = prompt('Raison de l\'annulation (optionnel):');
+            if (reason === null) return;
+            const data = {
+                action: 'cancel',
+                appointment_id: appointmentId,
+                reason: reason
+            };
+            try {
+                const response = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de l\'annulation: ' + error.message);
+            }
+        }
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

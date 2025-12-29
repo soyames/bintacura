@@ -1,0 +1,205 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Infirmier - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/nurse_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="nurse" page_title="Tableau de Bord Infirmier" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_nurse.html" %}
+
+    <div class="main-content">
+        <div class="nurse-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Patients Actifs</h3>
+                    <p class="stat-value">{{ admitted_patients|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Soins en Attente</h3>
+                    <p class="stat-value">{{ pending_tasks|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Admissions Aujourd'hui</h3>
+                    <p class="stat-value">{{ today_admissions }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Sorties Prévues</h3>
+                    <p class="stat-value">{{ planned_discharges }}</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Patients Admis - {{ request.staff_record.department.name }}</h2>
+                    </div>
+                    <div class="patients-list">
+                        {% if admitted_patients %}
+                            {% for admission in admitted_patients %}
+                                <div class="patient-card">
+                                    <div class="patient-info">
+                                        <h4>{{ admission.patient.full_name }}</h4>
+                                        <p class="bed-info">Lit: {{ admission.bed.bed_number }} - {{ admission.bed.room_number }}</p>
+                                        <p class="admission-date">Admis: {{ admission.admission_date|date:"d/m/Y H:i" }}</p>
+                                        <p class="diagnosis">{{ admission.chief_complaint }}</p>
+                                    </div>
+                                    <div class="patient-vitals">
+                                        <button class="btn-sm btn-vitals" onclick="recordVitals('{{ admission.id }}')">Signes Vitaux</button>
+                                        <button class="btn-sm btn-medication" onclick="administMedication('{{ admission.id }}')">Médicaments</button>
+                                        <button class="btn-sm btn-notes" onclick="addNurseNotes('{{ admission.id }}')">Notes</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucun patient admis dans ce département</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Tâches en Attente</h2>
+                    </div>
+                    <div class="tasks-list">
+                        {% if pending_tasks %}
+                            {% for task in pending_tasks %}
+                                <div class="task-card priority-{{ task.priority }}">
+                                    <div class="task-info">
+                                        <h4>{{ task.title }}</h4>
+                                        <p>{{ task.description }}</p>
+                                        {% if task.due_date %}
+                                            <p class="due-date">Échéance: {{ task.due_date|date:"d/m/Y H:i" }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="task-actions">
+                                        <button class="btn-sm btn-start" onclick="startTask('{{ task.id }}')">Commencer</button>
+                                        <button class="btn-sm btn-complete" onclick="completeTask('{{ task.id }}')">Terminer</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune tâche en attente</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Médicaments à Administrer</h2>
+                    </div>
+                    <div class="medications-schedule">
+                        <p class="no-data">Aucun médicament programmé</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="vitalsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Enregistrer Signes Vitaux</h3>
+                <span class="close" onclick="closeModal('vitalsModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="vitalsForm" onsubmit="submitVitals(event)">
+                    <input type="hidden" id="admissionId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="temperature">Température (°C)</label>
+                            <input type="number" step="0.1" id="temperature" placeholder="37.0">
+                        </div>
+                        <div class="form-group">
+                            <label for="bloodPressure">Tension Artérielle</label>
+                            <input type="text" id="bloodPressure" placeholder="120/80">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="heartRate">Fréquence Cardiaque</label>
+                            <input type="number" id="heartRate" placeholder="75">
+                        </div>
+                        <div class="form-group">
+                            <label for="respiratoryRate">Fréquence Respiratoire</label>
+                            <input type="number" id="respiratoryRate" placeholder="16">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="oxygenSaturation">Saturation Oxygène (%)</label>
+                            <input type="number" id="oxygenSaturation" placeholder="98">
+                        </div>
+                        <div class="form-group">
+                            <label for="weight">Poids (kg)</label>
+                            <input type="number" step="0.1" id="weight">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="vitalsNotes">Notes</label>
+                        <textarea id="vitalsNotes" rows="2"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('vitalsModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="medicationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Administrer Médicament</h3>
+                <span class="close" onclick="closeModal('medicationModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="medicationForm" onsubmit="submitMedication(event)">
+                    <input type="hidden" id="medicationAdmissionId">
+                    <div class="form-group">
+                        <label for="medicationName">Médicament</label>
+                        <input type="text" id="medicationName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dosage">Dosage</label>
+                            <input type="text" id="dosage" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="route">Voie d'Administration</label>
+                            <select id="route" required>
+                                <option value="oral">Orale</option>
+                                <option value="iv">Intraveineuse</option>
+                                <option value="im">Intramusculaire</option>
+                                <option value="sc">Sous-cutanée</option>
+                                <option value="topical">Topique</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="medicationNotes">Notes</label>
+                        <textarea id="medicationNotes" rows="2"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('medicationModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Confirmer Administration</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/nurse_dashboard.js' %}"></script>
+</body>
+</html>
+

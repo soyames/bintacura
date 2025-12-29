@@ -1,0 +1,412 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Details - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <style>
+        :root {
+            --accent-color: #dc3545;
+        }
+
+        .page-header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .detail-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .detail-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 13px;
+            color: #333;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-inactive {
+            background: #6c757d;
+            color: white;
+        }
+
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .permission-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .permission-item label {
+            font-size: 13px;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'admin/sidebar.html' %}
+
+    <div class="mobile-header">
+        <div class="menu-icon" id="menuIcon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="logo"><img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="admin-logo"></div>
+        <div class="profile-icon">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="detail-row">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value">{{ admin_user.email }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Role:</span>
+                    <span class="detail-value">{{ admin_user.get_role_display }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Admin Level:</span>
+                    <span class="detail-value">{{ admin_user.get_admin_level_display|default:"N/A" }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value">
+                        {% if admin_user.is_active %}
+                        <span class="badge badge-active">Active</span>
+                        {% else %}
+                        <span class="badge badge-inactive">Inactive</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created:</span>
+                    <span class="detail-value">{{ admin_user.created_at|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Last Login:</span>
+                    <span class="detail-value">{{ admin_user.last_login_at|date:"M d, Y H:i"|default:"Never" }}</span>
+                </div>
+            </div>
+
+            <div class="detail-card">
+                <h3>Admin Permissions</h3>
+                <form method="post" action="{% url 'superadmin:update_admin_permissions' admin_user.uid %}">
+                    {% csrf_token %}
+                    <div class="permissions-grid">
+                        <div class="permission-item">
+                            <input type="checkbox" name="full_system_access" id="full_system_access" {% if
+                                permissions.full_system_access %}checked{% endif %}>
+                            <label for="full_system_access">Full System Access</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="payment_system_access" id="payment_system_access" {% if
+                                permissions.payment_system_access %}checked{% endif %}>
+                            <label for="payment_system_access">Payment System Access</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="user_management" id="user_management" {% if
+                                permissions.user_management %}checked{% endif %}>
+                            <label for="user_management">User Management</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="analytics_access" id="analytics_access" {% if
+                                permissions.analytics_access %}checked{% endif %}>
+                            <label for="analytics_access">Analytics Access</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="audit_access" id="audit_access" {% if permissions.audit_access
+                                %}checked{% endif %}>
+                            <label for="audit_access">Audit Access</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="provider_verification" id="provider_verification" {% if
+                                permissions.provider_verification %}checked{% endif %}>
+                            <label for="provider_verification">Provider Verification</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="insurance_management" id="insurance_management" {% if
+                                permissions.insurance_management %}checked{% endif %}>
+                            <label for="insurance_management">Insurance Management</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="content_moderation" id="content_moderation" {% if
+                                permissions.content_moderation %}checked{% endif %}>
+                            <label for="content_moderation">Content Moderation</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="system_configuration" id="system_configuration" {% if
+                                permissions.system_configuration %}checked{% endif %}>
+                            <label for="system_configuration">System Configuration</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="api_management" id="api_management" {% if
+                                permissions.api_management %}checked{% endif %}>
+                            <label for="api_management">API Management</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="database_access" id="database_access" {% if
+                                permissions.database_access %}checked{% endif %}>
+                            <label for="database_access">Database Access</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="compliance_monitoring" id="compliance_monitoring" {% if
+                                permissions.compliance_monitoring %}checked{% endif %}>
+                            <label for="compliance_monitoring">Compliance Monitoring</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="financial_reports" id="financial_reports" {% if
+                                permissions.financial_reports %}checked{% endif %}>
+                            <label for="financial_reports">Financial Reports</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" name="emergency_access" id="emergency_access" {% if
+                                permissions.emergency_access %}checked{% endif %}>
+                            <label for="emergency_access">Emergency Access</label>
+                        </div>
+                    </div>
+                    <div class="section-actions">
+                        <button type="submit" class="btn btn-primary">Update Permissions</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="details-grid">
+            <div class="detail-card">
+                <h3>Recent Activity</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Activity</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in activity_logs %}
+                        <tr>
+                            <td>{{ log.activity_type }}</td>
+                            <td>{{ log.timestamp|date:"M d, H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" style="text-align: center; padding: 20px;">No activity logs</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="detail-card">
+                <h3>Audit Trail</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Resource</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in audit_logs %}
+                        <tr>
+                            <td>{{ log.action_type }}</td>
+                            <td>{{ log.resource_type }}</td>
+                            <td>{{ log.timestamp|date:"M d, H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 20px;">No audit logs</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if admin_user.role != 'super_admin' %}
+        <div class="detail-card">
+            <h3>Admin Actions</h3>
+            <form method="post" action="{% url 'superadmin:revoke_admin' admin_user.uid %}"
+                onsubmit="return confirm('Are you sure you want to revoke admin privileges for this user?');">
+                {% csrf_token %}
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-size: 14px; font-weight: 600;">Revert to
+                        Role:</label>
+                    <select name="revert_to_role"
+                        style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                        <option value="patient">Patient</option>
+                        <option value="doctor">Doctor</option>
+                        <option value="hospital">Hospital</option>
+                        <option value="pharmacy">Pharmacy</option>
+                        <option value="insurance_company">Insurance Company</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-danger">Revoke Admin Privileges</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <script>
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const body = document.body;
+
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            menuToggle.classList.toggle('active');
+            body.classList.toggle('sidebar-open');
+        });
+
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+            menuToggle.classList.remove('active');
+            body.classList.remove('sidebar-open');
+        });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

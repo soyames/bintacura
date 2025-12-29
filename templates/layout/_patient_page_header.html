@@ -1,0 +1,23 @@
+{% load static %}
+<nav class="top-nav">
+    <div class="nav-left">
+        <button class="menu-toggle-btn" id="menuIcon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        {% if show_back_button %}
+        <button class="nav-back-btn" onclick="window.location.href='{{ back_url|default:'/patient/dashboard/' }}'">←</button>
+        {% endif %}
+    </div>
+    <div class="nav-center">
+        <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+        <span class="nav-page-title">{{ page_title }}</span>
+    </div>
+    <div class="nav-right">
+        <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </div>
+</nav>
+

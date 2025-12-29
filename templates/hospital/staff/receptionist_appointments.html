@@ -1,0 +1,174 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Rendez-vous - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/receptionist_appointments.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="receptionist" page_title="Gestion des Rendez-vous" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_receptionist.html" %}
+
+    <div class="main-content">
+        <div class="appointments-container">
+            <div class="filters-section">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label for="searchInput">Rechercher</label>
+                        <input type="text" id="searchInput" placeholder="Nom du patient ou numéro" oninput="filterAppointments()">
+                    </div>
+                    <div class="filter-group">
+                        <label for="dateFilter">Date</label>
+                        <input type="date" id="dateFilter" onchange="filterAppointments()">
+                    </div>
+                    <div class="filter-group">
+                        <label for="statusFilter">Statut</label>
+                        <select id="statusFilter" onchange="filterAppointments()">
+                            <option value="">Tous</option>
+                            <option value="pending">En attente</option>
+                            <option value="confirmed">Confirmé</option>
+                            <option value="completed">Complété</option>
+                            <option value="cancelled">Annulé</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="doctorFilter">Médecin</label>
+                        <select id="doctorFilter" onchange="filterAppointments()">
+                            <option value="">Tous</option>
+                            {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}">Dr. {{ doctor.full_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="appointments-table-container">
+                <table class="appointments-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Heure</th>
+                            <th>Patient</th>
+                            <th>Téléphone</th>
+                            <th>Médecin</th>
+                            <th>Raison</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="newAppointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nouveau Rendez-vous</h3>
+                <span class="close" onclick="closeModal('newAppointmentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="newAppointmentForm" onsubmit="submitNewAppointment(event)">
+                    <div class="form-group">
+                        <label for="patientSearch">Rechercher Patient</label>
+                        <input type="text" id="patientSearch" placeholder="Nom ou numéro de téléphone" oninput="searchPatients(this.value)">
+                        <div id="patientResults" class="search-results"></div>
+                        <input type="hidden" id="selectedPatientId">
+                    </div>
+                    <div class="form-group">
+                        <label for="appointmentDate">Date</label>
+                        <input type="date" id="appointmentDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="appointmentTime">Heure</label>
+                        <input type="time" id="appointmentTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="doctorSelect">Médecin</label>
+                        <select id="doctorSelect" required>
+                            <option value="">Sélectionner un médecin</option>
+                            {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}">Dr. {{ doctor.full_name }} - {{ doctor.specialization }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reasonVisit">Raison de la visite</label>
+                        <textarea id="reasonVisit" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="appointmentNotes">Notes</label>
+                        <textarea id="appointmentNotes" rows="2"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('newAppointmentModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Créer Rendez-vous</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="editAppointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modifier Rendez-vous</h3>
+                <span class="close" onclick="closeModal('editAppointmentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editAppointmentForm" onsubmit="submitEditAppointment(event)">
+                    <input type="hidden" id="editAppointmentId">
+                    <div class="form-group">
+                        <label for="editAppointmentDate">Date</label>
+                        <input type="date" id="editAppointmentDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editAppointmentTime">Heure</label>
+                        <input type="time" id="editAppointmentTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDoctorSelect">Médecin</label>
+                        <select id="editDoctorSelect" required>
+                            <option value="">Sélectionner un médecin</option>
+                            {% for doctor in doctors %}
+                                <option value="{{ doctor.id }}">Dr. {{ doctor.full_name }} - {{ doctor.specialization }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editReasonVisit">Raison de la visite</label>
+                        <textarea id="editReasonVisit" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editStatus">Statut</label>
+                        <select id="editStatus" required>
+                            <option value="pending">En attente</option>
+                            <option value="confirmed">Confirmé</option>
+                            <option value="completed">Complété</option>
+                            <option value="cancelled">Annulé</option>
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('editAppointmentModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Sauvegarder</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/receptionist_appointments.js' %}"></script>
+</body>
+</html>
+

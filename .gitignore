@@ -1,0 +1,92 @@
+# Django Project .gitignore
+
+# Python
+*.py[cod]
+*$py.class
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.claude/
+claude/
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+local_settings.py
+
+# Environment Variables & Secrets
+.env
+.env.*
+env.example
+*.key
+*.pem
+*.secret
+secrets.json
+.secrets/
+
+# IDE & Editor
+.vscode/
+.idea/
+.claude/
+claude/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation (exclude all .md except README.md)
+*.md
+!README.md
+!CONTRIBUTING.md
+!DEVELOPMENT.md
+
+# Coverage & Testing
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.pytest_cache/
+.hypothesis/
+coverage.xml
+*.cover
+
+# Migrations (optional - uncomment if you don't want to track migrations)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Static files collected
+#/static/
+#/staticfiles/
+bare/
+__docs/
+# Media files
+#/media/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# OS Files
+Thumbs.db
+.DS_Store
+*.swp
+.env.keys
+.env.local
+.env.*.local

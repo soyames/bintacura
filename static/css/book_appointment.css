@@ -1,0 +1,620 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    padding-top: 60px;
+}
+
+.booking-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    display: none;
+}
+
+.page-title {
+    display: none;
+}
+
+.back-btn {
+    background: #f0f0f0;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.booking-form {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.step-indicator::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #e0e0e0;
+    z-index: 0;
+}
+
+.step {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    text-align: center;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border: 3px solid #e0e0e0;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #999;
+}
+
+.step.active .step-circle {
+    background: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.step.completed .step-circle {
+    background: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.step-label {
+    font-size: 13px;
+    color: #999;
+}
+
+.step.active .step-label {
+    color: #007bff;
+    font-weight: 600;
+}
+
+.form-section {
+    display: none;
+}
+
+.form-section.active {
+    display: block;
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.form-input,
+.form-select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.doctor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+    min-height: 200px;
+}
+
+.doctor-card {
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.doctor-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #007bff, #00d4ff);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.doctor-card:hover {
+    border-color: #007bff;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.2);
+}
+
+.doctor-card:hover::before {
+    transform: scaleX(1);
+}
+
+.doctor-card.selected {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-color: #007bff;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 123, 255, 0.35);
+}
+
+.doctor-card.selected::before {
+    transform: scaleX(1);
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+}
+
+.doctor-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    animation: checkmark 0.3s ease;
+}
+
+@keyframes checkmark {
+    0% {
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        transform: scale(1.2) rotate(180deg);
+    }
+    100% {
+        transform: scale(1) rotate(360deg);
+    }
+}
+
+.doctor-card.selected .doctor-name,
+.doctor-card.selected .doctor-specialty,
+.doctor-card.selected .doctor-fee,
+.doctor-card.selected .doctor-services,
+.doctor-card.selected .doctor-rating {
+    color: white !important;
+}
+
+.doctor-avatar {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.doctor-name {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.doctor-specialty {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.doctor-fee {
+    font-size: 14px;
+    font-weight: 600;
+    color: #28a745;
+    margin-bottom: 8px;
+}
+
+.doctor-services {
+    font-size: 12px;
+    color: #007bff;
+    margin-bottom: 8px;
+}
+
+.doctor-rating {
+    font-size: 14px;
+    color: #ff9800;
+    font-weight: 600;
+}
+
+.hospital-card {
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.hospital-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.hospital-card:hover {
+    border-color: #28a745;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(40, 167, 69, 0.2);
+}
+
+.hospital-card:hover::before {
+    transform: scaleX(1);
+}
+
+.hospital-card.selected {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-color: #28a745;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(40, 167, 69, 0.35);
+}
+
+.hospital-card.selected::before {
+    transform: scaleX(1);
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+}
+
+.hospital-card.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    animation: checkmark 0.3s ease;
+}
+
+.hospital-card.selected .hospital-name,
+.hospital-card.selected .hospital-address,
+.hospital-card.selected .hospital-phone,
+.hospital-card.selected .hospital-rating {
+    color: white !important;
+}
+
+.hospital-avatar {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.hospital-name {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.hospital-address {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.hospital-phone {
+    font-size: 13px;
+    color: #007bff;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.hospital-rating {
+    font-size: 14px;
+    color: #ff9800;
+    font-weight: 600;
+}
+
+.doctor-option {
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    background: #fff;
+}
+
+.doctor-option:hover {
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.doctor-option.selected {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.doctor-option.selected div {
+    color: white !important;
+}
+
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+    min-height: 100px;
+}
+
+.time-slot {
+    padding: 14px 12px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.time-slot::before {
+    content: '🕒';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 24px;
+    transition: transform 0.3s ease;
+    opacity: 0;
+}
+
+.time-slot:hover {
+    border-color: #007bff;
+    background: linear-gradient(135deg, #f0f8ff 0%, #e6f2ff 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+}
+
+.time-slot.selected {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-color: #007bff;
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.time-slot.selected::before {
+    content: '✓';
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    color: #ffd700;
+}
+
+.time-slot.booked {
+    background: #f5f5f5;
+    color: #999;
+    border-color: #ddd;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.time-slot.booked::after {
+    content: '✕';
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 10px;
+    color: #dc3545;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #f0f0f0;
+}
+
+.btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Loading and error states */
+.loading-message, .error-message, .empty-state, .info-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    font-size: 14px;
+}
+
+.error-message {
+    color: #dc3545;
+}
+
+.info-message {
+    color: #007bff;
+    background: #f0f8ff;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.empty-state {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 60px 20px;
+}
+
+.empty-state p {
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+.btn-retry {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-retry:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+@media (max-width: 768px) {
+    .doctor-grid,
+    .time-slots {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .booking-container {
+        padding: 10px;
+    }
+    
+    .booking-form {
+        padding: 20px;
+    }
+    
+    .doctor-card,
+    .hospital-card {
+        padding: 15px;
+    }
+    
+    .doctor-avatar,
+    .hospital-avatar {
+        font-size: 36px;
+    }
+    
+    .time-slot {
+        padding: 12px 8px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .doctor-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .time-slots {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .step-indicator {
+        font-size: 12px;
+    }
+    
+    .step-circle {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+}

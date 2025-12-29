@@ -1,0 +1,325 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portefeuille E-Santé - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    
+    <link rel="stylesheet" href="{% static 'css/wallet_page.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Portefeuille</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="wallet-container">
+        <div class="balance-card">
+            <select class="currency-selector" id="currencySelector" onchange="changeCurrency()">
+                <option value="EUR">EUR €</option>
+                <option value="USD">USD $</option>
+                <option value="GBP">GBP £</option>
+                <option value="XAF">CFA</option>
+            </select>
+            <div class="card-icon">💳</div>
+            <div class="balance-label">Compte Santé</div>
+            <div class="balance-amount">Solde<br><span id="currencySymbol">CFA</span> <span id="balance">0</span></div>
+        </div>
+
+        <div class="wallet-tabs">
+            <div class="wallet-tab active" onclick="switchTab('transactions')">Transactions</div>
+            <div class="wallet-tab" onclick="switchTab('variables')">Variables</div>
+            <div class="wallet-tab" onclick="switchTab('info')">Info</div>
+        </div>
+
+        <div id="transactions-content">
+            <div class="orders-section">
+                <div class="orders-header">
+                    <div class="orders-icon">📝</div>
+                    <div class="orders-title">Historique des transactions</div>
+                </div>
+
+                <div class="transaction-list" id="transactionList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💳</div>
+                        <p>Aucune transaction</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="variables-content" style="display: none;">
+            <div class="orders-section">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <p>Statistiques disponibles bientôt</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="info-content" style="display: none;">
+            <div class="orders-section">
+                <h3 style="margin-bottom: 15px;">Informations du compte</h3>
+                <p style="color: #666; line-height: 1.6;">
+                    Votre portefeuille électronique BINTACURA vous permet de gérer vos paiements de santé en toute
+                    sécurité.
+                    Rechargez votre compte et payez vos consultations, prescriptions et autres services médicaux.
+                </p>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn btn-secondary" onclick="walletManager.topUpWallet()">Recharger</button>
+            <button class="action-btn btn-primary" onclick="window.location.href='/patient/make-payment/'">Payer</button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/wallet.js' %}"></script>
+    <script>
+        let currentCurrency = 'XAF';
+        let currencySymbols = {
+            'EUR': '€',
+            'USD': '$',
+            'GBP': '£',
+            'XAF': 'CFA'
+        };
+
+        async function loadCurrencies() {
+            try {
+                const response = await fetch('/api/v1/core/wallets/currencies/');
+                const data = await response.json();
+                if (data.current) {
+                    currentCurrency = data.current;
+                    document.getElementById('currencySelector').value = currentCurrency;
+                    updateCurrencyDisplay();
+                }
+            } catch (error) {
+                console.error('Error loading currencies:', error);
+            }
+        }
+
+        async function changeCurrency() {
+            const newCurrency = document.getElementById('currencySelector').value;
+            try {
+                const response = await fetch('/api/v1/core/wallets/update_currency/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        currency: newCurrency
+                    })
+                });
+
+                if (response.ok) {
+                    currentCurrency = newCurrency;
+                    updateCurrencyDisplay();
+                    loadWalletData();
+                    loadTransactions();
+                } else {
+                    const data = await response.json();
+                    alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+                    document.getElementById('currencySelector').value = currentCurrency;
+                }
+            } catch (error) {
+                console.error('Error changing currency:', error);
+                alert('Erreur de connexion');
+                document.getElementById('currencySelector').value = currentCurrency;
+            }
+        }
+
+        function updateCurrencyDisplay() {
+            document.getElementById('currencySymbol').textContent = currencySymbols[currentCurrency];
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.wallet-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('transactions-content').style.display = 'none';
+            document.getElementById('variables-content').style.display = 'none';
+            document.getElementById('info-content').style.display = 'none';
+
+            document.getElementById(tab + '-content').style.display = 'block';
+        }
+
+        async function loadWalletData() {
+            try {
+                const response = await fetch('/api/v1/core/wallets/balance/');
+                const data = await response.json();
+                const balance = data.balance || 0;
+                const displayCurrency = data.currency || currentCurrency;
+
+                currentCurrency = displayCurrency;
+                document.getElementById('currencySelector').value = displayCurrency;
+                document.getElementById('currencySymbol').textContent = currencySymbols[displayCurrency];
+                document.getElementById('balance').textContent = balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+            } catch (error) {
+                console.error('Error loading wallet data:', error);
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                const response = await fetch('/api/v1/core/transactions/history/?limit=20');
+                const data = await response.json();
+                const transactionList = document.getElementById('transactionList');
+
+                if (!data || data.length === 0) {
+                    return;
+                }
+
+                transactionList.innerHTML = '';
+
+                data.forEach(transaction => {
+                    const card = document.createElement('div');
+                    card.className = 'transaction-card';
+
+                    const icon = getTransactionIcon(transaction.transaction_type);
+                    const isPositive = transaction.transaction_type === 'deposit' || transaction.transaction_type === 'refund';
+                    const amountClass = isPositive ? 'amount-positive' : 'amount-negative';
+                    const amountSign = isPositive ? '+' : '-';
+
+                    const date = new Date(transaction.created_at);
+                    const formattedDate = date.toLocaleDateString('fr-FR');
+
+                    const displayAmount = transaction.converted_amount || transaction.amount;
+                    const displayCurrency = transaction.display_currency || currentCurrency;
+
+                    card.innerHTML = `
+                        <div class="transaction-icon">${icon}</div>
+                        <div class="transaction-info">
+                            <div class="transaction-name">${transaction.description || 'Transaction'}</div>
+                            <div class="transaction-date">${formattedDate}</div>
+                            <div class="transaction-status">${getStatusText(transaction.status)}</div>
+                            ${transaction.status === 'pending' ? '<span class="transaction-badge">Espèces</span>' : ''}
+                        </div>
+                        <div class="transaction-amount ${amountClass}">
+                            ${currencySymbols[displayCurrency]}${amountSign}${Math.abs(displayAmount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
+                        </div>
+                    `;
+
+                    transactionList.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+            }
+        }
+
+        function getTransactionIcon(type) {
+            const icons = {
+                'deposit': '🏦',
+                'withdrawal': '💸',
+                'payment': '🏥',
+                'refund': '↩️',
+                'transfer': '💱',
+                'commission': '💼',
+                'fee': '📋'
+            };
+            return icons[type] || '💳';
+        }
+
+        function getStatusText(status) {
+            const statusTexts = {
+                'pending': 'En attente',
+                'processing': 'En cours',
+                'completed': 'Terminé',
+                'failed': 'Échoué',
+                'cancelled': 'Annulé',
+                'reversed': 'Inversé'
+            };
+            return statusTexts[status] || status;
+        }
+
+        function showAddFunds() {
+            const amount = prompt('Montant à recharger:');
+            if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
+                addFunds(parseFloat(amount));
+            }
+        }
+
+        async function addFunds(amount) {
+            try {
+                const response = await fetch('/api/v1/core/wallets/deposit/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        payment_method: 'card',
+                        description: 'Rechargement du portefeuille'
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Rechargement réussi!');
+                    loadWalletData();
+                    loadTransactions();
+                } else {
+                    alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error adding funds:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        function showPayment() {
+            window.location.href = '/patient/make-payment/';
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        loadCurrencies().then(() => {
+            loadWalletData();
+            loadTransactions();
+        });
+
+        setInterval(() => {
+            loadWalletData();
+            loadTransactions();
+        }, 30000);
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

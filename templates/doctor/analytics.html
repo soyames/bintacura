@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytique - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/analytics.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Analytique & Rapports" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="container">
+            <div class="filter-bar">
+                <select>
+                    <option>7 derniers jours</option>
+                    <option>30 derniers jours</option>
+                    <option>3 derniers mois</option>
+                    <option>Dernière année</option>
+                    <option>Plage personnalisée</option>
+                </select>
+                <select>
+                    <option>Tous les départements</option>
+                    <option>Cardiologie</option>
+                    <option>Pédiatrie</option>
+                    <option>Médecine générale</option>
+                </select>
+                <button>Appliquer les filtres</button>
+                <button style="background: #6c757d;">Exporter le rapport</button>
+            </div>
+
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <h3>Total Patients</h3>
+                    <div class="value">0</div>
+                    <div class="change">+0% par rapport à la période précédente</div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Consultations</h3>
+                    <div class="value">0</div>
+                    <div class="change">+0% par rapport à la période précédente</div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Ordonnances Délivrées</h3>
+                    <div class="value">0</div>
+                    <div class="change">+0% par rapport à la période précédente</div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Note Moyenne</h3>
+                    <div class="value">0.0</div>
+                    <div class="change">⭐ Basé sur 0 avis</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h2>Tendance des Consultations de Patients</h2>
+                <div class="chart-placeholder">Le graphique sera affiché ici en utilisant Chart.js ou une bibliothèque similaire</div>
+            </div>
+
+            <div class="chart-container">
+                <h2>Aperçu des Revenus</h2>
+                <div class="chart-placeholder">Le graphique des revenus sera affiché ici</div>
+            </div>
+
+            <div class="chart-container">
+                <h2>Diagnostics Populaires</h2>
+                <div class="chart-placeholder">Graphique de distribution des diagnostics</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

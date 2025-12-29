@@ -1,0 +1,237 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carnet de Santé - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    
+    <link rel="stylesheet" href="{% static 'css/health_records.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Carnet de Santé</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+    <div class="records-container">
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="card-header">
+                    <div class="card-icon icon-blue">🏥</div>
+                    <div>
+                        <div class="card-title">Consultations</div>
+                        <div class="card-value" id="consultationsCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-header">
+                    <div class="card-icon icon-purple">💊</div>
+                    <div>
+                        <div class="card-title">Prescriptions</div>
+                        <div class="card-value" id="prescriptionsCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-header">
+                    <div class="card-icon icon-orange">🔬</div>
+                    <div>
+                        <div class="card-title">Examens</div>
+                        <div class="card-value" id="testsCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-header">
+                    <div class="card-icon icon-green">💉</div>
+                    <div>
+                        <div class="card-title">Vaccinations</div>
+                        <div class="card-value" id="vaccinationsCount">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="records-section">
+            <div class="section-header">
+                <h2 class="section-title">Historique médical</h2>
+                <button class="filter-btn" onclick="showFilters()">🔍 Filtrer</button>
+            </div>
+
+            <div class="records-list" id="recordsList">
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <p>Chargement de vos dossiers médicaux...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        async function loadHealthRecords() {
+            try {
+                const response = await fetchApi('health-records/records/');
+                const data = await response.json();
+                const records = data.results || data;
+
+                updateCounts(records);
+                renderRecords(records);
+            } catch (error) {
+                console.error('Error loading health records:', error);
+                showEmptyState('Erreur de chargement');
+            }
+        }
+
+        function updateCounts(records) {
+            const counts = {
+                consultation: 0,
+                prescription: 0,
+                test: 0,
+                vaccination: 0
+            };
+
+            records.forEach(record => {
+                if (counts.hasOwnProperty(record.record_type)) {
+                    counts[record.record_type]++;
+                }
+            });
+
+            document.getElementById('consultationsCount').textContent = counts.consultation;
+            document.getElementById('prescriptionsCount').textContent = counts.prescription;
+            document.getElementById('testsCount').textContent = counts.test;
+            document.getElementById('vaccinationsCount').textContent = counts.vaccination;
+        }
+
+        function renderRecords(records) {
+            const list = document.getElementById('recordsList');
+
+            if (!records || records.length === 0) {
+                showEmptyState('Aucun dossier médical');
+                return;
+            }
+
+            list.innerHTML = records.map(record => {
+                const date = new Date(record.created_at || record.date);
+                const formattedDate = date.toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                return `
+                    <div class="record-card" onclick="viewRecord(${record.id})">
+                        <div class="record-header">
+                            <div class="record-info">
+                                <h3>${record.title || getRecordTitle(record.record_type)}</h3>
+                                <div class="record-date">📅 ${formattedDate}</div>
+                            </div>
+                            <span class="record-type type-${record.record_type}">
+                                ${getRecordTypeText(record.record_type)}
+                            </span>
+                        </div>
+
+                        <div class="record-content">
+                            ${record.diagnosis || record.description || 'Aucune description'}
+                        </div>
+
+                        <div class="record-footer">
+                            <div class="doctor-name">
+                                👨‍⚕️ ${record.doctor_name || 'Dr. ' + (record.doctor_first_name || '') + ' ' + (record.doctor_last_name || '')}
+                            </div>
+                            <div class="record-actions">
+                                <button class="action-icon-btn" onclick="downloadRecord(event, ${record.id})" title="Télécharger">
+                                    📥
+                                </button>
+                                <button class="action-icon-btn" onclick="shareRecord(event, ${record.id})" title="Partager">
+                                    🔗
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getRecordTitle(type) {
+            const titles = {
+                'consultation': 'Consultation médicale',
+                'prescription': 'Ordonnance',
+                'test': 'Résultat d\'examen',
+                'vaccination': 'Vaccination'
+            };
+            return titles[type] || 'Dossier médical';
+        }
+
+        function getRecordTypeText(type) {
+            const types = {
+                'consultation': 'Consultation',
+                'prescription': 'Ordonnance',
+                'test': 'Examen',
+                'vaccination': 'Vaccination'
+            };
+            return types[type] || type;
+        }
+
+        function showEmptyState(message) {
+            const list = document.getElementById('recordsList');
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function viewRecord(recordId) {
+            window.location.href = `/patient/health-record/${recordId}/`;
+        }
+
+        function downloadRecord(event, recordId) {
+            event.stopPropagation();
+            window.open(`/api/health-records/records/${recordId}/download/`, '_blank');
+        }
+
+        function shareRecord(event, recordId) {
+            event.stopPropagation();
+            const url = `${window.location.origin}/patient/health-record/${recordId}/`;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Lien copié dans le presse-papier!');
+            });
+        }
+
+        function showFilters() {
+            alert('Fonction de filtrage en cours de développement');
+        }
+
+        loadHealthRecords();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

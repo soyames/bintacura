@@ -1,0 +1,412 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Conseils Santé IA - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ai_assistant.css' %}">
+    <style>
+        .insights-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .insights-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-tab.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .insight-card-full {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px var(--shadow);
+            border-left: 4px solid #6c757d;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .insight-card-full:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .insight-card-full.priority-urgent {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.05);
+        }
+
+        .insight-card-full.priority-high {
+            border-left-color: #ff6b6b;
+        }
+
+        .insight-card-full.priority-normal {
+            border-left-color: #28a745;
+        }
+
+        .insight-card-full.priority-low {
+            border-left-color: #6c757d;
+        }
+
+        .insight-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .insight-type-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .insight-type-recommendation {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .insight-type-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .insight-type-trend {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .insight-type-prediction {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .insight-type-analysis {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .insight-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .insight-description {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .insight-recommendations {
+            background: var(--bg-primary);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .recommendation-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .insight-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .insight-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .insight-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-icon-btn {
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-icon-btn:hover {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #007bff;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="nav-back-btn" onclick="window.location.href='/patient/ai-assistant/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Mes Conseils Santé IA</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="insights-container">
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-number">{{ insights|length }}</div>
+                <div class="stat-label">Total Conseils</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ unread_count }}</div>
+                <div class="stat-label">Non Lus</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ insights|selectattr:"priority","equalto","high"|list|length|add:insights|selectattr:"priority","equalto","urgent"|list|length }}</div>
+                <div class="stat-label">Priorité Élevée</div>
+            </div>
+        </div>
+
+        <div class="insights-header">
+            <h2>Tous vos conseils santé</h2>
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="filterInsights('all')">Tous</button>
+                <button class="filter-tab" onclick="filterInsights('unread')">Non lus</button>
+                <button class="filter-tab" onclick="filterInsights('recommendation')">Recommandations</button>
+                <button class="filter-tab" onclick="filterInsights('warning')">Avertissements</button>
+                <button class="filter-tab" onclick="filterInsights('high')">Priorité Haute</button>
+            </div>
+        </div>
+
+        {% if insights %}
+        <div class="insights-grid" id="insightsGrid">
+            {% for insight in insights %}
+            <div class="insight-card-full priority-{{ insight.priority }}" 
+                 data-type="{{ insight.insight_type }}" 
+                 data-read="{{ insight.is_read }}"
+                 data-priority="{{ insight.priority }}">
+                <div class="insight-header-row">
+                    <span class="insight-type-badge insight-type-{{ insight.insight_type }}">
+                        {{ insight.get_insight_type_display }}
+                    </span>
+                    {% if not insight.is_read %}
+                    <span style="background: #007bff; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">NOUVEAU</span>
+                    {% endif %}
+                </div>
+
+                <h3 class="insight-title">{{ insight.title }}</h3>
+                <p class="insight-description">{{ insight.description|truncatewords:30 }}</p>
+
+                {% if insight.recommendations %}
+                <div class="insight-recommendations">
+                    <strong style="font-size: 13px; display: block; margin-bottom: 8px;">Recommandations:</strong>
+                    {% for rec in insight.recommendations|slice:":3" %}
+                    <div class="recommendation-item">
+                        <span>✓</span>
+                        <span>{{ rec }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="insight-footer">
+                    <span class="insight-date">
+                        📅 {{ insight.generated_at|date:"d M Y à H:i" }}
+                        {% if insight.confidence_score %}
+                        | 🎯 {{ insight.confidence_score|floatformat:0 }}%
+                        {% endif %}
+                    </span>
+                    <div class="insight-actions">
+                        {% if not insight.is_read %}
+                        <button class="action-icon-btn" onclick="markAsRead('{{ insight.id }}')">
+                            ✓ Marquer lu
+                        </button>
+                        {% endif %}
+                        <button class="action-icon-btn" onclick="viewDetails('{{ insight.id }}')">
+                            👁️ Détails
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">💡</div>
+            <h3>Aucun conseil pour le moment</h3>
+            <p>L'IA analysera vos données de santé et vous fournira des conseils personnalisés.</p>
+            <button onclick="window.location.href='/patient/ai-assistant/'" 
+                    style="margin-top: 20px; padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                Parler avec l'Assistant IA
+            </button>
+        </div>
+        {% endif %}
+
+        <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 12px; padding: 20px; margin-top: 24px;">
+            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <span style="font-size: 24px;">⚠️</span>
+                <div>
+                    <strong>Avertissement Important</strong>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 1.6;">
+                        Ces conseils sont générés par intelligence artificielle à titre informatif uniquement. 
+                        Ils ne constituent PAS un avis médical professionnel. Consultez toujours votre médecin 
+                        avant de prendre des décisions concernant votre santé.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        function filterInsights(filter) {
+            const cards = document.querySelectorAll('.insight-card-full');
+            const tabs = document.querySelectorAll('.filter-tab');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            cards.forEach(card => {
+                let show = false;
+                
+                if (filter === 'all') {
+                    show = true;
+                } else if (filter === 'unread') {
+                    show = card.dataset.read === 'False';
+                } else if (filter === 'high') {
+                    show = card.dataset.priority === 'high' || card.dataset.priority === 'urgent';
+                } else {
+                    show = card.dataset.type === filter;
+                }
+                
+                card.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        async function markAsRead(insightId) {
+            try {
+                const response = await fetchApi(`ai/insights/${insightId}/mark_read/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                if (response.ok) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Error marking as read:', error);
+            }
+        }
+
+        function viewDetails(insightId) {
+            alert('Détails complets à venir...');
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+
+</html>
+"@

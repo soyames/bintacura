@@ -1,0 +1,720 @@
+/* VitaCare Transport - Modern UI (Uber/Gozem Style) */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Patient Theme Colors */
+    --primary-color: #007bff;
+    --primary-dark: #0056b3;
+    --primary-light: #4da3ff;
+    --secondary-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --text-light: #999999;
+    --bg-light: #f7f7f7;
+    --bg-white: #ffffff;
+    --bg-primary-light: rgba(0, 123, 255, 0.1);
+    --border-color: #e5e5e5;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 16px rgba(0, 123, 255, 0.15);
+    --shadow-lg: 0 8px 24px rgba(0, 123, 255, 0.2);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-light);
+    color: var(--text-primary);
+    padding-top: 60px;
+    line-height: 1.6;
+}
+
+/* Main Container */
+.transport-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+/* Modern Grid Layout */
+.modern-transport-layout {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    height: calc(100vh - 60px) !important;
+    min-height: 700px !important;  /* Ensure minimum height */
+    background: var(--bg-white);
+}
+
+/* Left Panel - Booking Form */
+.booking-panel {
+    background: var(--bg-white);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.booking-header {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-white);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.booking-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.booking-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.booking-form {
+    padding: 20px;
+    flex: 1;
+}
+
+/* Form Groups */
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.form-label .required {
+    color: var(--danger-color);
+}
+
+/* Input Fields */
+.input-wrapper {
+    position: relative;
+}
+
+.form-input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-white);
+    transition: all 0.2s;
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: var(--text-primary);
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);
+}
+
+.form-input::placeholder {
+    color: var(--text-light);
+}
+
+/* Location Input with Icon */
+.location-input-group {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.location-input-group .location-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    z-index: 1;
+}
+
+.location-input-group .form-input {
+    padding-left: 48px;
+    padding-right: 48px;
+}
+
+.current-location-btn {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    z-index: 2;
+}
+
+.current-location-btn:hover {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.current-location-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.current-location-btn:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+}
+
+.current-location-btn .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid white;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Autocomplete Dropdown */
+.autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.autocomplete-dropdown.show {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-bottom: 1px solid var(--bg-light);
+    transition: background 0.2s;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover {
+    background: var(--bg-light);
+}
+
+.autocomplete-icon {
+    font-size: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.autocomplete-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.autocomplete-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.autocomplete-address {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.autocomplete-loading {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* Transport Type Selection */
+.transport-types {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.transport-type {
+    padding: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    background: var(--bg-white);
+}
+
+.transport-type:hover {
+    border-color: var(--text-primary);
+    background: var(--bg-light);
+}
+
+.transport-type.selected {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+}
+
+.type-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+}
+
+.type-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.type-desc {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* Urgency Levels */
+.urgency-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.urgency-option {
+    padding: 14px 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    background: var(--bg-white);
+}
+
+.urgency-option:hover {
+    border-color: var(--text-primary);
+}
+
+.urgency-option.selected {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+}
+
+.urgency-option[data-urgency="high"].selected {
+    background: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.urgency-option[data-urgency="medium"].selected {
+    background: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+.urgency-icon {
+    font-size: 24px;
+    margin-bottom: 6px;
+}
+
+.urgency-label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Emergency Alert */
+.emergency-alert {
+    background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.9; }
+}
+
+.emergency-alert .icon {
+    font-size: 24px;
+}
+
+.emergency-alert .text {
+    flex: 1;
+}
+
+.emergency-alert strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.emergency-alert p {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+}
+
+.submit-btn:hover {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.submit-btn:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Right Panel - Map */
+.map-panel {
+    position: relative;
+    background: var(--bg-light);
+    overflow: hidden;
+    min-height: 700px !important;  /* Ensure minimum height */
+    height: 100% !important;  /* Fill grid cell */
+}
+
+#mainMap {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 700px !important;  /* Explicit minimum height */
+    position: absolute !important;
+    top: 0;
+    left: 0;
+}
+
+.leaflet-container {
+    width: 100% !important;
+    height: 100% !important;
+    font-family: inherit;
+}
+
+/* Map Overlay Info */
+.map-overlay {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 500;
+    pointer-events: none;
+}
+
+.route-info-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+    display: none;
+}
+
+.route-info-card.show {
+    display: block;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.route-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.route-stat {
+    text-align: center;
+}
+
+.route-stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.route-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Quote Selection Modal */
+.quotes-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 24px;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-height: 70vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s ease-out;
+}
+
+.quotes-modal.show {
+    transform: translateY(0);
+}
+
+.quotes-header {
+    margin-bottom: 20px;
+}
+
+.quotes-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.quotes-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.quotes-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.quote-card {
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.quote-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.quote-card.selected {
+    border-color: var(--secondary-color);
+    background: #f6ffed;
+}
+
+.quote-provider-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    background: var(--bg-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.quote-details {
+    flex: 1;
+}
+
+.quote-provider-name {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.quote-vehicle-type {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.quote-eta {
+    display: inline-block;
+    background: var(--bg-light);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.quote-price {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.quote-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.quote-currency {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .modern-transport-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60vh 40vh;
+    }
+
+    .map-panel {
+        order: 2;
+    }
+
+    .booking-panel {
+        order: 1;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+}
+
+@media (max-width: 768px) {
+    .modern-transport-layout {
+        grid-template-rows: auto 50vh;
+    }
+
+    .transport-types,
+    .urgency-options {
+        grid-template-columns: 1fr;
+    }
+
+    .route-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .map-overlay {
+        left: 10px;
+        right: 10px;
+    }
+}
+
+/* Loading States */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-overlay.show {
+    display: flex;
+}
+
+.loading-spinner {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    text-align: center;
+}
+
+.loading-spinner .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--bg-light);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+}
+
+.loading-spinner p {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cccccc;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #999999;
+}

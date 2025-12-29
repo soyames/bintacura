@@ -1,0 +1,171 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factures d'Assurance - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/insurance-subscription/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Factures</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+        <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h2 style="margin-bottom: 20px;">📄 Mes Factures d'Assurance</h2>
+            
+            <div id="invoicesList">
+                <div style="text-align: center; padding: 40px; color: #6b7280;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">⏳</div>
+                    <p>Chargement des factures...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const subscriptionId = urlParams.get('subscription');
+
+        async function loadInvoices() {
+            try {
+                let url = '/api/v1/insurance/invoices/';
+                if (subscriptionId) {
+                    url += `?subscription=${subscriptionId}`;
+                }
+                
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load invoices');
+                }
+                
+                const data = await response.json();
+                displayInvoices(data.results || data);
+            } catch (error) {
+                console.error('Error loading invoices:', error);
+                document.getElementById('invoicesList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">❌</div>
+                        <p>Erreur lors du chargement des factures</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayInvoices(invoices) {
+            const container = document.getElementById('invoicesList');
+            
+            if (!invoices || invoices.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #6b7280;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📄</div>
+                        <p>Aucune facture trouvée</p>
+                        <button onclick="window.location.href='/patient/insurance-subscription/'" 
+                                style="margin-top: 20px; padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            Retour à l'assurance
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = invoices.map(invoice => `
+                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 16px; margin-bottom: 5px;">
+                                Facture #${invoice.invoice_number || invoice.id.substring(0, 8)}
+                            </div>
+                            <div style="color: #6b7280; font-size: 14px;">
+                                ${new Date(invoice.created_at).toLocaleDateString('fr-FR')}
+                            </div>
+                        </div>
+                        <span style="padding: 6px 12px; background: ${getStatusColor(invoice.status)}; color: white; border-radius: 6px; font-size: 13px;">
+                            ${getStatusLabel(invoice.status)}
+                        </span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Montant</div>
+                            <div style="font-weight: 600; font-size: 18px; color: #007bff;">${invoice.amount} FCFA</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Date d'échéance</div>
+                            <div style="font-weight: 600;">${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('fr-FR') : 'N/A'}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="viewInvoice('${invoice.id}')" 
+                                style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                            Voir
+                        </button>
+                        ${invoice.status !== 'paid' ? `
+                            <button onclick="payInvoice('${invoice.id}')" 
+                                    style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                Payer
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                'pending': '#f59e0b',
+                'paid': '#10b981',
+                'overdue': '#ef4444',
+                'cancelled': '#6b7280'
+            };
+            return colors[status] || '#6b7280';
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'pending': 'En attente',
+                'paid': 'Payée',
+                'overdue': 'En retard',
+                'cancelled': 'Annulée'
+            };
+            return labels[status] || status;
+        }
+
+        function viewInvoice(invoiceId) {
+            window.location.href = `/patient/view-invoice/${invoiceId}/`;
+        }
+
+        function payInvoice(invoiceId) {
+            alert('Fonctionnalité de paiement en cours de développement');
+        }
+
+        loadInvoices();
+    </script>
+</body>
+</html>
+

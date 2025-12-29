@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Livreur - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_delivery_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy_delivery" page_title="Tableau de Bord Livraison" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy_delivery.html" %}
+
+    <div class="main-content">
+        <div class="delivery-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Livraisons en Attente</h3>
+                    <p class="stat-value">{{ pending_deliveries|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Livraisons Aujourd'hui</h3>
+                    <p class="stat-value">{{ today_deliveries }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Livraisons Complétées</h3>
+                    <p class="stat-value">{{ completed_today }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Taux de Réussite</h3>
+                    <p class="stat-value">{{ success_rate }}%</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Livraisons en Attente</h2>
+                    </div>
+                    <div class="deliveries-list">
+                        {% if pending_deliveries %}
+                            {% for order in pending_deliveries %}
+                                <div class="delivery-card">
+                                    <div class="delivery-info">
+                                        <h4>Livraison #{{ order.order_number }}</h4>
+                                        <p class="customer-name">Client: {{ order.patient.full_name }}</p>
+                                        <p class="phone-number">Tél: {{ order.patient.phone_number }}</p>
+                                        <p class="delivery-address">{{ order.delivery_address }}</p>
+                                        <p class="delivery-fee">Frais: {{ order.delivery_fee }} FCFA</p>
+                                    </div>
+                                    <div class="delivery-actions">
+                                        <button class="btn-sm btn-start" onclick="startDelivery('{{ order.id }}')">Démarrer</button>
+                                        <button class="btn-sm btn-map" onclick="viewMap('{{ order.id }}')">Carte</button>
+                                        <button class="btn-sm btn-call" onclick="callCustomer('{{ order.patient.phone_number }}')">Appeler</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune livraison en attente</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Livraisons Terminées Aujourd'hui</h2>
+                    </div>
+                    <div class="deliveries-list completed">
+                        {% if completed_deliveries %}
+                            {% for order in completed_deliveries %}
+                                <div class="delivery-card completed">
+                                    <div class="delivery-info">
+                                        <h4>Livraison #{{ order.order_number }}</h4>
+                                        <p class="customer-name">Client: {{ order.patient.full_name }}</p>
+                                        <p class="delivered-time">Livré: {{ order.delivered_date|date:"H:i" }}</p>
+                                    </div>
+                                    <div class="delivery-status">
+                                        <span class="status-badge completed">Livré</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune livraison terminée aujourd'hui</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="deliveryConfirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirmer Livraison</h3>
+                <span class="close" onclick="closeModal('deliveryConfirmModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="deliveryConfirmForm" onsubmit="confirmDelivery(event)">
+                    <input type="hidden" id="deliveryOrderId">
+                    <div class="form-group">
+                        <label for="receiverName">Nom du Destinataire</label>
+                        <input type="text" id="receiverName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="deliveryNotes">Notes</label>
+                        <textarea id="deliveryNotes" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="signature">Signature (optionnelle)</label>
+                        <canvas id="signatureCanvas" width="400" height="200"></canvas>
+                        <button type="button" class="btn-secondary btn-sm" onclick="clearSignature()">Effacer</button>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('deliveryConfirmModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Confirmer Livraison</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/pharmacy_delivery_dashboard.js' %}"></script>
+</body>
+</html>
+

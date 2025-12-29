@@ -1,0 +1,927 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi du Transport - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-dark: #0056b3;
+            --primary-light: #4da3ff;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        .tracking-container {
+            max-width: 1400px;
+            margin: 80px auto 20px;
+            padding: 0 20px;
+        }
+
+        .tracking-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 16px rgba(0, 123, 255, 0.2);
+        }
+
+        .tracking-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .request-number {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .tracking-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 968px) {
+            .tracking-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tracking-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .status-item {
+            position: relative;
+            padding: 15px 0;
+        }
+
+        .status-item::before {
+            content: '';
+            position: absolute;
+            left: -28px;
+            top: 22px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #e0e0e0;
+        }
+
+        .status-item.active::before {
+            background: var(--primary-color);
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+
+        .status-item.completed::before {
+            background: var(--success-color);
+            box-shadow: 0 0 0 2px #28a74550;
+        }
+
+        .status-item::after {
+            content: '';
+            position: absolute;
+            left: -21px;
+            top: 38px;
+            width: 2px;
+            height: calc(100% - 16px);
+            background: #e0e0e0;
+        }
+
+        .status-item:last-child::after {
+            display: none;
+        }
+
+        .status-item.active::after,
+        .status-item.completed::after {
+            background: var(--primary-light);
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .status-time {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .trip-details {
+            display: grid;
+            gap: 15px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .map-container {
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #trackingMap {
+            width: 100%;
+            height: 100%;
+        }
+
+        .quotes-section {
+            grid-column: 1 / -1;
+        }
+
+        .quotes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .quote-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quote-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+        }
+
+        .quote-card.selected {
+            border-color: var(--primary-color);
+            background: rgba(0, 123, 255, 0.05);
+        }
+
+        .quote-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .provider-name {
+            font-weight: 600;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .provider-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .provider-badge.uber { background: #000; color: white; }
+        .provider-badge.gozem { background: #00a86b; color: white; }
+        .provider-badge.bolt { background: #34d186; color: white; }
+        .provider-badge.yango { background: #ff0000; color: white; }
+        .provider-badge.internal { background: var(--primary-color); color: white; }
+
+        .quote-price {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+
+        .quote-details {
+            display: grid;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .quote-detail {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .driver-info {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .driver-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary-light);
+        }
+
+        .driver-details h4 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .driver-rating {
+            color: #ffc107;
+            font-size: 14px;
+        }
+
+        .vehicle-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .payment-section {
+            grid-column: 1 / -1;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .payment-method {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .payment-method:hover {
+            border-color: var(--primary-color);
+        }
+
+        .payment-method.selected {
+            border-color: var(--primary-color);
+            background: rgba(0, 123, 255, 0.05);
+        }
+
+        .payment-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--primary-light);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .payment-info h4 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .payment-balance {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--danger-color);
+            border: 2px solid var(--danger-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .chat-section {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+
+        .chat-section.open {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            z-index: 1000;
+        }
+
+        .chat-toggle:hover {
+            transform: scale(1.1);
+        }
+    </style>
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" onclick="window.location.href='/patient/dashboard/'" title="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/api/v1/transport/book/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Suivi Transport</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="tracking-container">
+        <div id="loadingState" class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Chargement de votre demande de transport...</p>
+        </div>
+
+        <div id="trackingContent" style="display: none;">
+            <div class="tracking-header">
+                <h1>🚗 Demande de Transport</h1>
+                <div class="request-number" id="requestNumber"></div>
+            </div>
+
+            <div class="tracking-grid">
+                <!-- Status Timeline -->
+                <div class="tracking-card">
+                    <div class="card-title">📋 Statut du Transport</div>
+                    <div class="status-timeline" id="statusTimeline">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Trip Details -->
+                <div class="tracking-card">
+                    <div class="card-title">📍 Détails du Trajet</div>
+                    <div class="trip-details" id="tripDetails">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div class="tracking-card" style="grid-column: 1 / -1;">
+                    <div class="card-title">🗺️ Carte de Suivi</div>
+                    <div class="map-container">
+                        <div id="trackingMap"></div>
+                    </div>
+                </div>
+
+                <!-- Quotes Section -->
+                <div class="tracking-card quotes-section" id="quotesSection" style="display: none;">
+                    <div class="card-title">💰 Offres de Transport Disponibles</div>
+                    <div class="quotes-grid" id="quotesGrid">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Payment Section -->
+                <div class="tracking-card payment-section" id="paymentSection" style="display: none;">
+                    <div class="card-title">💳 Mode de Paiement</div>
+                    <div class="payment-methods" id="paymentMethods">
+                        <div class="payment-method" data-method="wallet">
+                            <div class="payment-icon">👛</div>
+                            <div class="payment-info">
+                                <h4>Portefeuille BINTACURA</h4>
+                                <div class="payment-balance">Solde: <span id="walletBalance">0</span> XOF</div>
+                            </div>
+                        </div>
+                        <div class="payment-method" data-method="cash">
+                            <div class="payment-icon">💵</div>
+                            <div class="payment-info">
+                                <h4>Paiement en Espèces</h4>
+                                <div class="payment-balance">Payer le chauffeur directement</div>
+                            </div>
+                        </div>
+                        <div class="payment-method" data-method="gateway">
+                            <div class="payment-icon">💳</div>
+                            <div class="payment-info">
+                                <h4>Carte Bancaire</h4>
+                                <div class="payment-balance">Visa, Mastercard, etc.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="cancelRequest()">Annuler</button>
+                        <button class="btn btn-primary" id="confirmPaymentBtn" onclick="confirmPayment()" disabled>
+                            Confirmer le Paiement
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Toggle Button -->
+    <button class="chat-toggle" id="chatToggle" onclick="toggleChat()" style="display: none;">💬</button>
+
+    <!-- Chat Section -->
+    <div class="chat-section" id="chatSection">
+        <div class="chat-header">
+            <span>Chat avec le Chauffeur</span>
+            <button onclick="toggleChat()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">×</button>
+        </div>
+        <!-- Chat implementation here -->
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        let transportRequest = null;
+        let trackingMap = null;
+        let selectedQuote = null;
+        let selectedPaymentMethod = null;
+        const requestId = "{{ request_id }}";
+
+        // Initialize map
+        function initMap() {
+            trackingMap = L.map('trackingMap').setView([6.1256, 1.2223], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(trackingMap);
+        }
+
+        // Load transport request data
+        async function loadTransportRequest() {
+            try {
+                const response = await fetchApi(`transport/requests/${requestId}/`);
+                if (!response.ok) throw new Error('Failed to load request');
+
+                transportRequest = await response.json();
+                console.log('Transport request loaded:', transportRequest);
+                console.log('Estimated cost:', transportRequest.estimated_cost);
+                console.log('Estimated cost local:', transportRequest.estimated_cost_local);
+                console.log('Patient currency:', transportRequest.patient_currency);
+
+                renderRequestDetails();
+                loadQuotes();
+                loadWalletBalance();
+                startLocationTracking();
+
+            } catch (error) {
+                console.error('Error loading transport request:', error);
+                alert('Erreur lors du chargement de la demande');
+            }
+        }
+
+        // Render request details
+        function renderRequestDetails() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('trackingContent').style.display = 'block';
+
+            document.getElementById('requestNumber').textContent = `N° ${transportRequest.request_number}`;
+
+            // Render status timeline
+            renderStatusTimeline();
+
+            // Render trip details
+            renderTripDetails();
+
+            // Update map
+            updateMap();
+        }
+
+        // Render status timeline
+        function renderStatusTimeline() {
+            const statuses = [
+                { key: 'pending', label: 'Demande envoyée', time: transportRequest.created_at },
+                { key: 'driver_assigned', label: 'Chauffeur assigné', time: transportRequest.updated_at },
+                { key: 'en_route', label: 'En route vers vous', time: null },
+                { key: 'arrived', label: 'Arrivé', time: null },
+                { key: 'in_transit', label: 'En cours de trajet', time: transportRequest.actual_pickup_time },
+                { key: 'completed', label: 'Terminé', time: transportRequest.actual_dropoff_time }
+            ];
+
+            const currentStatusIndex = statuses.findIndex(s => s.key === transportRequest.status);
+
+            const timeline = document.getElementById('statusTimeline');
+            timeline.innerHTML = statuses.map((status, index) => {
+                let className = 'status-item';
+                if (index < currentStatusIndex) className += ' completed';
+                if (index === currentStatusIndex) className += ' active';
+
+                const time = status.time ? new Date(status.time).toLocaleString('fr-FR') : '';
+
+                return `
+                    <div class="${className}">
+                        <div class="status-label">${status.label}</div>
+                        ${time ? `<div class="status-time">${time}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render trip details
+        function renderTripDetails() {
+            const details = document.getElementById('tripDetails');
+            details.innerHTML = `
+                <div class="detail-row">
+                    <span class="detail-label">Type de transport:</span>
+                    <span class="detail-value">${transportRequest.transport_type}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Urgence:</span>
+                    <span class="detail-value">${transportRequest.urgency}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Point de départ:</span>
+                    <span class="detail-value">${transportRequest.pickup_address}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Destination:</span>
+                    <span class="detail-value">${transportRequest.dropoff_address}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Distance estimée:</span>
+                    <span class="detail-value">${transportRequest.estimated_distance_display || 'N/A'}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Coût estimé:</span>
+                    <span class="detail-value">${transportRequest.estimated_cost_local ? transportRequest.estimated_cost_local.formatted : (transportRequest.estimated_cost + ' XOF')}</span>
+                </div>
+                ${transportRequest.companion_count > 0 ? `
+                <div class="detail-row">
+                    <span class="detail-label">Accompagnants:</span>
+                    <span class="detail-value">${transportRequest.companion_count}</span>
+                </div>
+                ` : ''}
+            `;
+        }
+
+        // Update map with markers
+        function updateMap() {
+            if (!trackingMap) return;
+
+            // Clear existing markers
+            trackingMap.eachLayer(layer => {
+                if (layer instanceof L.Marker) {
+                    trackingMap.removeLayer(layer);
+                }
+            });
+
+            // Add pickup marker
+            if (transportRequest.pickup_latitude && transportRequest.pickup_longitude) {
+                L.marker([transportRequest.pickup_latitude, transportRequest.pickup_longitude])
+                    .addTo(trackingMap)
+                    .bindPopup(`<b>Point de départ</b><br>${transportRequest.pickup_address}`);
+            }
+
+            // Add dropoff marker
+            if (transportRequest.dropoff_latitude && transportRequest.dropoff_longitude) {
+                L.marker([transportRequest.dropoff_latitude, transportRequest.dropoff_longitude])
+                    .addTo(trackingMap)
+                    .bindPopup(`<b>Destination</b><br>${transportRequest.dropoff_address}`);
+
+                // Fit map to show both markers
+                const bounds = L.latLngBounds([
+                    [transportRequest.pickup_latitude, transportRequest.pickup_longitude],
+                    [transportRequest.dropoff_latitude, transportRequest.dropoff_longitude]
+                ]);
+                trackingMap.fitBounds(bounds, { padding: [50, 50] });
+            }
+
+            // Add driver location if available
+            if (transportRequest.current_latitude && transportRequest.current_longitude) {
+                const driverIcon = L.divIcon({
+                    html: '<div style="background: #007bff; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;">🚗</div>',
+                    className: '',
+                    iconSize: [30, 30]
+                });
+
+                L.marker([transportRequest.current_latitude, transportRequest.current_longitude], { icon: driverIcon })
+                    .addTo(trackingMap)
+                    .bindPopup('<b>Chauffeur</b>');
+            }
+        }
+
+        // Load quotes
+        async function loadQuotes() {
+            try {
+                const response = await fetchApi(`transport/requests/${requestId}/quotes/`);
+                if (!response.ok) return;
+
+                const quotes = await response.json();
+                if (quotes && quotes.length > 0) {
+                    renderQuotes(quotes);
+                    document.getElementById('quotesSection').style.display = 'block';
+                    document.getElementById('paymentSection').style.display = 'block';
+                }
+            } catch (error) {
+                console.log('No quotes available yet');
+            }
+        }
+
+        // Render quotes
+        function renderQuotes(quotes) {
+            const grid = document.getElementById('quotesGrid');
+            grid.innerHTML = quotes.map(quote => `
+                <div class="quote-card" data-quote-id="${quote.id}" onclick="selectQuote('${quote.id}')">
+                    <div class="quote-header">
+                        <span class="provider-name">${quote.provider.name}</span>
+                        <span class="provider-badge ${quote.provider.name.toLowerCase()}">${quote.provider.name.toUpperCase()}</span>
+                    </div>
+                    <div class="quote-price">${quote.total_fare_local ? quote.total_fare_local.formatted : (quote.total_fare + ' ' + quote.currency)}</div>
+                    <div class="quote-details">
+                        <div class="quote-detail">
+                            <span>Type de véhicule:</span>
+                            <span>${quote.vehicle_type}</span>
+                        </div>
+                        <div class="quote-detail">
+                            <span>Arrivée estimée:</span>
+                            <span>${quote.estimated_arrival_minutes} min</span>
+                        </div>
+                        <div class="quote-detail">
+                            <span>Durée du trajet:</span>
+                            <span>${quote.estimated_trip_duration_minutes} min</span>
+                        </div>
+                    </div>
+                    ${quote.driver_name ? `
+                    <div class="driver-info">
+                        <img src="${quote.driver_photo_url || '/static/img/default-avatar.png'}" alt="Driver" class="driver-photo">
+                        <div class="driver-details">
+                            <h4>${quote.driver_name}</h4>
+                            <div class="driver-rating">⭐ ${quote.driver_rating || 'N/A'}</div>
+                            <div class="vehicle-info">${quote.vehicle_make} ${quote.vehicle_model} - ${quote.vehicle_plate}</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Select quote
+        function selectQuote(quoteId) {
+            selectedQuote = quoteId;
+            document.querySelectorAll('.quote-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.quoteId === quoteId);
+            });
+            updateConfirmButton();
+        }
+
+        // Load wallet balance
+        async function loadWalletBalance() {
+            try {
+                const response = await fetchApi('payments/wallet/balance/');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('walletBalance').textContent = data.balance || 0;
+                }
+            } catch (error) {
+                console.log('Could not load wallet balance');
+            }
+        }
+
+        // Payment method selection
+        document.querySelectorAll('.payment-method').forEach(method => {
+            method.addEventListener('click', function() {
+                selectedPaymentMethod = this.dataset.method;
+                document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+                this.classList.add('selected');
+                updateConfirmButton();
+            });
+        });
+
+        // Update confirm button state
+        function updateConfirmButton() {
+            const btn = document.getElementById('confirmPaymentBtn');
+            btn.disabled = !selectedQuote || !selectedPaymentMethod;
+        }
+
+        // Confirm payment
+        async function confirmPayment() {
+            if (!selectedQuote || !selectedPaymentMethod) return;
+
+            try {
+                const response = await fetchApi(`transport/requests/${requestId}/accept-quote/`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        quote_id: selectedQuote,
+                        payment_method: selectedPaymentMethod
+                    })
+                });
+
+                if (response.ok) {
+                    alert('Paiement confirmé! Le chauffeur arrive bientôt.');
+                    document.getElementById('chatToggle').style.display = 'block';
+                    loadTransportRequest(); // Reload to update status
+                } else {
+                    alert('Erreur lors de la confirmation du paiement');
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                alert('Erreur lors du paiement');
+            }
+        }
+
+        // Cancel request
+        async function cancelRequest() {
+            if (!confirm('Voulez-vous vraiment annuler cette demande?')) return;
+
+            const reason = prompt('Raison de l\'annulation (optionnel):');
+
+            try {
+                const response = await fetchApi(`transport/requests/${requestId}/cancel/`, {
+                    method: 'POST',
+                    body: JSON.stringify({ reason: reason || '' })
+                });
+
+                if (response.ok) {
+                    alert('Demande annulée');
+                    window.location.href = '/api/v1/transport/book/';
+                } else {
+                    alert('Erreur lors de l\'annulation');
+                }
+            } catch (error) {
+                console.error('Cancellation error:', error);
+                alert('Erreur lors de l\'annulation');
+            }
+        }
+
+        // Toggle chat
+        function toggleChat() {
+            const chatSection = document.getElementById('chatSection');
+            chatSection.classList.toggle('open');
+        }
+
+        // Start location tracking (poll every 10 seconds)
+        function startLocationTracking() {
+            setInterval(async () => {
+                try {
+                    const response = await fetchApi(`transport/requests/${requestId}/`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.status !== transportRequest.status) {
+                            transportRequest = data;
+                            renderRequestDetails();
+                        }
+                        if (data.current_latitude && data.current_longitude) {
+                            transportRequest.current_latitude = data.current_latitude;
+                            transportRequest.current_longitude = data.current_longitude;
+                            updateMap();
+                        }
+                    }
+                } catch (error) {
+                    console.log('Location tracking error:', error);
+                }
+            }, 10000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadTransportRequest();
+        });
+    </script>
+</body>
+
+</html>
+

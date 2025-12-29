@@ -1,0 +1,6 @@
+<div class="section-title">
+    {{ title }}
+    {% if view_all_url %}
+    <a href="{{ view_all_url }}" class="view-all-btn">{{ view_all_text|default:'Voir tout →' }}</a>
+    {% endif %}
+</div>

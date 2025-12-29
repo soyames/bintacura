@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventes - Pharmacie Centrale BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_sales.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy" page_title="Ventes" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy.html" %}
+
+    <div class="main-content">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Ventes Aujourd'hui</h3>
+                <div class="stat-value">{{ today_sales.count|default:0 }}</div>
+                <div class="stat-label">{{ today_sales.total|default:0|floatformat:0 }} FCFA</div>
+            </div>
+            <div class="stat-card">
+                <h3>Ventes Cette Semaine</h3>
+                <div class="stat-value">{{ week_sales.count|default:0 }}</div>
+                <div class="stat-label">{{ week_sales.total|default:0|floatformat:0 }} FCFA</div>
+            </div>
+            <div class="stat-card">
+                <h3>Ventes Ce Mois</h3>
+                <div class="stat-value">{{ month_sales.count|default:0 }}</div>
+                <div class="stat-label">{{ month_sales.total|default:0|floatformat:0 }} FCFA</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Ventes</h3>
+                <div class="stat-value">{{ sales.count }}</div>
+                <div class="stat-label">Toutes les ventes</div>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <input type="text" id="searchInput" placeholder="Rechercher par patient, ID de vente...">
+            <select id="statusFilter">
+                <option value="">Tous les statuts</option>
+                <option value="completed">Complété</option>
+                <option value="pending">En attente</option>
+                <option value="cancelled">Annulé</option>
+            </select>
+            <select id="dateFilter">
+                <option value="today">Aujourd'hui</option>
+                <option value="week">Cette semaine</option>
+                <option value="month">Ce mois</option>
+                <option value="all">Tout</option>
+            </select>
+            <button type="button" onclick="filterSales()">🔍 Filtrer</button>
+        </div>
+
+        <div class="sales-table-container">
+            {% if sales %}
+                <table class="sales-table">
+                    <thead>
+                        <tr>
+                            <th>ID Vente</th>
+                            <th>Date</th>
+                            <th>Patient</th>
+                            <th>Articles</th>
+                            <th>Montant</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                        <tr data-status="{{ sale.status }}" data-patient="{{ sale.patient.get_full_name|lower }}" data-date="{{ sale.sale_date|date:'Y-m-d' }}">
+                            <td><span class="sale-id">SALE-{{ sale.id }}</span></td>
+                            <td>{{ sale.sale_date|date:"d/m/Y H:i" }}</td>
+                            <td>{{ sale.patient.get_full_name }}</td>
+                            <td>{{ sale.items.count }} article{{ sale.items.count|pluralize }}</td>
+                            <td><span class="sale-amount">{{ sale.final_amount|floatformat:0 }} FCFA</span></td>
+                            <td>
+                                <span class="sale-status {% if sale.status == 'completed' %}status-completed{% elif sale.status == 'pending' %}status-pending{% elif sale.status == 'cancelled' %}status-cancelled{% endif %}">
+                                    {% if sale.status == 'completed' %}
+                                        Complété
+                                    {% elif sale.status == 'pending' %}
+                                        En attente
+                                    {% elif sale.status == 'cancelled' %}
+                                        Annulé
+                                    {% else %}
+                                        {{ sale.get_status_display }}
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <button type="button" class="action-btn" onclick="viewSaleDetails({{ sale.id }})">Détails</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">💰</div>
+                    <h3>Aucune vente</h3>
+                    <p>Il n'y a actuellement aucune vente enregistrée</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        function viewSaleDetails(saleId) {
+            window.location.href = `/pharmacy/sale/${saleId}/`;
+        }
+
+        function filterSales() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const rows = document.querySelectorAll('.sales-table tbody tr');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            rows.forEach(row => {
+                const patient = row.dataset.patient || '';
+                const saleId = row.querySelector('.sale-id').textContent.toLowerCase();
+                const status = row.dataset.status || '';
+                const saleDate = new Date(row.dataset.date);
+                saleDate.setHours(0, 0, 0, 0);
+
+                const matchesSearch = !searchTerm ||
+                    patient.includes(searchTerm) ||
+                    saleId.includes(searchTerm);
+
+                const matchesStatus = !statusFilter || status === statusFilter;
+
+                let matchesDate = true;
+                if (dateFilter === 'today') {
+                    matchesDate = saleDate.getTime() === today.getTime();
+                } else if (dateFilter === 'week') {
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    matchesDate = saleDate >= weekAgo;
+                } else if (dateFilter === 'month') {
+                    const monthAgo = new Date(today);
+                    monthAgo.setDate(today.getDate() - 30);
+                    matchesDate = saleDate >= monthAgo;
+                }
+
+                if (matchesSearch && matchesStatus && matchesDate) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const statusFilterEl = document.getElementById('statusFilter');
+        const dateFilterEl = document.getElementById('dateFilter');
+
+        if (searchInput) searchInput.addEventListener('input', filterSales);
+        if (statusFilterEl) statusFilterEl.addEventListener('change', filterSales);
+        if (dateFilterEl) dateFilterEl.addEventListener('change', filterSales);
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>

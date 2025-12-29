@@ -1,0 +1,526 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogue Pharmacies - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_catalog.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient/shopping_cart.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Catalogue Pharmacies</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="catalog-container">
+        <div class="search-section">
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Rechercher un médicament...">
+                <button onclick="searchMedications()">🔍 Rechercher</button>
+            </div>
+            <div class="filter-options">
+                <select id="pharmacyFilter" onchange="applyFilters()">
+                    <option value="">Toutes les pharmacies</option>
+                </select>
+                <select id="categoryFilter" onchange="applyFilters()">
+                    <option value="">Toutes les catégories</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="medications-grid" id="medicationsGrid">
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Chargement du catalogue...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="medicationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle"></h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                    <label style="font-weight: 600;">Quantité:</label>
+                    <input type="number" id="orderQuantity" value="1" min="1" style="width: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <button class="btn-order" onclick="addToCart()">🛒 Ajouter au Panier</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="cart-button" onclick="toggleCart()">
+        🛒
+        <span class="cart-badge" id="cartBadge" style="display: none;">0</span>
+    </button>
+
+    <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <h2>🛒 Mon Panier</h2>
+            <button class="cart-close" onclick="toggleCart()">&times;</button>
+        </div>
+
+        <div class="cart-body" id="cartBody">
+            <div class="cart-empty">
+                <div class="cart-empty-icon">🛒</div>
+                <p>Votre panier est vide</p>
+            </div>
+        </div>
+
+        <div class="cart-footer" id="cartFooter" style="display: none;">
+            <div class="cart-summary">
+                <div class="summary-row">
+                    <span>Sous-total:</span>
+                    <span id="cartSubtotal">0 FCFA</span>
+                </div>
+                <div class="summary-row">
+                    <span>Frais de livraison:</span>
+                    <span id="cartDeliveryFee">0 FCFA</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total:</span>
+                    <span id="cartTotal">0 FCFA</span>
+                </div>
+            </div>
+            <button class="checkout-btn" onclick="goToCheckout()">Passer la Commande</button>
+            <button class="clear-cart-btn" onclick="clearCart()">Vider le Panier</button>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        let allMedications = [];
+        let pharmacies = new Set();
+        let categories = new Set();
+        let selectedMedication = null;
+
+        async function loadCatalog() {
+            try {
+                const response = await fetchApi('pharmacy/inventory/public_catalog/');
+                const data = await response.json();
+                allMedications = data;
+
+                data.forEach(item => {
+                    if (item.pharmacy_name) pharmacies.add(item.pharmacy_name);
+                    if (item.medication_details?.category) categories.add(item.medication_details.category);
+                });
+
+                populateFilters();
+                renderMedications(data);
+            } catch (error) {
+                console.error('Error loading catalog:', error);
+                showError();
+            }
+        }
+
+        function populateFilters() {
+            const pharmacySelect = document.getElementById('pharmacyFilter');
+            const categorySelect = document.getElementById('categoryFilter');
+
+            pharmacies.forEach(pharmacy => {
+                const option = document.createElement('option');
+                option.value = pharmacy;
+                option.textContent = pharmacy;
+                pharmacySelect.appendChild(option);
+            });
+
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        function renderMedications(medications) {
+            const grid = document.getElementById('medicationsGrid');
+
+            if (medications.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">💊</div>
+                        <p>Aucun médicament disponible</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = medications.map(item => `
+                <div class="medication-card" onclick="showDetails('${item.id}')">
+                    <div class="med-icon">💊</div>
+                    <h3 class="med-name">${item.medication_details?.name || 'N/A'}</h3>
+                    <p class="med-category">${item.medication_details?.category || ''}</p>
+                    <div class="med-info">
+                        <div class="info-item">
+                            <span class="label">Pharmacie:</span>
+                            <span class="value">${item.pharmacy_name || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Stock:</span>
+                            <span class="value stock-badge ${item.quantity_in_stock > 50 ? 'high' : item.quantity_in_stock > 10 ? 'medium' : 'low'}">
+                                ${item.quantity_in_stock} unités
+                            </span>
+                        </div>
+                        <div class="price">${item.selling_price} FCFA</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function applyFilters() {
+            const pharmacy = document.getElementById('pharmacyFilter').value;
+            const category = document.getElementById('categoryFilter').value;
+
+            let filtered = allMedications;
+
+            if (pharmacy) {
+                filtered = filtered.filter(item => item.pharmacy_name === pharmacy);
+            }
+
+            if (category) {
+                filtered = filtered.filter(item => item.medication_details?.category === category);
+            }
+
+            renderMedications(filtered);
+        }
+
+        function searchMedications() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+
+            const filtered = allMedications.filter(item =>
+                item.medication_details?.name.toLowerCase().includes(query) ||
+                item.medication_details?.generic_name?.toLowerCase().includes(query)
+            );
+
+            renderMedications(filtered);
+        }
+
+        function showDetails(medicationId) {
+            selectedMedication = allMedications.find(m => m.id === medicationId);
+
+            if (!selectedMedication) return;
+
+            document.getElementById('modalTitle').textContent = selectedMedication.medication_details?.name || 'Détails';
+            document.getElementById('modalBody').innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">Nom générique:</span>
+                        <span>${selectedMedication.medication_details?.generic_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Catégorie:</span>
+                        <span>${selectedMedication.medication_details?.category || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Fabricant:</span>
+                        <span>${selectedMedication.manufacturer || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Pharmacie:</span>
+                        <span>${selectedMedication.pharmacy_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Adresse:</span>
+                        <span>${selectedMedication.pharmacy_address || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Téléphone:</span>
+                        <span>${selectedMedication.pharmacy_phone || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Stock disponible:</span>
+                        <span>${selectedMedication.quantity_in_stock} unités</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Prix unitaire:</span>
+                        <span class="price-large">${selectedMedication.selling_price} FCFA</span>
+                    </div>
+                    <div class="detail-full">
+                        <span class="detail-label">Description:</span>
+                        <p>${selectedMedication.medication_details?.description || 'Aucune description disponible'}</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('medicationModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('medicationModal').classList.remove('active');
+        }
+
+        async function addToCart() {
+            if (!selectedMedication) return;
+
+            const quantity = parseInt(document.getElementById('orderQuantity').value) || 1;
+
+            try {
+                const response = await fetch('/api/v1/pharmacy/cart/add_item/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        inventory_id: selectedMedication.id,
+                        quantity: quantity
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(`✓ ${selectedMedication.medication_details?.name} ajouté au panier`, 'success');
+                    closeModal();
+                    await loadCart();
+                } else {
+                    showNotification(data.detail || 'Erreur lors de l\'ajout au panier', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding to cart:', error);
+                showNotification('Erreur de connexion', 'error');
+            }
+        }
+
+        async function loadCart() {
+            try {
+                const response = await fetch('/api/v1/pharmacy/cart/my_cart/', {
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+
+                if (data.success && data.items && data.items.length > 0) {
+                    renderCart(data);
+                } else {
+                    renderEmptyCart();
+                }
+            } catch (error) {
+                console.error('Error loading cart:', error);
+            }
+        }
+
+        function renderCart(cartData) {
+            const cartBody = document.getElementById('cartBody');
+            const cartFooter = document.getElementById('cartFooter');
+            const cartBadge = document.getElementById('cartBadge');
+
+            cartBadge.textContent = cartData.item_count;
+            cartBadge.style.display = cartData.item_count > 0 ? 'flex' : 'none';
+
+            cartBody.innerHTML = cartData.items.map(item => `
+                <div class="cart-item">
+                    <div class="cart-item-header">
+                        <div class="cart-item-name">${item.medication_name}</div>
+                        <button class="cart-item-remove" onclick="removeFromCart('${item.id}')">×</button>
+                    </div>
+                    <div class="cart-item-details">
+                        ${item.dosage_form} - ${item.strength}
+                    </div>
+                    <div class="cart-item-quantity">
+                        <div class="quantity-controls">
+                            <button class="quantity-btn" onclick="updateQuantity('${item.id}', ${item.quantity - 1})">-</button>
+                            <div class="quantity-display">${item.quantity}</div>
+                            <button class="quantity-btn" onclick="updateQuantity('${item.id}', ${item.quantity + 1})">+</button>
+                        </div>
+                        <div class="cart-item-price">${item.total_price} FCFA</div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('cartSubtotal').textContent = `${cartData.total} FCFA`;
+            document.getElementById('cartDeliveryFee').textContent = `${cartData.cart?.delivery_fee || 0} FCFA`;
+            document.getElementById('cartTotal').textContent = `${cartData.total + (cartData.cart?.delivery_fee || 0)} FCFA`;
+
+            cartFooter.style.display = 'block';
+        }
+
+        function renderEmptyCart() {
+            const cartBody = document.getElementById('cartBody');
+            const cartFooter = document.getElementById('cartFooter');
+            const cartBadge = document.getElementById('cartBadge');
+
+            cartBadge.style.display = 'none';
+            cartFooter.style.display = 'none';
+
+            cartBody.innerHTML = `
+                <div class="cart-empty">
+                    <div class="cart-empty-icon">🛒</div>
+                    <p>Votre panier est vide</p>
+                </div>
+            `;
+        }
+
+        async function updateQuantity(itemId, newQuantity) {
+            try {
+                const response = await fetch('/api/v1/pharmacy/cart/update_quantity/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        item_id: itemId,
+                        quantity: newQuantity
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadCart();
+                } else {
+                    showNotification(data.detail || 'Erreur lors de la mise à jour', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating quantity:', error);
+                showNotification('Erreur de connexion', 'error');
+            }
+        }
+
+        async function removeFromCart(itemId) {
+            if (!confirm('Retirer cet article du panier?')) return;
+
+            try {
+                const response = await fetch('/api/v1/pharmacy/cart/remove_item/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        item_id: itemId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Article retiré du panier', 'success');
+                    await loadCart();
+                } else {
+                    showNotification(data.detail || 'Erreur', 'error');
+                }
+            } catch (error) {
+                console.error('Error removing item:', error);
+                showNotification('Erreur de connexion', 'error');
+            }
+        }
+
+        async function clearCart() {
+            if (!confirm('Vider tout le panier?')) return;
+
+            try {
+                const response = await fetch('/api/v1/pharmacy/cart/clear_cart/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Panier vidé', 'success');
+                    renderEmptyCart();
+                }
+            } catch (error) {
+                console.error('Error clearing cart:', error);
+            }
+        }
+
+        function toggleCart() {
+            const sidebar = document.getElementById('cartSidebar');
+            const overlay = document.getElementById('cartOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        function goToCheckout() {
+            window.location.href = '/patient/checkout/';
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#4CAF50' : '#ff4444'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-weight: 500;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function showError() {
+            document.getElementById('medicationsGrid').innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">❌</div>
+                    <p>Erreur de chargement du catalogue</p>
+                    <button onclick="loadCatalog()">Réessayer</button>
+                </div>
+            `;
+        }
+
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchMedications();
+        });
+
+        loadCatalog();
+        loadCart();
+    </script>
+</body>
+</html>
+

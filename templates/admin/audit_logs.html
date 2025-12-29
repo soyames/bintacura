@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Audit Logs - BINTACURA Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block sidebar %}
+{% include 'admin/sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Audit Logs</h2>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Action Type</label>
+                            <select name="action" class="form-select">
+                                <option value="">All Actions</option>
+                                <option value="create" {% if request.GET.action == 'create' %}selected{% endif %}>Create
+                                </option>
+                                <option value="update" {% if request.GET.action == 'update' %}selected{% endif %}>Update
+                                </option>
+                                <option value="delete" {% if request.GET.action == 'delete' %}selected{% endif %}>Delete
+                                </option>
+                                <option value="approve" {% if request.GET.action == 'approve' %}selected{% endif %}>
+                                    Approve</option>
+                                <option value="reject" {% if request.GET.action == 'reject' %}selected{% endif %}>Reject
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Resource Type</label>
+                            <select name="resource" class="form-select">
+                                <option value="">All Resources</option>
+                                <option value="provider" {% if request.GET.resource == 'provider' %}selected{% endif %}>
+                                    Provider</option>
+                                <option value="refund" {% if request.GET.resource == 'refund' %}selected{% endif %}>Refund
+                                </option>
+                                <option value="user" {% if request.GET.resource == 'user' %}selected{% endif %}>User
+                                </option>
+                                <option value="transaction" {% if request.GET.resource == 'transaction' %}selected{% endif %}>Transaction</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Search</label>
+                            <input type="text" name="search" class="form-control"
+                                placeholder="Search by user or description..." value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                            <a href="{% url 'superadmin:audit_logs' %}" class="btn btn-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Activity Type</th>
+                                    <th>Description</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.timestamp|date:"M d, Y H:i:s" }}</td>
+                                    <td>{{ log.participant.full_name }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ log.activity_type }}</span>
+                                    </td>
+                                    <td>{{ log.description }}</td>
+                                    <td>{{ log.ip_address }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No audit logs found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if is_paginated %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages
+                                    }}</span>
+                            </li>
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+{% endblock %}

@@ -1,0 +1,186 @@
+.administrator-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.staff-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.role-stat-card {
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    text-align: center;
+    background: #f8f9fa;
+}
+
+.role-stat-card h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.role-stat-card .count {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.departments-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.department-card {
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.department-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+}
+
+.department-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.head-name,
+.location,
+.staff-count {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.department-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.btn-edit {
+    background: #ffc107;
+    color: #000;
+}
+
+.btn-edit:hover {
+    background: #e0a800;
+}
+
+.btn-add {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-add:hover {
+    background: var(--primary-dark);
+}
+
+.beds-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.bed-stat-card {
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+}
+
+.bed-stat-card h4 {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+}
+
+.bed-counts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.bed-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.bed-status.available {
+    background: #d4edda;
+}
+
+.bed-status.occupied {
+    background: #fff3cd;
+}
+
+.bed-status.total {
+    background: #d1ecf1;
+}
+
+.bed-status .label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.bed-status .count {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.recent-activities {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.activity-item {
+    padding: 1rem;
+    border-left: 4px solid var(--primary-color);
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.activity-description {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.activity-time {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .administrator-container {
+        padding: 1rem;
+    }
+
+    .staff-stats,
+    .departments-list,
+    .beds-stats {
+        grid-template-columns: 1fr;
+    }
+}

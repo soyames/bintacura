@@ -1,0 +1,145 @@
+{% comment %}
+Email Verification Notification Banner
+Include this in dashboard templates to notify unverified users
+
+Usage in your dashboard template:
+    {% include 'partials/email_verification_banner.html' %}
+
+Requirements:
+    - request.user must be authenticated
+    - request.user must have is_email_verified attribute
+{% endcomment %}
+
+{% if request.user.is_authenticated and not request.user.is_email_verified %}
+<div style="background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
+            border-left: 5px solid #ffc107;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+            animation: slideDown 0.5s ease-out;">
+    <div style="display: flex; align-items: flex-start; gap: 15px;">
+        <!-- Warning Icon -->
+        <div style="flex-shrink: 0; font-size: 32px; color: #ff9800;">
+            ⚠️
+        </div>
+
+        <!-- Content -->
+        <div style="flex: 1;">
+            <h3 style="margin: 0 0 10px 0; color: #856404; font-size: 18px; font-weight: 600;">
+                Vérification de l'email requise
+            </h3>
+            <p style="margin: 0 0 15px 0; color: #856404; line-height: 1.6; font-size: 15px;">
+                Votre compte est actif, mais certaines fonctionnalités nécessitent la vérification de votre adresse email
+                <strong>({{ request.user.email }})</strong>.
+                Un email de vérification vous a été envoyé.
+            </p>
+
+            <!-- Features List -->
+            <div style="background-color: rgba(255, 255, 255, 0.7);
+                        border-radius: 8px;
+                        padding: 15px;
+                        margin-bottom: 15px;">
+                <p style="margin: 0 0 8px 0; color: #856404; font-weight: 600; font-size: 14px;">
+                    Fonctionnalités nécessitant la vérification :
+                </p>
+                <ul style="margin: 0; padding-left: 20px; color: #856404; font-size: 14px; line-height: 1.8;">
+                    <li>📅 Prendre des rendez-vous</li>
+                    <li>💳 Effectuer des paiements</li>
+                    <li>📋 Accéder aux dossiers médicaux</li>
+                    <li>💬 Communiquer avec les professionnels de santé</li>
+                    <li>🏥 Soumettre des demandes d'assurance</li>
+                </ul>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{% url 'authentication:verify_email_page' %}"
+                   style="display: inline-block;
+                          padding: 12px 24px;
+                          background-color: #2196F3;
+                          color: white;
+                          text-decoration: none;
+                          border-radius: 6px;
+                          font-weight: 600;
+                          font-size: 14px;
+                          transition: all 0.3s ease;
+                          box-shadow: 0 2px 5px rgba(33, 150, 243, 0.3);">
+                    ✉️ Vérifier mon email
+                </a>
+                <a href="{% url 'authentication:resend_verification' %}"
+                   style="display: inline-block;
+                          padding: 12px 24px;
+                          background-color: white;
+                          color: #2196F3;
+                          text-decoration: none;
+                          border-radius: 6px;
+                          border: 2px solid #2196F3;
+                          font-weight: 600;
+                          font-size: 14px;
+                          transition: all 0.3s ease;">
+                    🔄 Renvoyer l'email
+                </a>
+            </div>
+        </div>
+
+        <!-- Close Button (Optional) -->
+        <button onclick="this.parentElement.parentElement.style.display='none'"
+                style="flex-shrink: 0;
+                       background: none;
+                       border: none;
+                       font-size: 24px;
+                       color: #856404;
+                       cursor: pointer;
+                       padding: 0;
+                       opacity: 0.6;
+                       transition: opacity 0.3s;
+                       line-height: 1;">
+            ×
+        </button>
+    </div>
+</div>
+
+<style>
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hover effects */
+a[href*="verify_email"]:hover {
+    background-color: #1976D2 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4) !important;
+}
+
+a[href*="resend_verification"]:hover {
+    background-color: #E3F2FD !important;
+    border-color: #1976D2 !important;
+    color: #1976D2 !important;
+}
+
+button:hover {
+    opacity: 1 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    div[style*="display: flex"] {
+        flex-direction: column;
+    }
+
+    a[href*="verify_email"],
+    a[href*="resend_verification"] {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+{% endif %}

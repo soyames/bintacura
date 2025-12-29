@@ -1,0 +1,121 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nos Services - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/info/services.css' %}">
+</head>
+
+<body>
+    <header class="page-header">
+        <a href="/" class="header-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA">
+            
+        </a>
+        <a href="/" class="back-btn">Retour →</a>
+    </header>
+
+    <div class="content-wrapper">
+        <h1 class="page-title">Nos Services</h1>
+
+        <div class="services-grid">
+            <div class="service-card" style="--service-color: #007bff;">
+                <div class="service-icon">👤</div>
+                <h2 class="service-title">Portail Patient</h2>
+                <p class="service-description">
+                    Accédez à tous vos services de santé en un seul endroit, gérez vos rendez-vous et consultez votre
+                    dossier médical.
+                </p>
+                <ul class="service-features">
+                    <li>Carnet de santé numérique</li>
+                    <li>Prise de rendez-vous en ligne</li>
+                    <li>Téléconsultation avec médecins</li>
+                    <li>Gestion des prescriptions</li>
+                    <li>Suivi des bénéficiaires</li>
+                </ul>
+            </div>
+
+            <div class="service-card" style="--service-color: #28a745;">
+                <div class="service-icon">👨‍⚕️</div>
+                <h2 class="service-title">Portail Médecin</h2>
+                <p class="service-description">
+                    Outils professionnels pour gérer efficacement votre pratique médicale et offrir des soins de
+                    qualité.
+                </p>
+                <ul class="service-features">
+                    <li>Gestion des dossiers patients</li>
+                    <li>Agenda et rendez-vous</li>
+                    <li>Prescriptions électroniques</li>
+                    <li>Consultations en ligne</li>
+                    <li>Statistiques et rapports</li>
+                </ul>
+            </div>
+
+            <div class="service-card" style="--service-color: #dc3545;">
+                <div class="service-icon">🏥</div>
+                <h2 class="service-title">Portail Hôpital</h2>
+                <p class="service-description">
+                    Solution complète pour la gestion hospitalière moderne et efficace.
+                </p>
+                <ul class="service-features">
+                    <li>Gestion des départements</li>
+                    <li>Administration du personnel</li>
+                    <li>Gestion des patients hospitalisés</li>
+                    <li>Planification des ressources</li>
+                    <li>Rapports administratifs</li>
+                </ul>
+            </div>
+
+            <div class="service-card" style="--service-color: #17a2b8;">
+                <div class="service-icon">💊</div>
+                <h2 class="service-title">Portail Pharmacie</h2>
+                <p class="service-description">
+                    Gestion optimisée de votre pharmacie avec suivi des stocks et des prescriptions.
+                </p>
+                <ul class="service-features">
+                    <li>Traitement des prescriptions</li>
+                    <li>Gestion de l'inventaire</li>
+                    <li>Commandes et fournisseurs</li>
+                    <li>Alertes de stock</li>
+                    <li>Base de données patients</li>
+                </ul>
+            </div>
+
+            <div class="service-card" style="--service-color: #6f42c1;">
+                <div class="service-icon">🛡️</div>
+                <h2 class="service-title">Portail Assurance</h2>
+                <p class="service-description">
+                    Plateforme dédiée pour la gestion des polices et remboursements d'assurance santé.
+                </p>
+                <ul class="service-features">
+                    <li>Traitement des demandes</li>
+                    <li>Gestion des polices</li>
+                    <li>Suivi des membres</li>
+                    <li>Remboursements automatisés</li>
+                    <li>Rapports d'activité</li>
+                </ul>
+            </div>
+
+            <div class="service-card" style="--service-color: #ffc107;">
+                <div class="service-icon">📱</div>
+                <h2 class="service-title">Télémédecine</h2>
+                <p class="service-description">
+                    Consultations médicales à distance sécurisées et de qualité.
+                </p>
+                <ul class="service-features">
+                    <li>Vidéoconférence sécurisée</li>
+                    <li>Chat médical</li>
+                    <li>Partage de documents</li>
+                    <li>Prescriptions en ligne</li>
+                    <li>Disponible 24/7</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

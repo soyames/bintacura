@@ -1,0 +1,434 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bénéficiaires - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    
+    <link rel="stylesheet" href="{% static 'css/beneficiaries.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Bénéficiaires</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="beneficiaries-container">
+        <div class="header-section" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+            <h1 style="margin: 0; font-size: 24px; color: #1a1a1a;">Mes Bénéficiaires</h1>
+            <button class="add-btn" onclick="openAddModal()" style="margin: 0;">
+                <span>➕</span>
+                <span>Ajouter un bénéficiaire</span>
+            </button>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="icon">👥</div>
+                <div class="value" id="totalCount">0</div>
+                <div class="label">Total Bénéficiaires</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">👶</div>
+                <div class="value" id="childrenCount">0</div>
+                <div class="label">Enfants</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">💑</div>
+                <div class="value" id="spousesCount">0</div>
+                <div class="label">Conjoints</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon">👴</div>
+                <div class="value" id="parentsCount">0</div>
+                <div class="label">Parents</div>
+            </div>
+        </div>
+
+        <div class="beneficiaries-grid" id="beneficiariesGrid">
+            <div class="empty-state">
+                <div class="icon">👨‍👩‍👧‍👦</div>
+                <h3>Aucun bénéficiaire</h3>
+                <p>Commencez par ajouter des bénéficiaires à votre compte</p>
+                <button class="add-btn" onclick="openAddModal()">
+                    <span>➕</span>
+                    <span>Ajouter un bénéficiaire</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="beneficiaryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ajouter un bénéficiaire</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="beneficiaryForm">
+                    {% csrf_token %}
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="full_name">Nom complet *</label>
+                            <input type="text" id="full_name" name="full_name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date_of_birth">Date de naissance *</label>
+                            <input type="date" id="date_of_birth" name="date_of_birth" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gender">Genre *</label>
+                            <select id="gender" name="gender" required>
+                                <option value="">Sélectionner</option>
+                                <option value="male">Homme</option>
+                                <option value="female">Femme</option>
+                                <option value="other">Autre</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="relationship">Relation *</label>
+                            <select id="relationship" name="relationship" required>
+                                <option value="">Sélectionner</option>
+                                <option value="spouse">Conjoint(e)</option>
+                                <option value="child">Enfant</option>
+                                <option value="parent">Parent</option>
+                                <option value="sibling">Frère/Sœur</option>
+                                <option value="guardian">Tuteur</option>
+                                <option value="other">Autre</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="blood_type">Groupe sanguin</label>
+                            <select id="blood_type" name="blood_type">
+                                <option value="">Sélectionner</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone_number">Téléphone</label>
+                            <input type="tel" id="phone_number" name="phone_number">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">Adresse</label>
+                            <input type="text" id="address" name="address">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label for="allergies">Allergies (séparées par des virgules)</label>
+                        <textarea id="allergies" name="allergies" placeholder="Arachides, Pénicilline..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="chronic_conditions">Maladies chroniques (séparées par des virgules)</label>
+                        <textarea id="chronic_conditions" name="chronic_conditions"
+                            placeholder="Diabète, Hypertension..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="medical_notes">Notes médicales</label>
+                        <textarea id="medical_notes" name="medical_notes"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn" onclick="closeModal()">Annuler</button>
+                <button class="submit-btn" onclick="saveBeneficiary()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        let currentEditId = null;
+
+        async function loadBeneficiaries() {
+            try {
+                const response = await fetch('/patient/api/beneficiaries/', {
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    displayBeneficiaries(data.beneficiaries);
+                    updateStats(data.beneficiaries);
+                }
+            } catch (error) {
+                console.error('Error loading beneficiaries:', error);
+            }
+        }
+
+        function displayBeneficiaries(beneficiaries) {
+            const grid = document.getElementById('beneficiariesGrid');
+
+            if (beneficiaries.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">👨‍👩‍👧‍👦</div>
+                        <h3>Aucun bénéficiaire</h3>
+                        <p>Commencez par ajouter des bénéficiaires à votre compte</p>
+                        <button class="add-btn" onclick="openAddModal()">
+                            <span>➕</span>
+                            <span>Ajouter un bénéficiaire</span>
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = beneficiaries.map(b => `
+                <div class="beneficiary-card">
+                    <div class="card-header">
+                        <div class="avatar">${getInitials(b.full_name)}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="beneficiary-name">${b.full_name}</div>
+                        <span class="beneficiary-relationship">${getRelationshipLabel(b.relationship)}</span>
+                        
+                        <div class="info-row">
+                            <span class="icon">🎂</span>
+                            <span>${b.age} ans - ${formatDate(b.date_of_birth)}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="icon">${b.gender === 'male' ? '👨' : b.gender === 'female' ? '👩' : '🧑'}</span>
+                            <span>${getGenderLabel(b.gender)}</span>
+                        </div>
+                        
+                        ${b.blood_type ? `
+                        <div class="info-row">
+                            <span class="icon">🩸</span>
+                            <span>${b.blood_type}</span>
+                        </div>
+                        ` : ''}
+                        
+                        ${b.phone_number ? `
+                        <div class="info-row">
+                            <span class="icon">📞</span>
+                            <span>${b.phone_number}</span>
+                        </div>
+                        ` : ''}
+
+                        <div class="card-actions">
+                            <button class="edit-btn" onclick="editBeneficiary('${b.id}')">Modifier</button>
+                            <button class="delete-btn" onclick="deleteBeneficiary('${b.id}', '${b.full_name}')">Supprimer</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats(beneficiaries) {
+            document.getElementById('totalCount').textContent = beneficiaries.length;
+            document.getElementById('childrenCount').textContent = beneficiaries.filter(b => b.relationship === 'child').length;
+            document.getElementById('spousesCount').textContent = beneficiaries.filter(b => b.relationship === 'spouse').length;
+            document.getElementById('parentsCount').textContent = beneficiaries.filter(b => b.relationship === 'parent').length;
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        function getRelationshipLabel(relationship) {
+            const labels = {
+                'spouse': 'Conjoint(e)',
+                'child': 'Enfant',
+                'parent': 'Parent',
+                'sibling': 'Frère/Sœur',
+                'guardian': 'Tuteur',
+                'other': 'Autre'
+            };
+            return labels[relationship] || relationship;
+        }
+
+        function getGenderLabel(gender) {
+            const labels = {
+                'male': 'Homme',
+                'female': 'Femme',
+                'other': 'Autre'
+            };
+            return labels[gender] || gender;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function openAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'Ajouter un bénéficiaire';
+            document.getElementById('beneficiaryForm').reset();
+            document.getElementById('beneficiaryModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('beneficiaryModal').classList.remove('active');
+            currentEditId = null;
+        }
+
+        async function editBeneficiary(id) {
+            try {
+                const response = await fetch(`/patient/api/beneficiaries/${id}/`, {
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentEditId = id;
+                    document.getElementById('modalTitle').textContent = 'Modifier le bénéficiaire';
+
+                    const form = document.getElementById('beneficiaryForm');
+                    const b = data.beneficiary;
+
+                    form.full_name.value = b.full_name;
+                    form.date_of_birth.value = b.date_of_birth;
+                    form.gender.value = b.gender;
+                    form.relationship.value = b.relationship;
+                    form.blood_type.value = b.blood_type || '';
+                    form.phone_number.value = b.phone_number || '';
+                    form.email.value = b.email || '';
+                    form.address.value = b.address || '';
+                    form.allergies.value = b.allergies ? b.allergies.join(', ') : '';
+                    form.chronic_conditions.value = b.chronic_conditions ? b.chronic_conditions.join(', ') : '';
+                    form.medical_notes.value = b.medical_notes || '';
+
+                    document.getElementById('beneficiaryModal').classList.add('active');
+                }
+            } catch (error) {
+                console.error('Error loading beneficiary:', error);
+                alert('Erreur lors du chargement du bénéficiaire');
+            }
+        }
+
+        async function saveBeneficiary() {
+            const form = document.getElementById('beneficiaryForm');
+            const formData = new FormData(form);
+
+            const allergies = formData.get('allergies') ? formData.get('allergies').split(',').map(a => a.trim()).filter(a => a) : [];
+            const chronic_conditions = formData.get('chronic_conditions') ? formData.get('chronic_conditions').split(',').map(c => c.trim()).filter(c => c) : [];
+
+            const data = {
+                full_name: formData.get('full_name'),
+                date_of_birth: formData.get('date_of_birth'),
+                gender: formData.get('gender'),
+                relationship: formData.get('relationship'),
+                blood_type: formData.get('blood_type'),
+                phone_number: formData.get('phone_number'),
+                email: formData.get('email'),
+                address: formData.get('address'),
+                allergies: allergies,
+                chronic_conditions: chronic_conditions,
+                medical_notes: formData.get('medical_notes')
+            };
+
+            try {
+                const url = currentEditId
+                    ? `/patient/api/beneficiaries/${currentEditId}/`
+                    : '/patient/api/beneficiaries/';
+
+                const method = currentEditId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    closeModal();
+                    loadBeneficiaries();
+                } else {
+                    alert('Erreur: ' + (result.message || JSON.stringify(result.errors)));
+                }
+            } catch (error) {
+                console.error('Error saving beneficiary:', error);
+                alert('Erreur lors de l\'enregistrement');
+            }
+        }
+
+        async function deleteBeneficiary(id, name) {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer ${name}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/patient/api/beneficiaries/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    loadBeneficiaries();
+                } else {
+                    alert('Erreur: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error deleting beneficiary:', error);
+                alert('Erreur lors de la suppression');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadBeneficiaries);
+    </script>
+</body>
+
+</html>

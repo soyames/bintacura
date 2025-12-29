@@ -1,0 +1,181 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificats - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+     <link rel="stylesheet" href="{% static 'css/doctor/certificates.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Certificats Médicaux" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="content-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 style="color: #2d3748; margin: 0;">Liste des Certificats</h2>
+                <button onclick="openNewCertificateModal()"
+                    style="background: #28a745; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    + Nouveau Certificat
+                </button>
+            </div>
+
+            <div id="certificatesList" style="display: grid; gap: 20px;">
+                <p style="text-align: center; color: #999; padding: 40px;">Chargement des certificats...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="certificateModal"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;">
+        <div
+            style="background: white; padding: 30px; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <h2 style="margin-bottom: 20px;">Nouveau Certificat Médical</h2>
+            <form id="certificateForm">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Patient</label>
+                    <select id="patient" required
+                        style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <option value="">Sélectionner un patient</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Type de Certificat</label>
+                    <select id="certificate_type" required
+                        style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <option value="medical">Certificat Médical</option>
+                        <option value="sick_leave">Arrêt de Travail</option>
+                        <option value="fitness">Certificat d'Aptitude</option>
+                        <option value="sport">Certificat Sportif</option>
+                        <option value="vaccination">Certificat de Vaccination</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Contenu</label>
+                    <textarea id="content" required rows="6"
+                        style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;"
+                        placeholder="Contenu du certificat..."></textarea>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600;">Durée (jours) -
+                        Optionnel</label>
+                    <input type="number" id="duration" min="1"
+                        style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;"
+                        placeholder="Pour arrêt de travail">
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeCertificateModal()"
+                        style="padding: 10px 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; font-weight: 600;">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                        style="padding: 10px 20px; border: none; border-radius: 8px; background: #28a745; color: white; cursor: pointer; font-weight: 600;">
+                        Créer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function loadPatients() {
+            try {
+                const response = await fetch('/api/v1/doctor/patients/', { credentials: 'same-origin' });
+                const data = await response.json();
+                if (data.success) {
+                    const select = document.getElementById('patient');
+                    select.innerHTML = '<option value="">Sélectionner un patient</option>';
+                    data.patients.forEach(patient => {
+                        const option = document.createElement('option');
+                        option.value = patient.uid;
+                        option.textContent = `${patient.full_name} - ${patient.email}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading patients:', error);
+            }
+        }
+
+        function openNewCertificateModal() {
+            document.getElementById('certificateModal').style.display = 'flex';
+            loadPatients();
+        }
+
+        function closeCertificateModal() {
+            document.getElementById('certificateModal').style.display = 'none';
+            document.getElementById('certificateForm').reset();
+        }
+
+        document.getElementById('certificateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                patient_id: document.getElementById('patient').value,
+                certificate_type: document.getElementById('certificate_type').value,
+                content: document.getElementById('content').value,
+                duration: document.getElementById('duration').value || null,
+                issued_date: new Date().toISOString().split('T')[0]
+            };
+
+            alert('Fonctionnalité de création de certificats à implémenter avec l\'API appropriée');
+            closeCertificateModal();
+        });
+
+        const certificatesList = document.getElementById('certificatesList');
+        certificatesList.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">Aucun certificat médical pour le moment</p>';
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

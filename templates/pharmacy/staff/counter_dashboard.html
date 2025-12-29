@@ -1,0 +1,125 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comptoir {{ counter_number }} - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_counter_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy_staff" page_title="Comptoir "|add:counter_number %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy_staff.html" %}
+
+    <div class="main-content">
+        <div class="counter-container">
+            <!-- Counter Info Header -->
+            <div class="counter-header">
+                <div class="counter-info">
+                    <h2>Comptoir {{ counter_number }}</h2>
+                    <p>Agent: {{ staff_name }}</p>
+                    <span class="status-badge status-active">Actif</span>
+                </div>
+                <div class="counter-stats">
+                    <div class="stat-mini">
+                        <span class="stat-label">Commandes Traitées</span>
+                        <span class="stat-value">{{ today_processed_count }}</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-label">En Attente</span>
+                        <span class="stat-value">{{ pending_count }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Scanner Section -->
+            <div class="scanner-section">
+                <div class="section-header">
+                    <h3>Scanner Prescription</h3>
+                    <button class="btn-primary" onclick="openQRScanner()">
+                        <i class="icon-qr"></i> Scanner QR Code
+                    </button>
+                </div>
+                <div id="qrScannerModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close" onclick="closeQRScanner()">&times;</span>
+                        <h3>Scanner QR Code de Prescription</h3>
+                        <div id="qr-reader"></div>
+                        <div class="manual-entry">
+                            <p>Ou entrer le code manuellement:</p>
+                            <input type="text" id="manualCode" placeholder="Code prescription">
+                            <button class="btn-primary" onclick="searchByCode()">Rechercher</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Queue -->
+            <div class="orders-section">
+                <div class="section-header">
+                    <h3>File d'Attente</h3>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">Tous</button>
+                        <button class="filter-btn" data-filter="pending">En Attente</button>
+                        <button class="filter-btn" data-filter="pickup">Retrait</button>
+                        <button class="filter-btn" data-filter="delivery">Livraison</button>
+                    </div>
+                </div>
+
+                <div class="orders-grid">
+                    {% if pending_orders %}
+                        {% for order in pending_orders %}
+                        <div class="order-card" data-order-type="{{ order.delivery_method }}">
+                            <div class="order-header">
+                                <h4>Prescription #{{ order.prescription.prescription_number }}</h4>
+                                <span class="order-badge badge-{{ order.delivery_method }}">
+                                    {{ order.get_delivery_method_display }}
+                                </span>
+                            </div>
+                            <div class="order-details">
+                                <p><strong>Patient:</strong> {{ order.prescription.patient.full_name }}</p>
+                                <p><strong>Médecin:</strong> {{ order.prescription.doctor.full_name }}</p>
+                                <p><strong>Date:</strong> {{ order.created_at|date:"d/m/Y H:i" }}</p>
+                                <p><strong>Médicaments:</strong> {{ order.prescription.medications.count }}</p>
+                            </div>
+                            <div class="order-actions">
+                                <button class="btn-primary" onclick="processOrder('{{ order.id }}')">
+                                    Traiter
+                                </button>
+                                <button class="btn-secondary" onclick="viewOrderDetails('{{ order.id }}')">
+                                    Détails
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-orders">
+                            <p>Aucune commande en attente</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Current Processing Order -->
+            <div id="processingSection" class="processing-section" style="display: none;">
+                <div class="section-header">
+                    <h3>Traitement en Cours</h3>
+                    <button class="btn-danger" onclick="cancelProcessing()">Annuler</button>
+                </div>
+                <div id="processingContent">
+                    <!-- Dynamically loaded content -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/pharmacy_counter.js' %}"></script>
+    <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{% load static %}
+<nav class="top-nav">
+    <div class="nav-left">
+        <button class="menu-toggle-btn" id="menuIcon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        {% if user_type == 'patient' %}
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        {% elif user_type == 'doctor' %}
+            <button class="nav-back-btn" onclick="window.location.href='/doctor/dashboard/'">←</button>
+        {% elif user_type == 'hospital' %}
+            <button class="nav-back-btn" onclick="window.location.href='/hospital/dashboard/'">←</button>
+        {% elif user_type == 'pharmacy' %}
+            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/dashboard/'">←</button>
+        {% elif user_type == 'insurance' %}
+            <button class="nav-back-btn" onclick="window.location.href='/insurance/dashboard/'">←</button>
+        {% elif user_type == 'receptionist' %}
+            <button class="nav-back-btn" onclick="window.location.href='/hospital/staff/receptionist/dashboard/'">←</button>
+        {% elif user_type == 'nurse' %}
+            <button class="nav-back-btn" onclick="window.location.href='/hospital/staff/nurse/dashboard/'">←</button>
+        {% elif user_type == 'lab_technician' %}
+            <button class="nav-back-btn" onclick="window.location.href='/hospital/staff/lab-technician/dashboard/'">←</button>
+        {% elif user_type == 'hospital_pharmacist' %}
+            <button class="nav-back-btn" onclick="window.location.href='/hospital/staff/pharmacist/dashboard/'">←</button>
+        {% elif user_type == 'hospital_administrator' %}
+            <button class="nav-back-btn" onclick="window.location.href='/hospital/staff/administrator/dashboard/'">←</button>
+        {% elif user_type == 'pharmacy_pharmacist' %}
+            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/staff/pharmacist/dashboard/'">←</button>
+        {% elif user_type == 'pharmacy_cashier' %}
+            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/staff/cashier/dashboard/'">←</button>
+        {% elif user_type == 'pharmacy_inventory_clerk' %}
+            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/staff/inventory-clerk/dashboard/'">←</button>
+        {% elif user_type == 'pharmacy_delivery' %}
+            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/staff/delivery/dashboard/'">←</button>
+        {% elif user_type == 'pharmacy_manager' %}
+            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/staff/manager/dashboard/'">←</button>
+        {% endif %}
+    </div>
+    <div class="nav-center">
+        <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+        <span class="nav-page-title">{{ page_title|default:"BINTACURA" }}</span>
+    </div>
+    <div class="nav-right">
+        <div class="nav-user-avatar" onclick="window.location.href='/{{ user_type }}/profile/'">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </div>
+</nav>
+

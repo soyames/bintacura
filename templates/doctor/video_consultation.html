@@ -1,0 +1,302 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultation Vidéo - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/video_consultation.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="video-consultation-wrapper">
+        <div class="video-header">
+            <div class="header-left">
+                <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="header-logo">
+                <div class="consultation-info">
+                    <h2>{{ appointment.patient.full_name }}</h2>
+                    <span class="specialty">Consultation Vidéo</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="consultation-timer" id="consultationTimer">00:00:00</span>
+                <button class="end-call-btn" onclick="endConsultation()">
+                    <i class="fas fa-phone-slash"></i> Terminer
+                </button>
+            </div>
+        </div>
+
+        <div id="jitsi-meet-container"></div>
+
+        <div class="consultation-sidebar" id="sidebarPanel">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <div class="sidebar-content">
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-user"></i> Informations Patient</h3>
+                    <div class="info-item">
+                        <strong>Nom:</strong> {{ appointment.patient.full_name }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Email:</strong> {{ appointment.patient.email }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Téléphone:</strong> {{ appointment.patient.phone_number }}
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-notes-medical"></i> Détails Consultation</h3>
+                    <div class="info-item">
+                        <strong>Date:</strong> {{ appointment.appointment_date|date:"d/m/Y" }}
+                    </div>
+                    <div class="info-item">
+                        <strong>Heure:</strong> {{ appointment.appointment_time|time:"H:i" }}
+                    </div>
+                    {% if appointment.reason %}
+                    <div class="info-item">
+                        <strong>Motif:</strong> {{ appointment.reason }}
+                    </div>
+                    {% endif %}
+                    {% if appointment.symptoms %}
+                    <div class="info-item">
+                        <strong>Symptômes:</strong> {{ appointment.symptoms }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-file-medical"></i> Ordonnance</h3>
+                    <textarea id="prescription" class="notes-textarea" placeholder="Rédigez l'ordonnance..."></textarea>
+                    <button class="save-notes-btn" onclick="savePrescription()">
+                        <i class="fas fa-prescription"></i> Sauvegarder Ordonnance
+                    </button>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-sticky-note"></i> Notes Médicales</h3>
+                    <textarea id="medicalNotes" class="notes-textarea" placeholder="Notes de consultation..."></textarea>
+                    <button class="save-notes-btn" onclick="saveNotes()">
+                        <i class="fas fa-save"></i> Sauvegarder Notes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://meet.jit.si/external_api.js"></script>
+    <script>
+        let jitsiApi = null;
+        let startTime = Date.now();
+        let timerInterval = null;
+
+        const domain = 'meet.jit.si';
+        const options = {
+            roomName: 'BINTACURA_{{ appointment.uid }}',
+            width: '100%',
+            height: '100%',
+            parentNode: document.querySelector('#jitsi-meet-container'),
+            userInfo: {
+                displayName: 'Dr. {{ request.user.full_name }}',
+                email: '{{ request.user.email }}'
+            },
+            configOverwrite: {
+                startWithAudioMuted: false,
+                startWithVideoMuted: false,
+                enableWelcomePage: false,
+                prejoinPageEnabled: false,
+                disableDeepLinking: true,
+                startAudioOnly: false
+            },
+            interfaceConfigOverwrite: {
+                SHOW_JITSI_WATERMARK: false,
+                SHOW_WATERMARK_FOR_GUESTS: false,
+                SHOW_BRAND_WATERMARK: false,
+                SHOW_POWERED_BY: false,
+                MOBILE_APP_PROMO: false
+            }
+        };
+
+        function initializeJitsi() {
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+            jitsiApi.addEventListener('videoConferenceJoined', () => {
+                console.log('Consultation started');
+                startTimer();
+                notifyBackend('joined');
+            });
+
+            jitsiApi.addEventListener('videoConferenceLeft', () => {
+                console.log('Consultation ended');
+                handleConsultationEnd();
+            });
+
+            jitsiApi.addEventListener('readyToClose', () => {
+                handleConsultationEnd();
+            });
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const hours = Math.floor(elapsed / 3600);
+                const minutes = Math.floor((elapsed % 3600) / 60);
+                const seconds = elapsed % 60;
+                
+                document.getElementById('consultationTimer').textContent = 
+                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function endConsultation() {
+            if (confirm('Êtes-vous sûr de vouloir terminer cette consultation ?')) {
+                if (jitsiApi) {
+                    jitsiApi.executeCommand('hangup');
+                }
+                handleConsultationEnd();
+            }
+        }
+
+        function handleConsultationEnd() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            const duration = Math.floor((Date.now() - startTime) / 1000);
+            notifyBackend('ended', duration);
+            
+            setTimeout(() => {
+                window.location.href = '/doctor/dashboard/';
+            }, 1000);
+        }
+
+        function notifyBackend(action, duration = 0) {
+            fetch('/api/v1/appointments/consultation-event/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    appointment_id: '{{ appointment.id }}',
+                    action: action,
+                    duration: duration,
+                    timestamp: new Date().toISOString()
+                })
+            }).catch(error => console.error('Error notifying backend:', error));
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebarPanel');
+            sidebar.classList.toggle('collapsed');
+            
+            const icon = document.querySelector('.sidebar-toggle i');
+            if (sidebar.classList.contains('collapsed')) {
+                icon.className = 'fas fa-chevron-right';
+            } else {
+                icon.className = 'fas fa-chevron-left';
+            }
+        }
+
+        function savePrescription() {
+            const prescription = document.getElementById('prescription').value;
+            
+            fetch('/api/v1/prescriptions/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    appointment_id: '{{ appointment.id }}',
+                    patient_id: '{{ appointment.patient.uid }}',
+                    content: prescription
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Ordonnance sauvegardée avec succès', 'success');
+                } else {
+                    showNotification('Erreur lors de la sauvegarde', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving prescription:', error);
+                showNotification('Erreur de connexion', 'error');
+            });
+        }
+
+        function saveNotes() {
+            const notes = document.getElementById('medicalNotes').value;
+            
+            fetch('/api/v1/appointments/save-consultation-notes/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    appointment_id: '{{ appointment.id }}',
+                    notes: notes
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('Notes sauvegardées avec succès', 'success');
+                } else {
+                    showNotification('Erreur lors de la sauvegarde', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving notes:', error);
+                showNotification('Erreur de connexion', 'error');
+            });
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        window.addEventListener('beforeunload', (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+            return 'Êtes-vous sûr de vouloir quitter la consultation ?';
+        });
+
+        document.addEventListener('DOMContentLoaded', initializeJitsi);
+    </script>
+</body>
+</html>
+

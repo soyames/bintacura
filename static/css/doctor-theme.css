@@ -1,0 +1,217 @@
+:root {
+    --doctor-primary: #28a745;
+    --doctor-primary-dark: #1e7e34;
+    --doctor-primary-light: #48bb5f;
+    --doctor-secondary: #6c757d;
+    --doctor-light: rgba(40, 167, 69, 0.1);
+    --doctor-accent: #28a745;
+    --doctor-success: #28a745;
+    --doctor-warning: #ffc107;
+    --doctor-danger: #dc3545;
+    --doctor-info: #17a2b8;
+}
+
+.top-nav {
+    background: linear-gradient(135deg, var(--doctor-primary) 0%, var(--doctor-primary-dark) 100%);
+}
+
+.btn-primary,
+.btn-profile-primary,
+.action-btn.btn-primary {
+    background: linear-gradient(135deg, var(--doctor-primary) 0%, var(--doctor-primary-dark) 100%);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover,
+.btn-profile-primary:hover,
+.action-btn.btn-primary:hover {
+    background: linear-gradient(135deg, var(--doctor-primary-dark) 0%, var(--doctor-primary) 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.sidebar-header {
+    background: linear-gradient(135deg, var(--doctor-primary) 0%, var(--doctor-secondary) 100%);
+}
+
+.nav-user-avatar,
+.sidebar-user-avatar,
+.profile-avatar-large {
+    background: linear-gradient(135deg, var(--doctor-primary) 0%, var(--doctor-primary-light) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.sidebar-menu-item.active,
+.sidebar-menu-item:hover {
+    background: var(--doctor-light);
+    border-left: 4px solid var(--doctor-primary);
+}
+
+.stat-card {
+    border-left: 4px solid var(--doctor-primary);
+}
+
+.page-header {
+    background: linear-gradient(135deg, var(--doctor-primary) 0%, var(--doctor-primary-dark) 100%);
+    color: white;
+}
+
+.card-header,
+.content-section-header {
+    background: var(--doctor-light);
+    border-left: 4px solid var(--doctor-primary);
+}
+
+.badge-primary,
+.status-badge.confirmed {
+    background: var(--doctor-primary);
+    color: white;
+}
+
+.link-primary,
+a.primary-link {
+    color: var(--doctor-primary);
+}
+
+.link-primary:hover,
+a.primary-link:hover {
+    color: var(--doctor-primary-dark);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+    border-color: var(--doctor-primary);
+    box-shadow: 0 0 0 0.2rem var(--doctor-light);
+}
+
+.toggle-switch.active {
+    background: var(--doctor-primary);
+}
+
+.progress-bar {
+    background: var(--doctor-primary);
+}
+
+.tab-btn.active {
+    border-bottom: 3px solid var(--doctor-primary);
+    color: var(--doctor-primary);
+}
+
+.calendar-day.today {
+    background: var(--doctor-light);
+    border: 2px solid var(--doctor-primary);
+}
+
+.appointment-dot.status-confirmed,
+.status-confirmed {
+    background: var(--doctor-success);
+}
+
+.appointment-dot.status-pending,
+.status-pending {
+    background: var(--doctor-warning);
+}
+
+.appointment-dot.status-cancelled,
+.status-cancelled {
+    background: var(--doctor-danger);
+}
+
+.book-btn,
+.search-btn {
+    background: var(--doctor-primary);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.book-btn:hover,
+.search-btn:hover {
+    background: var(--doctor-primary-dark);
+    transform: translateY(-2px);
+}
+
+.time-slot.selected {
+    background: var(--doctor-primary);
+    color: white;
+    border: 2px solid var(--doctor-primary-dark);
+}
+
+.doctor-card:hover {
+    border-color: var(--doctor-primary);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+}
+
+.specialty-badge {
+    background: var(--doctor-light);
+    color: var(--doctor-primary);
+}
+
+.status-online {
+    color: var(--doctor-success);
+}
+
+.consultation-fee {
+    background: var(--doctor-light);
+    border-left: 4px solid var(--doctor-primary);
+}
+
+.alert-profile.success {
+    background: #d4edda;
+    border-left: 4px solid var(--doctor-success);
+    color: #155724;
+}
+
+.alert-profile.error {
+    background: #f8d7da;
+    border-left: 4px solid var(--doctor-danger);
+    color: #721c24;
+}
+
+.profile-section-title {
+    color: var(--doctor-primary);
+}
+
+.role-badge {
+    background: var(--doctor-primary);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.verification-badge.verified {
+    background: var(--doctor-success);
+    color: white;
+}
+
+.nav-back-btn {
+    background: var(--doctor-primary);
+    color: #ffffff;
+}
+
+.nav-back-btn:hover {
+    background: var(--doctor-primary-dark);
+}
+
+.menu-toggle-btn span {
+    background: var(--doctor-primary);
+}
+
+.nav-page-title {
+    color: var(--doctor-primary);
+}
+
+.top-nav .nav-center {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}

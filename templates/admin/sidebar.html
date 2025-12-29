@@ -1,0 +1,55 @@
+{% load static %}
+<div class="sidebar bg-dark text-white p-3 vh-100 position-sticky top-0">
+    <div class="text-center mb-3">
+        <img src="{% static 'img/logo.png' %}" alt="BINTACURA" style="height: 40px; width: auto;">
+    </div>
+    <h4 class="mb-4">Admin Panel</h4>
+
+    <nav class="nav flex-column">
+        <a class="nav-link text-white {% if request.resolver_match.url_name == 'dashboard' %}active bg-primary{% endif %}"
+            href="{% url 'superadmin:dashboard' %}">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+
+        <a class="nav-link text-white {% if request.resolver_match.url_name == 'provider_verification' %}active bg-primary{% endif %}"
+            href="{% url 'superadmin:provider_verification' %}">
+            <i class="bi bi-shield-check"></i> Provider Verification
+        </a>
+
+        <a class="nav-link text-white {% if request.resolver_match.url_name == 'refund_management' %}active bg-primary{% endif %}"
+            href="{% url 'superadmin:refund_management' %}">
+            <i class="bi bi-cash-coin"></i> Refund Management
+        </a>
+
+        <a class="nav-link text-white {% if request.resolver_match.url_name == 'analytics' %}active bg-primary{% endif %}"
+            href="{% url 'superadmin:analytics' %}">
+            <i class="bi bi-graph-up"></i> Analytics
+        </a>
+
+        <a class="nav-link text-white {% if request.resolver_match.url_name == 'user_management' %}active bg-primary{% endif %}"
+            href="{% url 'superadmin:user_management' %}">
+            <i class="bi bi-people"></i> User Management
+        </a>
+
+        <a class="nav-link text-white {% if request.resolver_match.url_name == 'admin_management' %}active bg-primary{% endif %}"
+            href="{% url 'superadmin:admin_management' %}">
+            <i class="bi bi-shield-lock"></i> Admin Management
+        </a>
+
+        <a class="nav-link text-white {% if request.resolver_match.url_name == 'audit_logs' %}active bg-primary{% endif %}"
+            href="{% url 'superadmin:audit_logs' %}">
+            <i class="bi bi-journal-text"></i> Audit Logs
+        </a>
+
+        <a class="nav-link text-white {% if request.resolver_match.url_name == 'financial_dashboard' %}active bg-primary{% endif %}"
+            href="{% url 'superadmin:financial_dashboard' %}">
+            <i class="bi bi-wallet2"></i> Financial Dashboard
+        </a>
+
+        <hr class="text-white">
+
+        <a class="nav-link text-white" href="{% url 'home' %}">
+            <i class="bi bi-house"></i> Back to Home
+        </a>
+    </nav>
+</div>

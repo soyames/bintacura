@@ -1,0 +1,136 @@
+{% load static %}
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">✕</button>
+        <div class="sidebar-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="logo-img">
+        </div>
+        <div class="sidebar-user">
+            <div class="sidebar-user-avatar">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+            <div class="sidebar-user-info">
+                <h3>{{ request.user.full_name|default:"Médecin" }}</h3>
+                <p>{{ request.user.email }}</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Gestion</div>
+            <a href="/doctor/appointments/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">📅</span>
+                <span class="sidebar-menu-item-text">Rendez-vous</span>
+            </a>
+            <a href="/doctor/patients/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">👥</span>
+                <span class="sidebar-menu-item-text">Mes Patients</span>
+            </a>
+            <a href="/doctor/prescriptions/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">📝</span>
+                <span class="sidebar-menu-item-text">Prescriptions</span>
+            </a>
+            <a href="/doctor/medical-record/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">📋</span>
+                <span class="sidebar-menu-item-text">Dossiers Médicaux</span>
+            </a>
+            <a href="/doctor/consultations/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">💬</span>
+                <span class="sidebar-menu-item-text">Consultations</span>
+            </a>
+            <a href="/doctor/schedule/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🕐</span>
+                <span class="sidebar-menu-item-text">Mon Emploi du Temps</span>
+            </a>
+            <a href="/doctor/calendar/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">📆</span>
+                <span class="sidebar-menu-item-text">Calendrier</span>
+            </a>
+            <a href="/doctor/services/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🏷️</span>
+                <span class="sidebar-menu-item-text">Mes Services</span>
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Finances</div>
+            <a href="/doctor/wallet/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">💳</span>
+                <span class="sidebar-menu-item-text">Portefeuille</span>
+            </a>
+            <a href="/doctor/bonuses/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">💰</span>
+                <span class="sidebar-menu-item-text">Mes Bonus</span>
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Outils Médicaux</div>
+            <a href="/doctor/analytics/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">📊</span>
+                <span class="sidebar-menu-item-text">Statistiques</span>
+            </a>
+            <a href="/doctor/laboratory/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🔬</span>
+                <span class="sidebar-menu-item-text">Résultats Labo</span>
+            </a>
+            <a href="/doctor/referrals/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🏥</span>
+                <span class="sidebar-menu-item-text">Références</span>
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Paramètres</div>
+
+            <div class="setting-toggle" onclick="toggleDarkMode()">
+                <div class="setting-info">
+                    <span class="setting-icon">🌙</span>
+                    <span>Mode Sombre</span>
+                </div>
+                <div class="toggle-switch" id="darkModeToggle">
+                    <div class="toggle-switch-slider"></div>
+                </div>
+            </div>
+
+            <div class="setting-toggle" onclick="toggleNotifications()">
+                <div class="setting-info">
+                    <span class="setting-icon">🔔</span>
+                    <span>Notifications</span>
+                </div>
+                <div class="toggle-switch active" id="notificationsToggle">
+                    <div class="toggle-switch-slider"></div>
+                </div>
+            </div>
+
+            <div class="setting-select">
+                <label class="setting-select-label">
+                    <span class="setting-icon">🌍</span>
+                    <span>Langue</span>
+                </label>
+                <select id="languageSelect" aria-label="Sélection de langue" onchange="changeLanguage(this.value)">
+                    <option value="fr">Français</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Compte</div>
+            <a href="/doctor/profile/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">👤</span>
+                <span class="sidebar-menu-item-text">Mon Profil</span>
+            </a>
+            <a href="/doctor/settings/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">⚙️</span>
+                <span class="sidebar-menu-item-text">Paramètres</span>
+            </a>
+            <a href="/logout/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🚪</span>
+                <span class="sidebar-menu-item-text">Déconnexion</span>
+            </a>
+        </div>
+    </nav>
+</aside>
+

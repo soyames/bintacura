@@ -1,0 +1,300 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aide & FAQ - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/info/help.css' %}">
+</head>
+
+<body>
+    <header class="page-header">
+        <a href="/" class="header-logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA">
+            
+        </a>
+        <a href="/" class="back-btn">Retour →</a>
+    </header>
+
+    <div class="content-wrapper">
+        <h1 class="page-title">Aide & Questions Fréquentes</h1>
+
+        <div class="warning-box">
+            <p>
+                ⚠️ <strong>Phase de Test :</strong> BintaCura est actuellement en phase de test et de validation.
+                Certaines fonctionnalités mentionnées ci-dessous peuvent être en cours de développement ou indisponibles.
+                Pour toute question, contactez-nous à <a href="mailto:contacts@bintacura.org">contacts@bintacura.org</a>
+            </p>
+        </div>
+
+        <div class="faq-section">
+            <h2 class="faq-category-title">À Propos de BintaCura</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">Que signifie "BintaCura" ?</div>
+                <div class="faq-answer">
+                    <strong>BintaCura</strong> est la fusion de deux mots porteurs de sens :
+                    <ul style="margin-top: 10px;">
+                        <li><strong>"Binta"</strong> - Un prénom féminin très répandu en Afrique de l'Ouest, 
+                            particulièrement chez les Peuls/Fulani, symbolisant la bienveillance, la compassion 
+                            et le soin des autres. C'est également le nom de notre assistante IA de santé.</li>
+                        <li><strong>"Cura"</strong> - Du latin signifiant "soin", "attention" et "guérison".</li>
+                    </ul>
+                    Ensemble, BintaCura représente <em>"le soin bienveillant"</em> - une alliance de la sagesse 
+                    africaine et de l'excellence médicale moderne.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Pourquoi le changement de nom de VitaCare à BintaCura ?</div>
+                <div class="faq-answer">
+                    Notre plateforme a été initialement développée sous le nom <strong>"VitaCare"</strong>. 
+                    Cependant, nous avons découvert qu'un autre entrepreneur avait déjà enregistré ce nom 
+                    pour son entreprise. Par respect pour les droits de propriété intellectuelle et pour 
+                    éviter toute confusion, nous avons effectué un rebranding complet vers <strong>"BintaCura"</strong>.
+                    <br><br>
+                    <strong>Important :</strong> Bien que le nom ait changé, <em>toutes les fonctionnalités, 
+                    services et caractéristiques de la plateforme restent identiques</em>. Votre expérience 
+                    utilisateur, vos données, et tous les services auxquels vous aviez accès demeurent inchangés. 
+                    Seul le nom et l'identité visuelle ont évolué pour mieux refléter notre ancrage africain 
+                    et notre mission de soin bienveillant.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Qu'est-ce que BintaCura ?</div>
+                <div class="faq-answer">
+                    BintaCura est une plateforme de santé numérique conçue spécifiquement pour l'Afrique de l'Ouest. 
+                    Nous connectons patients, médecins, hôpitaux, pharmacies et assureurs pour faciliter l'accès 
+                    aux soins de santé de qualité, peu importe où vous vous trouvez. La plateforme supporte 9 pays, 
+                    5 devises, et plusieurs langues locales.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Qui est "Binta", l'assistante IA ?</div>
+                <div class="faq-answer">
+                    Binta est notre assistante de santé propulsée par l'intelligence artificielle, disponible 24/7 
+                    pour vous aider. Elle peut vous conseiller sur des symptômes, vous rappeler vos médicaments, 
+                    vous aider à prendre rendez-vous, et répondre à vos questions de santé dans plusieurs langues 
+                    (Français, Anglais, Wolof, Hausa, Yoruba).
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Dans quels pays BintaCura est-elle disponible ?</div>
+                <div class="faq-answer">
+                    BintaCura est conçue pour servir l'Afrique de l'Ouest : Bénin, Togo, Côte d'Ivoire, Sénégal, 
+                    Burkina Faso, Niger, Mali, Ghana, et Nigeria. Nous supportons les devises locales (XOF, XAF, 
+                    NGN, GHS) et les méthodes de paiement mobile money spécifiques à chaque pays.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h2 class="faq-category-title">Compte et Inscription</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment créer un compte BintaCura ?</div>
+                <div class="faq-answer">
+                    Cliquez sur "S'inscrire" sur la page d'accueil, remplissez le formulaire avec vos informations
+                    personnelles,
+                    et validez votre email. Vous recevrez un lien de confirmation pour activer votre compte.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">J'ai oublié mon mot de passe, que faire ?</div>
+                <div class="faq-answer">
+                    Sur la page de connexion, cliquez sur "Mot de passe oublié". Entrez votre email et vous recevrez
+                    un lien pour réinitialiser votre mot de passe.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment modifier mes informations personnelles ?</div>
+                <div class="faq-answer">
+                    Connectez-vous à votre compte, allez dans "Mon Profil" puis cliquez sur "Modifier".
+                    Vous pourrez mettre à jour vos informations et enregistrer les modifications.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h2 class="faq-category-title">Rendez-vous et Consultations</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment prendre rendez-vous avec un médecin ?</div>
+                <div class="faq-answer">
+                    Dans votre tableau de bord patient, cliquez sur "Prendre Rendez-vous", sélectionnez le type de
+                    consultation,
+                    choisissez un médecin, puis sélectionnez une date et heure disponibles. Confirmez votre rendez-vous.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Puis-je annuler ou modifier un rendez-vous ?</div>
+                <div class="faq-answer">
+                    Oui, vous pouvez modifier ou annuler un rendez-vous jusqu'à 24 heures avant l'heure prévue.
+                    Allez dans "Mes Rendez-vous" et sélectionnez l'option appropriée.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment fonctionne la téléconsultation ?</div>
+                <div class="faq-answer">
+                    La téléconsultation se fait par vidéoconférence sécurisée. À l'heure du rendez-vous, connectez-vous
+                    et cliquez sur "Rejoindre la consultation". Assurez-vous d'avoir une bonne connexion internet et
+                    que votre caméra et micro fonctionnent.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h2 class="faq-category-title">Prescriptions et Pharmacie</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">Où trouver mes prescriptions ?</div>
+                <div class="faq-answer">
+                    Vos prescriptions sont accessibles dans votre tableau de bord sous "Prescriptions".
+                    Vous pouvez les consulter, les télécharger en PDF et les envoyer directement à une pharmacie
+                    partenaire.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment commander mes médicaments ?</div>
+                <div class="faq-answer">
+                    Sélectionnez une prescription, choisissez une pharmacie partenaire, et envoyez votre commande.
+                    La pharmacie vous contactera pour confirmer la disponibilité et organiser la livraison ou le
+                    retrait.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h2 class="faq-category-title">Sécurité et Confidentialité</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">Mes données médicales sont-elles sécurisées ?</div>
+                <div class="faq-answer">
+                    Absolument. BintaCura, développé par Digital Concordia, utilise un chiffrement de bout en bout et
+                    respecte la loi béninoise (Code du numérique - Loi n° 2017-20) et les réglementations de l'APDP
+                    (Autorité de Protection des Données Personnelles du Bénin). Vos données sont stockées dans des
+                    datacenters sécurisés et conformes aux lois de souveraineté des données de votre pays. 
+                    Elles ne sont jamais partagées sans votre consentement explicite.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Qui peut accéder à mon dossier médical ?</div>
+                <div class="faq-answer">
+                    Seuls vous et les professionnels de santé que vous autorisez peuvent accéder à votre dossier
+                    médical. Vous contrôlez totalement les accès et pouvez les révoquer à tout moment.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Où sont hébergées mes données ?</div>
+                <div class="faq-answer">
+                    Les données de santé sont hébergées conformément aux lois du pays de résidence de l'utilisateur
+                    pour respecter les obligations de souveraineté des données. Digital Concordia garantit que vos
+                    données restent sous la juridiction appropriée.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h2 class="faq-category-title">Paiements et Assurance</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">Quels moyens de paiement sont acceptés ?</div>
+                <div class="faq-answer">
+                    BintaCura s'intègre avec les principales passerelles de paiement adaptées à chaque pays. 
+                    Nous acceptons :
+                    <ul style="margin-top: 10px;">
+                        <li><strong>Mobile Money :</strong> MTN Money, Moov Money, Orange Money, Wave (selon le pays)</li>
+                        <li><strong>Cartes bancaires :</strong> Visa, Mastercard</li>
+                        <li><strong>Paiement sur place :</strong> En espèces ou par carte à l'hôpital/pharmacie</li>
+                    </ul>
+                    Tous les paiements en ligne sont traités de manière sécurisée via des passerelles certifiées 
+                    (FedaPay, Paystack, etc. selon votre pays).
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment sont suivis mes paiements ?</div>
+                <div class="faq-answer">
+                    Tous vos paiements sont enregistrés dans votre historique de transactions BintaCura. 
+                    Vous pouvez consulter l'historique complet avec des reçus détaillés pour chaque transaction. 
+                    Les reçus sont également disponibles en PDF pour vos remboursements d'assurance.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment fonctionne le remboursement par mon assurance ?</div>
+                <div class="faq-answer">
+                    Si vous avez une assurance santé partenaire, vos consultations peuvent être remboursées
+                    automatiquement. Sinon, vous pouvez télécharger vos factures et les soumettre à votre assureur.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Est-ce que BintaCura stocke un solde de portefeuille ?</div>
+                <div class="faq-answer">
+                    Non, BintaCura n'utilise pas de système de portefeuille avec solde. Tous les paiements sont traités
+                    directement via des passerelles de paiement certifiées pour plus de sécurité et de transparence. 
+                    Vous payez directement pour chaque service au moment de l'utilisation.
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h2 class="faq-category-title">Support et Contact</h2>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment contacter le support BintaCura ?</div>
+                <div class="faq-answer">
+                    Vous pouvez nous contacter par email à <strong>contacts@bintacura.org</strong> (recommandé)
+                    ou par téléphone au <strong>+229 01 66 12 48 38</strong> (Lun-Ven 8h-17h). Nous préférons le contact
+                    par email pour un meilleur suivi de votre demande.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Où se trouve BintaCura ?</div>
+                <div class="faq-answer">
+                    BintaCura est développé par Digital Concordia, une entreprise de droit béninois basée à Abomey-Calavi,
+                    Bénin (RCCM: RB/ABC/21 A 28773, IFU: 0201710085082). Bien que notre siège soit au Bénin, 
+                    nous servons l'ensemble de l'Afrique de l'Ouest avec des partenaires locaux dans chaque pays.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Comment signaler un problème technique ?</div>
+                <div class="faq-answer">
+                    Pour signaler un bug ou un problème technique, envoyez un email détaillé à
+                    <strong>contacts@bintacura.org</strong> en décrivant le problème, les étapes pour le reproduire,
+                    et toute capture d'écran pertinente.
+                </div>
+            </div>
+        </div>
+
+        <div class="help-card">
+            <h2>Besoin d'aide supplémentaire ?</h2>
+            <p>
+                L'équipe BintaCura de Digital Concordia est disponible pour répondre à toutes vos questions.<br>
+                Nous préférons le contact par email pour un meilleur suivi de votre demande.
+            </p>
+            <p>
+                <strong>Vous pouvez aussi discuter avec Binta, notre assistante IA disponible 24/7 !</strong>
+            </p>
+            <a href="/info/contact/" class="help-btn">Contactez-nous</a>
+        </div>
+    </div>
+</body>
+
+</html>

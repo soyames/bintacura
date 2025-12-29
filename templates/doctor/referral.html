@@ -1,0 +1,291 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouvelle Référence - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/referral.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Référence" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="form-container">
+                <form id="referralForm">
+                    {% csrf_token %}
+                    <div class="form-section">
+                        <h3>Informations du Patient</h3>
+                        <div class="form-group">
+                            <label for="patient">Sélectionner un Patient *</label>
+                            <select id="patient" required>
+                                <option value="">Choisir un patient...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Détails de la Référence</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="specialty">Spécialité *</label>
+                                <select id="specialty" required>
+                                    <option value="">Choisir la spécialité...</option>
+                                    <option value="cardiology">Cardiologie</option>
+                                    <option value="dermatology">Dermatologie</option>
+                                    <option value="endocrinology">Endocrinologie</option>
+                                    <option value="gastroenterology">Gastro-entérologie</option>
+                                    <option value="neurology">Neurologie</option>
+                                    <option value="oncology">Oncologie</option>
+                                    <option value="orthopedics">Orthopédie</option>
+                                    <option value="psychiatry">Psychiatrie</option>
+                                    <option value="other">Autre</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="provider">Prestataire Préféré</label>
+                                <select id="provider">
+                                    <option value="">Choisir un prestataire (optionnel)...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="urgency">Urgence *</label>
+                                <select id="urgency" required>
+                                    <option value="">Sélectionner l'urgence...</option>
+                                    <option value="routine">Routine</option>
+                                    <option value="urgent">Urgent</option>
+                                    <option value="emergency">Urgence</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="preferredDate">Date de Rendez-vous Préférée</label>
+                                <input type="date" id="preferredDate">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Informations Cliniques</h3>
+                        <div class="form-group">
+                            <label for="diagnosis">Diagnostic Actuel *</label>
+                            <textarea id="diagnosis" placeholder="Entrer le diagnostic actuel..." required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="reason">Raison de la Référence *</label>
+                            <textarea id="reason" placeholder="Expliquer pourquoi vous référez ce patient..."
+                                required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="history">Antécédents Médicaux Pertinents</label>
+                            <textarea id="history"
+                                placeholder="Inclure les antécédents médicaux, médicaments, allergies..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="investigations">Examens Effectués</label>
+                            <textarea id="investigations"
+                                placeholder="Lister les tests, examens ou procédures déjà effectués..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Informations Additionnelles</h3>
+                        <div class="form-group">
+                            <label for="notes">Notes Additionnelles</label>
+                            <textarea id="notes"
+                                placeholder="Toute information supplémentaire pour le spécialiste..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="window.history.back()">Annuler</button>
+                        <button type="submit" class="btn-save">Soumettre la Référence</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    <script>
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        async function loadPatients() {
+            try {
+                const response = await fetch('/api/v1/doctor/patients/', { credentials: 'same-origin' });
+                const data = await response.json();
+                if (data.success) {
+                    const select = document.getElementById('patient');
+                    select.innerHTML = '<option value="">Choisir un patient...</option>';
+                    data.patients.forEach(patient => {
+                        const option = document.createElement('option');
+                        option.value = patient.uid;
+                        option.textContent = `${patient.full_name} - ${patient.email}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading patients:', error);
+            }
+        }
+
+        async function loadProviders() {
+            try {
+                const select = document.getElementById('provider');
+                select.innerHTML = '<option value="">Choisir un prestataire (optionnel)...</option>';
+
+                // Fetch doctors
+                const doctorsResponse = await fetch('/api/v1/core/participants/?role=doctor', { credentials: 'same-origin' });
+                const doctorsData = await doctorsResponse.json();
+
+                // Fetch hospitals
+                const hospitalsResponse = await fetch('/api/v1/core/participants/?role=hospital', { credentials: 'same-origin' });
+                const hospitalsData = await hospitalsResponse.json();
+
+                const providers = [];
+
+                // Add doctors
+                if (doctorsData.results && doctorsData.results.length > 0) {
+                    doctorsData.results.forEach(doctor => {
+                        providers.push({
+                            uid: doctor.uid,
+                            name: doctor.full_name || doctor.name,
+                            type: 'Dr.',
+                            role: 'doctor'
+                        });
+                    });
+                }
+
+                // Add hospitals
+                if (hospitalsData.results && hospitalsData.results.length > 0) {
+                    hospitalsData.results.forEach(hospital => {
+                        providers.push({
+                            uid: hospital.uid,
+                            name: hospital.full_name || hospital.name || hospital.organization_name,
+                            type: 'Hôpital',
+                            role: 'hospital'
+                        });
+                    });
+                }
+
+                // Sort by type (Doctors first, then Hospitals)
+                providers.sort((a, b) => {
+                    if (a.role === 'doctor' && b.role === 'hospital') return -1;
+                    if (a.role === 'hospital' && b.role === 'doctor') return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                // Add to dropdown
+                providers.forEach(provider => {
+                    const option = document.createElement('option');
+                    option.value = provider.uid;
+                    option.textContent = `${provider.type} ${provider.name}`;
+                    select.appendChild(option);
+                });
+
+                console.log(`✓ Loaded ${providers.length} providers (${doctorsData.results?.length || 0} doctors, ${hospitalsData.results?.length || 0} hospitals)`);
+            } catch (error) {
+                console.error('Error loading providers:', error);
+            }
+        }
+
+        async function getPatientLatestDiagnosis(patientId) {
+            try {
+                const response = await fetch(`/api/v1/health-records/records/?assigned_to=${patientId}`, { credentials: 'same-origin' });
+                const data = await response.json();
+                const records = data.results || data;
+
+                if (records.length > 0) {
+                    const latestRecord = records.find(r => r.diagnosis && r.diagnosis.trim());
+                    if (latestRecord && latestRecord.diagnosis) {
+                        return latestRecord.diagnosis;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading diagnosis:', error);
+            }
+            return '';
+        }
+
+        document.getElementById('patient').addEventListener('change', async function() {
+            const patientId = this.value;
+            if (patientId) {
+                const diagnosis = await getPatientLatestDiagnosis(patientId);
+                if (diagnosis) {
+                    document.getElementById('diagnosis').value = diagnosis;
+                }
+            }
+        });
+
+        loadPatients();
+        loadProviders();
+
+        document.getElementById('referralForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const patientId = document.getElementById('patient').value;
+            if (!patientId) {
+                alert('Veuillez sélectionner un patient');
+                return;
+            }
+
+            const formData = {
+                assigned_to: patientId,
+                type: 'referral',
+                title: `Référence ${document.getElementById('specialty').options[document.getElementById('specialty').selectedIndex].text}`,
+                date_of_record: new Date().toISOString().split('T')[0],
+                diagnosis: document.getElementById('diagnosis').value,
+                notes: `Spécialité: ${document.getElementById('specialty').options[document.getElementById('specialty').selectedIndex].text}\n` +
+                       `Prestataire: ${document.getElementById('provider').options[document.getElementById('provider').selectedIndex].text}\n` +
+                       `Urgence: ${document.getElementById('urgency').options[document.getElementById('urgency').selectedIndex].text}\n` +
+                       `Date préférée: ${document.getElementById('preferredDate').value || 'Non spécifiée'}\n\n` +
+                       `Raison de la référence:\n${document.getElementById('reason').value}\n\n` +
+                       `Antécédents médicaux:\n${document.getElementById('history').value || 'N/A'}\n\n` +
+                       `Examens effectués:\n${document.getElementById('investigations').value || 'N/A'}\n\n` +
+                       `Notes additionnelles:\n${document.getElementById('notes').value || 'N/A'}`,
+                participants: [patientId]
+            };
+
+            const providerId = document.getElementById('provider').value;
+            if (providerId) {
+                formData.participants.push(providerId);
+            }
+
+            try {
+                const response = await fetch('/api/v1/health-records/records/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('Référence créée avec succès!');
+                    window.location.href = '/doctor/appointments/';
+                } else {
+                    const error = await response.json();
+                    console.error('Error:', error);
+                    alert('Erreur lors de la création de la référence: ' + JSON.stringify(error));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

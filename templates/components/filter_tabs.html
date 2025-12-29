@@ -1,0 +1,8 @@
+<div class="filter-tabs">
+    {% for tab in tabs %}
+    <div class="filter-tab {% if tab.active %}active{% endif %}"
+         onclick="{{ tab.onclick|default:'' }}">
+        {{ tab.label }}
+    </div>
+    {% endfor %}
+</div>

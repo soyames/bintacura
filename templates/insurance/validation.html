@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validation de Contrat - Assurance Santé BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/claims.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Validation de Contrat" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="content-section">
+            <div class="stats-grid">
+                <div class="stat-card pending">
+                    <div class="stat-label">En Attente</div>
+                    <div class="stat-value" id="pendingCount">-</div>
+                </div>
+                <div class="stat-card review">
+                    <div class="stat-label">Assignées</div>
+                    <div class="stat-value" id="assignedCount">-</div>
+                </div>
+                <div class="stat-card approved">
+                    <div class="stat-label">Approuvées</div>
+                    <div class="stat-value" id="approvedCount">-</div>
+                </div>
+                <div class="stat-card rejected">
+                    <div class="stat-label">Rejetées</div>
+                    <div class="stat-value" id="rejectedCount">-</div>
+                </div>
+            </div>
+
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterSubscriptions('all')">Toutes</button>
+                <button class="filter-btn" onclick="filterSubscriptions('pending_approval')">En Attente</button>
+                <button class="filter-btn" onclick="filterSubscriptions('assigned')">Assignées</button>
+                <button class="filter-btn" onclick="filterSubscriptions('active')">Approuvées</button>
+                <button class="filter-btn" onclick="filterSubscriptions('cancelled')">Rejetées</button>
+            </div>
+
+            <div id="subscriptionsList" class="claims-list">
+                <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <p>Chargement des demandes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="subscriptionDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalSubscriptionTitle">Détails de la Demande</h3>
+                <button class="close-btn" onclick="closeSubscriptionModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="subscriptionDetailBody">
+            </div>
+            <div class="modal-footer" id="subscriptionModalActions">
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/validation.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
+

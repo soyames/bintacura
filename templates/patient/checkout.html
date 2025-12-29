@@ -1,0 +1,311 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finaliser la Commande - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient/checkout.css' %}">
+    <script src="{% static 'js/geolocation_helper.js' %}"></script>
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="nav-back-btn" onclick="window.history.back()">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Finaliser la Commande</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="checkout-container">
+        <div class="checkout-content">
+            <div class="checkout-main">
+                <div class="section">
+                    <h2 class="section-title">📦 Résumé de la Commande</h2>
+                    <div id="orderSummary" class="order-summary">
+                        <div class="loading">Chargement...</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">🚚 Mode de Livraison</h2>
+                    <div class="delivery-options">
+                        <label class="delivery-option">
+                            <input type="radio" name="delivery_method" value="pickup" checked onchange="updateDeliveryMethod()">
+                            <div class="option-content">
+                                <div class="option-icon">🏪</div>
+                                <div class="option-details">
+                                    <div class="option-title">Retrait en pharmacie</div>
+                                    <div class="option-desc">Gratuit - Retirez votre commande directement à la pharmacie</div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="delivery-option">
+                            <input type="radio" name="delivery_method" value="delivery" onchange="updateDeliveryMethod()">
+                            <div class="option-content">
+                                <div class="option-icon">🚚</div>
+                                <div class="option-details">
+                                    <div class="option-title">Livraison à domicile</div>
+                                    <div class="option-desc">Recevez votre commande chez vous</div>
+                                    <div class="option-note">⚠️ Paiement en ligne obligatoire pour la livraison</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="section" id="deliveryAddressSection" style="display: none;">
+                    <h2 class="section-title">📍 Adresse de Livraison</h2>
+                    <div class="address-form">
+                        <textarea id="deliveryAddress" placeholder="Entrez votre adresse complète..." rows="3"></textarea>
+                        <button class="btn-secondary" onclick="useMyLocation()">📍 Utiliser ma position</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">💳 Mode de Paiement</h2>
+                    <div class="payment-info" id="paymentInfo">
+                        <p>✓ Paiement à la pharmacie lors du retrait</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="checkout-sidebar">
+                <div class="order-total-card">
+                    <h3 class="card-title">Total de la Commande</h3>
+
+                    <div class="total-breakdown">
+                        <div class="total-row">
+                            <span>Sous-total</span>
+                            <span id="subtotal">0 {{ currency_symbol|default:"FCFA" }}</span>
+                        </div>
+                        <div class="total-row">
+                            <span>Frais de livraison</span>
+                            <span id="deliveryFee">0 {{ currency_symbol|default:"FCFA" }}</span>
+                        </div>
+                        <div class="total-row grand-total">
+                            <span>Total</span>
+                            <span id="grandTotal">0 {{ currency_symbol|default:"FCFA" }}</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="userCurrency" value="{{ user_currency|default:'XOF' }}">
+                    <input type="hidden" id="currencySymbol" value="{{ currency_symbol|default:'FCFA' }}">
+
+                    <button class="checkout-btn" onclick="placeOrder()">
+                        <span id="checkoutBtnText">Confirmer la Commande</span>
+                    </button>
+
+                    <div class="security-note">
+                        🔒 Paiement sécurisé via BINTACURA
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cartData = null;
+
+        async function loadCart() {
+            try {
+                const response = await fetch('/api/v1/pharmacy/cart/my_cart/', {
+                    credentials: 'same-origin'
+                });
+                const data = await response.json();
+
+                if (data.success && data.items && data.items.length > 0) {
+                    cartData = data;
+                    renderOrderSummary(data);
+                    updateTotals(data);
+                } else {
+                    window.location.href = '/patient/pharmacy-catalog/';
+                }
+            } catch (error) {
+                console.error('Error loading cart:', error);
+                showNotification('Erreur de chargement', 'error');
+            }
+        }
+
+        function renderOrderSummary(data) {
+            const summaryDiv = document.getElementById('orderSummary');
+            const currencySymbol = document.getElementById('currencySymbol').value || 'FCFA';
+
+            summaryDiv.innerHTML = `
+                <div class="pharmacy-info">
+                    <h3>🏥 ${data.cart.pharmacy_name || 'Pharmacie'}</h3>
+                </div>
+                <div class="items-list">
+                    ${data.items.map(item => `
+                        <div class="summary-item">
+                            <div class="item-details">
+                                <div class="item-name">${item.medication_name}</div>
+                                <div class="item-meta">${item.dosage_form} - ${item.strength}</div>
+                            </div>
+                            <div class="item-quantity">×${item.quantity}</div>
+                            <div class="item-price">${item.total_price.toLocaleString()} ${currencySymbol}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function updateTotals(data) {
+            const currencySymbol = document.getElementById('currencySymbol').value || 'FCFA';
+            document.getElementById('subtotal').textContent = `${data.total.toLocaleString()} ${currencySymbol}`;
+            document.getElementById('deliveryFee').textContent = `${(data.cart?.delivery_fee || 0).toLocaleString()} ${currencySymbol}`;
+            document.getElementById('grandTotal').textContent = `${(data.total + (data.cart?.delivery_fee || 0)).toLocaleString()} ${currencySymbol}`;
+        }
+
+        async function updateDeliveryMethod() {
+            const deliveryMethod = document.querySelector('input[name="delivery_method"]:checked').value;
+            const deliveryAddressSection = document.getElementById('deliveryAddressSection');
+            const paymentInfo = document.getElementById('paymentInfo');
+            const checkoutBtnText = document.getElementById('checkoutBtnText');
+
+            if (deliveryMethod === 'delivery') {
+                deliveryAddressSection.style.display = 'block';
+                paymentInfo.innerHTML = '<p style="color: #ff6b00;">⚠️ Paiement en ligne obligatoire pour la livraison</p>';
+                checkoutBtnText.textContent = 'Procéder au Paiement';
+            } else {
+                deliveryAddressSection.style.display = 'none';
+                paymentInfo.innerHTML = '<p>✓ Paiement à la pharmacie lors du retrait</p>';
+                checkoutBtnText.textContent = 'Confirmer la Commande';
+            }
+
+            try {
+                const deliveryAddress = document.getElementById('deliveryAddress').value;
+                const response = await fetch('/api/v1/pharmacy/cart/update_delivery/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        delivery_method: deliveryMethod,
+                        delivery_address: deliveryAddress
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('deliveryFee').textContent = `${data.delivery_fee} FCFA`;
+                    document.getElementById('grandTotal').textContent = `${data.total_amount} FCFA`;
+                }
+            } catch (error) {
+                console.error('Error updating delivery:', error);
+            }
+        }
+
+        async function useMyLocation() {
+            const btn = document.querySelector('[onclick="useMyLocation()"]');
+
+            try {
+                const position = await window.BINTACURAGeolocation.getPositionWithFeedback({
+                    button: btn,
+                    onSuccess: (pos) => {
+                        document.getElementById('deliveryAddress').value =
+                            `Lat: ${pos.latitude.toFixed(6)}, Lng: ${pos.longitude.toFixed(6)}`;
+                        updateDeliveryMethod();
+                        showNotification('Position obtenue avec succes', 'success');
+                    },
+                    onError: (errorMsg) => {
+                        showNotification(errorMsg, 'error');
+                    }
+                });
+            } catch (error) {
+                // Error already shown by onError callback
+                console.error('Geolocation error:', error);
+            }
+        }
+
+        async function placeOrder() {
+            const deliveryMethod = document.querySelector('input[name="delivery_method"]:checked').value;
+
+            if (deliveryMethod === 'delivery') {
+                const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+                if (!deliveryAddress) {
+                    showNotification('Veuillez entrer une adresse de livraison', 'error');
+                    return;
+                }
+            }
+
+            try {
+                const checkoutBtn = document.querySelector('.checkout-btn');
+                checkoutBtn.disabled = true;
+                checkoutBtn.textContent = 'Traitement...';
+
+                await updateDeliveryMethod();
+
+                if (deliveryMethod === 'delivery') {
+                    showNotification('Redirection vers le paiement...', 'info');
+                    setTimeout(() => {
+                        window.location.href = '/patient/payment/';
+                    }, 1500);
+                } else {
+                    showNotification('Commande confirmée! La pharmacie vous contactera.', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/patient/dashboard/';
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Error placing order:', error);
+                showNotification('Erreur lors de la confirmation', 'error');
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = 'Confirmer la Commande';
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? '#4CAF50' : type === 'error' ? '#ff4444' : '#2196F3';
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: ${bgColor};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-weight: 500;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        loadCart();
+    </script>
+</body>
+</html>
+

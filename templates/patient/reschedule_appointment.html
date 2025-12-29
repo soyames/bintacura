@@ -1,0 +1,282 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reprogrammer Rendez-vous - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    
+    <link rel="stylesheet" href="{% static 'css/reschedule_appointment.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/my-appointments/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Reprogrammer Rendez-vous</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="booking-container">
+        {% if appointment %}
+        <div class="current-appointment">
+            <h3>📅 Rendez-vous actuel</h3>
+            <div class="appointment-info">
+                <div class="info-item">
+                    <span class="info-label">Médecin</span>
+                    <span class="info-value">{{ appointment.doctor.full_name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Date actuelle</span>
+                    <span class="info-value">{{ appointment.appointment_date|date:"d/m/Y" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Heure actuelle</span>
+                    <span class="info-value">{{ appointment.appointment_time }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Statut</span>
+                    <span class="info-value">{{ appointment.status }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="booking-form">
+            <div class="fee-info">
+                <span class="fee-info-icon">💰</span>
+                <div class="fee-info-text">
+                    <strong>Frais de reprogrammation:</strong>
+                    <div class="fee-amount">{{ reschedule_fee }} CFA</div>
+                    <small>Ce montant sera débité de votre portefeuille</small>
+                </div>
+            </div>
+
+            <h2 class="section-title">Nouvelle date et heure</h2>
+
+            <form id="rescheduleForm">
+                {% csrf_token %}
+                <input type="hidden" id="appointmentId" value="{{ appointment.id }}">
+                <input type="hidden" id="doctorId" value="{{ appointment.doctor.uid }}">
+
+                <div class="form-group">
+                    <label class="form-label">Nouvelle Date</label>
+                    <input type="date" class="form-input" id="appointmentDate" name="appointment_date" required
+                        min="{{ today|date:'Y-m-d' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nouvelle Heure</label>
+                    <div class="time-slots" id="timeSlots">
+                        <p>Sélectionnez une date</p>
+                    </div>
+                </div>
+
+                <input type="hidden" id="selectedTime" name="appointment_time" required>
+
+                <div class="form-group">
+                    <label class="form-label">Raison du changement (optionnel)</label>
+                    <textarea class="form-input" name="reschedule_reason" rows="3"
+                        placeholder="Pourquoi souhaitez-vous reprogrammer ce rendez-vous?"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="window.location.href='/patient/my-appointments/'">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Confirmer la reprogrammation
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <div class="booking-form">
+            <h2 class="section-title">Rendez-vous introuvable</h2>
+            <p>Le rendez-vous demandé n'existe pas ou ne vous appartient pas.</p>
+            <div class="form-actions">
+                <button class="btn btn-primary" onclick="window.location.href='/patient/my-appointments/'">
+                    Retour à mes rendez-vous
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        let selectedTimeSlot = null;
+        let doctorAvailabilities = [];
+
+        async function loadDoctorAvailabilities(doctorId) {
+            try {
+                const response = await fetchApi(`appointments/availability/?provider_id=${doctorId}`);
+                const data = await response.json();
+                doctorAvailabilities = data.results || data;
+            } catch (error) {
+                console.error('Error loading availabilities:', error);
+                doctorAvailabilities = [];
+            }
+        }
+
+        document.getElementById('appointmentDate')?.addEventListener('change', function () {
+            loadTimeSlots();
+        });
+
+        function loadTimeSlots() {
+            const slotsContainer = document.getElementById('timeSlots');
+            const selectedDate = document.getElementById('appointmentDate').value;
+            const doctorId = document.getElementById('doctorId').value;
+
+            if (!selectedDate || !doctorId) {
+                slotsContainer.innerHTML = '<p>Sélectionnez une date</p>';
+                return;
+            }
+
+            const date = new Date(selectedDate);
+            const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayOfWeek = weekdays[date.getDay()];
+
+            const dayAvailability = doctorAvailabilities.find(av => av.weekday === dayOfWeek && av.is_active);
+
+            if (!dayAvailability) {
+                slotsContainer.innerHTML = '<p style="text-align: center; color: #999;">Aucune disponibilité pour ce jour</p>';
+                return;
+            }
+
+            const slots = generateTimeSlots(dayAvailability.start_time, dayAvailability.end_time, dayAvailability.slot_duration);
+
+            slotsContainer.innerHTML = slots.map(time => `
+                <div class="time-slot" onclick="selectTime('${time}')">${time}</div>
+            `).join('');
+        }
+
+        function generateTimeSlots(startTime, endTime, duration) {
+            const slots = [];
+            const [startHour, startMin] = startTime.split(':').map(Number);
+            const [endHour, endMin] = endTime.split(':').map(Number);
+
+            let currentMinutes = startHour * 60 + startMin;
+            const endMinutes = endHour * 60 + endMin;
+
+            while (currentMinutes < endMinutes) {
+                const hours = Math.floor(currentMinutes / 60);
+                const mins = currentMinutes % 60;
+                slots.push(`${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`);
+                currentMinutes += duration;
+            }
+
+            return slots;
+        }
+
+        function selectTime(time) {
+            selectedTimeSlot = time;
+            document.getElementById('selectedTime').value = time;
+
+            document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        document.getElementById('rescheduleForm')?.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const appointmentId = document.getElementById('appointmentId').value;
+            const date = document.getElementById('appointmentDate').value;
+            const time = selectedTimeSlot;
+            const rescheduleFee = parseInt('{{ reschedule_fee }}');
+
+            if (!time) {
+                alert('Veuillez sélectionner une heure');
+                return;
+            }
+
+            if (!confirm(`Êtes-vous sûr de vouloir reprogrammer ce rendez-vous?\n\nFrais de reprogrammation: ${rescheduleFee} CFA`)) {
+                return;
+            }
+
+            // Check wallet balance first
+            try {
+                const walletResponse = await fetchApi('payments/wallet/');
+                const walletData = await walletResponse.json();
+                const walletBalance = walletData.results?.[0]?.balance || 0;
+
+                if (walletBalance < rescheduleFee) {
+                    if (confirm(`Solde insuffisant!\n\nSolde actuel: ${walletBalance} CFA\nMontant requis: ${rescheduleFee} CFA\n\nVoulez-vous voir vos factures?`)) {
+                        window.location.href = '/patient/invoices/';
+                    }
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking wallet:', error);
+            }
+
+            try {
+                const response = await fetch(`/api/v1/appointments/appointments/${appointmentId}/reschedule/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        appointment_date: date,
+                        appointment_time: time,
+                        payment_method: 'wallet'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(`Rendez-vous reprogrammé avec succès!\n\nFrais: ${rescheduleFee} CFA\nRéférence: ${result.transaction_ref}`);
+                    window.location.href = '/patient/my-appointments/';
+                } else {
+                    alert('Erreur: ' + (result.error || result.detail || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error rescheduling:', error);
+                alert('Erreur de connexion');
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const doctorId = document.getElementById('doctorId')?.value;
+        if (doctorId) {
+            loadDoctorAvailabilities(doctorId);
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

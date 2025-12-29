@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Manager - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_manager_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy_manager" page_title="Tableau de Bord Manager" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy_manager.html" %}
+
+    <div class="main-content">
+        <div class="manager-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Revenus du Mois</h3>
+                    <p class="stat-value">{{ monthly_revenue }} FCFA</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Ventes du Mois</h3>
+                    <p class="stat-value">{{ monthly_sales }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Commandes en Cours</h3>
+                    <p class="stat-value">{{ pending_orders }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Personnel Actif</h3>
+                    <p class="stat-value">{{ active_staff }}</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Aperçu des Ventes</h2>
+                    </div>
+                    <div class="sales-chart">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Performance du Personnel</h2>
+                    </div>
+                    <div class="staff-performance">
+                        {% if staff_performance %}
+                            {% for staff in staff_performance %}
+                                <div class="performance-card">
+                                    <div class="staff-info">
+                                        <h4>{{ staff.full_name }}</h4>
+                                        <p class="role">{{ staff.get_role_display }}</p>
+                                    </div>
+                                    <div class="performance-metrics">
+                                        <div class="metric">
+                                            <span class="label">Ventes</span>
+                                            <span class="value">{{ staff.sales_count }}</span>
+                                        </div>
+                                        <div class="metric">
+                                            <span class="label">Revenus</span>
+                                            <span class="value">{{ staff.revenue }} FCFA</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune donnée de performance</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Alertes Importantes</h2>
+                    </div>
+                    <div class="alerts-list">
+                        <div class="alert-item warning">
+                            <span class="alert-icon">⚠️</span>
+                            <div class="alert-content">
+                                <h4>Stock Faible</h4>
+                                <p>{{ low_stock_count }} articles en stock faible</p>
+                            </div>
+                        </div>
+                        <div class="alert-item danger">
+                            <span class="alert-icon">🚨</span>
+                            <div class="alert-content">
+                                <h4>Expiration Proche</h4>
+                                <p>{{ expiring_soon_count }} articles expirant dans 30 jours</p>
+                            </div>
+                        </div>
+                        <div class="alert-item info">
+                            <span class="alert-icon">ℹ️</span>
+                            <div class="alert-content">
+                                <h4>Commandes en Attente</h4>
+                                <p>{{ pending_orders }} commandes à traiter</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Produits les Plus Vendus</h2>
+                    </div>
+                    <div class="top-products">
+                        {% if top_products %}
+                            {% for product in top_products %}
+                                <div class="product-item">
+                                    <div class="product-rank">{{ forloop.counter }}</div>
+                                    <div class="product-info">
+                                        <h4>{{ product.name }}</h4>
+                                        <p class="quantity-sold">{{ product.quantity_sold }} unités</p>
+                                    </div>
+                                    <div class="product-revenue">
+                                        <p>{{ product.revenue }} FCFA</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune donnée de vente</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'js/pharmacy_manager_dashboard.js' %}"></script>
+</body>
+</html>
+

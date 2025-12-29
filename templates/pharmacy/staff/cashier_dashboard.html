@@ -1,0 +1,163 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Caissier - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_cashier_dashboard.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy_cashier" page_title="Tableau de Bord Caissier" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy_cashier.html" %}
+
+    <div class="main-content">
+        <div class="cashier-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Ventes Aujourd'hui</h3>
+                    <p class="stat-value">{{ today_sales }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Revenus Aujourd'hui</h3>
+                    <p class="stat-value">{{ today_revenue }} {{ local_currency }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Transactions</h3>
+                    <p class="stat-value">{{ total_transactions }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Moyenne par Vente</h3>
+                    <p class="stat-value">{{ average_sale }} {{ local_currency }}</p>
+                </div>
+            </div>
+
+            <div class="dashboard-sections">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Nouvelle Vente</h2>
+                    </div>
+                    <div class="new-sale-form">
+                        <button class="btn-primary btn-large" onclick="openNewSaleModal()">
+                            <span>+</span> Nouvelle Vente
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Ventes Récentes</h2>
+                    </div>
+                    <div class="sales-list">
+                        {% if recent_sales %}
+                            {% for sale in recent_sales %}
+                                <div class="sale-card">
+                                    <div class="sale-info">
+                                        <h4>Vente #{{ sale.sale_number }}</h4>
+                                        {% if sale.patient %}
+                                            <p class="patient-name">Patient: {{ sale.patient.full_name }}</p>
+                                        {% else %}
+                                            <p class="patient-name">Vente au comptoir</p>
+                                        {% endif %}
+                                        <p class="sale-date">{{ sale.sale_date|date:"d/m/Y H:i" }}</p>
+                                        <p class="payment-method">Paiement: {{ sale.get_payment_method_display }}</p>
+                                    </div>
+                                    <div class="sale-amount">
+                                        <p class="amount">{{ sale.final_amount }} {{ sale.currency|default:local_currency }}</p>
+                                    </div>
+                                    <div class="sale-actions">
+                                        <button class="btn-sm btn-view" onclick="viewSale('{{ sale.id }}')">Détails</button>
+                                        <button class="btn-sm btn-print" onclick="printReceipt('{{ sale.id }}')">Imprimer</button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-data">Aucune vente récente</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>Résumé du Jour</h2>
+                    </div>
+                    <div class="daily-summary">
+                        <div class="summary-item">
+                            <span class="label">Total Espèces</span>
+                            <span class="value">{{ cash_total }} {{ local_currency }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Total Carte</span>
+                            <span class="value">{{ card_total }} {{ local_currency }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Total Mobile Money</span>
+                            <span class="value">{{ mobile_money_total }} {{ local_currency }}</span>
+                        </div>
+                        <div class="summary-item total">
+                            <span class="label">Total Général</span>
+                            <span class="value">{{ today_revenue }} {{ local_currency }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="newSaleModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Nouvelle Vente</h3>
+                <span class="close" onclick="closeModal('newSaleModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="newSaleForm" onsubmit="submitNewSale(event)">
+                    <div class="form-group">
+                        <label for="customerType">Type de Client</label>
+                        <select id="customerType" onchange="togglePatientSearch(this.value)">
+                            <option value="walk-in">Vente au comptoir</option>
+                            <option value="patient">Patient</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="patientSearchGroup" style="display: none;">
+                        <label for="patientSearch">Rechercher Patient</label>
+                        <input type="text" id="patientSearch" placeholder="Nom ou téléphone">
+                        <div id="patientResults" class="search-results"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Articles</label>
+                        <div id="saleItems"></div>
+                        <button type="button" class="btn-secondary" onclick="addSaleItem()">+ Ajouter Article</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentMethod">Méthode de Paiement</label>
+                        <select id="paymentMethod" required>
+                            <option value="onsite_cash">Espèces</option>
+                            <option value="fedapay_card">Carte</option>
+                            <option value="fedapay_mobile">Mobile Money</option>
+                            <option value="insurance">Assurance</option>
+                        </select>
+                    </div>
+                    <div class="sale-total">
+                        <span class="label">Total:</span>
+                        <span class="value" id="saleTotal">0 <span class="currency-code">{{ local_currency }}</span></span>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('newSaleModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Enregistrer Vente</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/pharmacy_cashier_dashboard.js' %}"></script>
+</body>
+</html>
+

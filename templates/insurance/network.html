@@ -1,0 +1,557 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réseau de Santé - Assurance BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/network.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Réseau de Santé" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-label">Total Partenaires</div>
+                <div class="stat-value" id="totalPartners">0</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-label">Hôpitaux</div>
+                <div class="stat-value" id="hospitalCount">0</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-label">Cliniques</div>
+                <div class="stat-value" id="clinicCount">0</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-label">Pharmacies</div>
+                <div class="stat-value" id="pharmacyCount">0</div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-header">
+                <h2>Liste des Partenaires</h2>
+                <button onclick="openAddPartnerModal()" class="btn-primary" style="background: #10b981; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    + Ajouter un Partenaire
+                </button>
+            </div>
+            <div style="margin: 20px 0;">
+                <div class="filter-controls">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Rechercher un partenaire..." onkeyup="searchNetwork()">
+                    <div class="filter-buttons">
+                        <button onclick="filterNetwork('all')" class="filter-btn active">Tous</button>
+                        <button onclick="filterNetwork('active')" class="filter-btn">Actifs</button>
+                        <button onclick="filterNetwork('inactive')" class="filter-btn">Inactifs</button>
+                        <button onclick="filterNetwork('premium')" class="filter-btn">Premium</button>
+                    </div>
+                </div>
+            </div>
+            <div id="alertContainer" style="margin: 20px 0;"></div>
+            <div id="networkList" class="network-list"></div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Partner Modal -->
+    <div id="partnerModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+        <div style="max-width: 600px; margin: 50px auto; background: white; border-radius: 12px; padding: 30px; position: relative;">
+            <h2 id="modalTitle" style="margin: 0 0 20px 0; color: #2d3748;">Ajouter un Partenaire</h2>
+            <button onclick="closePartnerModal()" style="position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: #718096;">&times;</button>
+
+            <form id="partnerForm" onsubmit="submitPartnerForm(event)">
+                <input type="hidden" id="partnerId" value="">
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Type de Partenaire *</label>
+                    <select id="partnerType" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;" onchange="loadAvailablePartners()">
+                        <option value="">Sélectionner un type</option>
+                        <option value="hospital">Hôpital</option>
+                        <option value="clinic">Clinique</option>
+                        <option value="pharmacy">Pharmacie</option>
+                        <option value="doctor">Médecin</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Partenaire de Santé *</label>
+                    <select id="healthcarePartner" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <option value="">Sélectionner un partenaire</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Package d'Assurance</label>
+                    <select id="insurancePackage" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        <option value="">Aucun package spécifique</option>
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Statut *</label>
+                        <select id="status" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <option value="active">Actif</option>
+                            <option value="inactive">Inactif</option>
+                            <option value="suspended">Suspendu</option>
+                            <option value="pending">En attente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Niveau *</label>
+                        <select id="tier" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <option value="premium">Premium</option>
+                            <option value="standard">Standard</option>
+                            <option value="basic">Basique</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Pourcentage de Réduction *</label>
+                    <input type="number" id="discountPercentage" required min="0" max="100" step="0.01" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;" placeholder="0.00">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Date de Début *</label>
+                        <input type="date" id="startDate" required style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; color: #2d3748; font-weight: 600;">Date de Fin</label>
+                        <input type="date" id="endDate" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="isPreferred" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="color: #2d3748; font-weight: 600;">Partenaire Préféré</span>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closePartnerModal()" style="padding: 10px 20px; border: 1px solid #e2e8f0; background: white; color: #2d3748; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Annuler
+                    </button>
+                    <button type="submit" style="padding: 10px 20px; border: none; background: #10b981; color: white; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        let allPartners = [];
+        let currentFilter = 'all';
+        let availablePackages = [];
+
+        // Get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+
+        // Alert functions
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? '#10b981' : '#ef4444';
+            alertContainer.innerHTML = `
+                <div style="padding: 15px 20px; background: ${alertClass}; color: white; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0 5px;">&times;</button>
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        // Load network partners
+        async function loadNetwork() {
+            try {
+                const response = await fetch('/api/v1/insurance/network/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!response.ok) throw new Error('Failed to load network');
+                const data = await response.json();
+                allPartners = data.results || data;
+                updateStats();
+                renderNetwork(allPartners);
+            } catch (error) {
+                console.error('Error loading network:', error);
+                showAlert('Erreur lors du chargement du réseau', 'error');
+            }
+        }
+
+        // Load insurance packages for dropdown
+        async function loadInsurancePackages() {
+            try {
+                const response = await fetch('/api/v1/insurance/packages/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    availablePackages = data.results || data;
+                    updatePackageDropdown();
+                }
+            } catch (error) {
+                console.error('Error loading packages:', error);
+            }
+        }
+
+        function updatePackageDropdown() {
+            const select = document.getElementById('insurancePackage');
+            select.innerHTML = '<option value="">Aucun package spécifique</option>';
+            availablePackages.forEach(pkg => {
+                select.innerHTML += `<option value="${pkg.id}">${pkg.name}</option>`;
+            });
+        }
+
+        // Load available healthcare partners based on type
+        async function loadAvailablePartners() {
+            const partnerType = document.getElementById('partnerType').value;
+            const select = document.getElementById('healthcarePartner');
+            select.innerHTML = '<option value="">Chargement...</option>';
+
+            if (!partnerType) {
+                select.innerHTML = '<option value="">Sélectionner un type d\'abord</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/core/participants/?role=${partnerType}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (!response.ok) throw new Error('Failed to load partners');
+                const data = await response.json();
+                const partners = data.results || data;
+
+                select.innerHTML = '<option value="">Sélectionner un partenaire</option>';
+                partners.forEach(partner => {
+                    select.innerHTML += `<option value="${partner.id}">${partner.name || partner.user?.username || 'N/A'}</option>`;
+                });
+            } catch (error) {
+                console.error('Error loading partners:', error);
+                select.innerHTML = '<option value="">Erreur de chargement</option>';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalPartners').textContent = allPartners.length;
+            const activePartners = allPartners.filter(p => p.status === 'active');
+            document.getElementById('hospitalCount').textContent = activePartners.filter(p => p.healthcare_partner?.participant_type === 'hospital').length;
+            document.getElementById('clinicCount').textContent = activePartners.filter(p => p.healthcare_partner?.participant_type === 'clinic').length;
+            document.getElementById('pharmacyCount').textContent = activePartners.filter(p => p.healthcare_partner?.participant_type === 'pharmacy').length;
+        }
+
+        function filterNetwork(filter) {
+            currentFilter = filter;
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            let filtered = allPartners;
+            if (filter === 'active') {
+                filtered = allPartners.filter(p => p.status === 'active');
+            } else if (filter === 'inactive') {
+                filtered = allPartners.filter(p => p.status === 'inactive');
+            } else if (filter === 'premium') {
+                filtered = allPartners.filter(p => p.tier === 'premium');
+            }
+            renderNetwork(filtered);
+        }
+
+        function searchNetwork() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = allPartners;
+
+            if (currentFilter === 'active') {
+                filtered = filtered.filter(p => p.status === 'active');
+            } else if (currentFilter === 'inactive') {
+                filtered = filtered.filter(p => p.status === 'inactive');
+            } else if (currentFilter === 'premium') {
+                filtered = filtered.filter(p => p.tier === 'premium');
+            }
+
+            if (query) {
+                filtered = filtered.filter(p =>
+                    (p.healthcare_partner?.name && p.healthcare_partner.name.toLowerCase().includes(query)) ||
+                    (p.healthcare_partner?.city && p.healthcare_partner.city.toLowerCase().includes(query)) ||
+                    (p.healthcare_partner?.address && p.healthcare_partner.address.toLowerCase().includes(query))
+                );
+            }
+            renderNetwork(filtered);
+        }
+
+        function renderNetwork(partners) {
+            const container = document.getElementById('networkList');
+            if (partners.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #718096; padding: 40px;">Aucun partenaire trouvé</p>';
+                return;
+            }
+
+            container.innerHTML = partners.map(partner => {
+                const hp = partner.healthcare_partner || {};
+                const typeIcons = {
+                    hospital: '🏥',
+                    clinic: '🏥',
+                    pharmacy: '💊',
+                    doctor: '👨‍⚕️'
+                };
+                const icon = typeIcons[hp.participant_type] || '🏪';
+
+                const statusColors = {
+                    active: '#10b981',
+                    inactive: '#6b7280',
+                    suspended: '#f59e0b',
+                    pending: '#3b82f6'
+                };
+                const statusLabels = {
+                    active: 'Actif',
+                    inactive: 'Inactif',
+                    suspended: 'Suspendu',
+                    pending: 'En attente'
+                };
+
+                const tierColors = {
+                    premium: '#8b5cf6',
+                    standard: '#3b82f6',
+                    basic: '#6b7280'
+                };
+                const tierLabels = {
+                    premium: 'Premium',
+                    standard: 'Standard',
+                    basic: 'Basique'
+                };
+
+                return `
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 8px 0; color: #2d3748; font-size: 18px;">${icon} ${hp.name || 'N/A'}</h3>
+                            <p style="color: #718096; margin: 0; font-size: 14px;">${hp.address || 'Adresse non spécifiée'}</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; background: ${tierColors[partner.tier] || '#6b7280'}20; color: ${tierColors[partner.tier] || '#6b7280'};">
+                                ${tierLabels[partner.tier] || partner.tier}
+                            </span>
+                            <span style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; background: ${statusColors[partner.status] || '#6b7280'}20; color: ${statusColors[partner.status] || '#6b7280'};">
+                                ${statusLabels[partner.status] || partner.status}
+                            </span>
+                            ${partner.is_preferred ? '<span style="padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; background: #fbbf2420; color: #fbbf24;">⭐ Préféré</span>' : ''}
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Ville</div>
+                            <div style="font-weight: 600; color: #2d3748;">${hp.city || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Téléphone</div>
+                            <div style="font-weight: 600; color: #2d3748;">${hp.phone || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Email</div>
+                            <div style="font-weight: 600; color: #2d3748; word-break: break-all;">${hp.email || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Réduction</div>
+                            <div style="font-weight: 600; color: #10b981;">${partner.discount_percentage || 0}%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Date de début</div>
+                            <div style="font-weight: 600; color: #2d3748;">${partner.start_date || 'N/A'}</div>
+                        </div>
+                        ${partner.end_date ? `
+                        <div>
+                            <div style="font-size: 12px; color: #718096; margin-bottom: 4px;">Date de fin</div>
+                            <div style="font-weight: 600; color: #2d3748;">${partner.end_date}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                        <button onclick="openEditPartnerModal(${partner.id})" style="padding: 8px 16px; border: 1px solid #10b981; background: white; color: #10b981; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                            Modifier
+                        </button>
+                        <button onclick="deletePartner(${partner.id})" style="padding: 8px 16px; border: 1px solid #ef4444; background: white; color: #ef4444; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                            Retirer
+                        </button>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        // Modal functions
+        function openAddPartnerModal() {
+            document.getElementById('modalTitle').textContent = 'Ajouter un Partenaire';
+            document.getElementById('partnerForm').reset();
+            document.getElementById('partnerId').value = '';
+            document.getElementById('partnerModal').style.display = 'block';
+        }
+
+        async function openEditPartnerModal(partnerId) {
+            const partner = allPartners.find(p => p.id === partnerId);
+            if (!partner) {
+                showAlert('Partenaire introuvable', 'error');
+                return;
+            }
+
+            document.getElementById('modalTitle').textContent = 'Modifier le Partenaire';
+            document.getElementById('partnerId').value = partner.id;
+
+            // Set partner type first to load the correct partners
+            const partnerType = partner.healthcare_partner?.participant_type || '';
+            document.getElementById('partnerType').value = partnerType;
+
+            // Load partners and then set the value
+            await loadAvailablePartners();
+            document.getElementById('healthcarePartner').value = partner.healthcare_partner?.id || '';
+
+            document.getElementById('insurancePackage').value = partner.insurance_package || '';
+            document.getElementById('status').value = partner.status || 'active';
+            document.getElementById('tier').value = partner.tier || 'standard';
+            document.getElementById('discountPercentage').value = partner.discount_percentage || 0;
+            document.getElementById('startDate').value = partner.start_date || '';
+            document.getElementById('endDate').value = partner.end_date || '';
+            document.getElementById('isPreferred').checked = partner.is_preferred || false;
+
+            document.getElementById('partnerModal').style.display = 'block';
+        }
+
+        function closePartnerModal() {
+            document.getElementById('partnerModal').style.display = 'none';
+            document.getElementById('partnerForm').reset();
+        }
+
+        // Submit form (Add or Edit)
+        async function submitPartnerForm(event) {
+            event.preventDefault();
+
+            const partnerId = document.getElementById('partnerId').value;
+            const formData = {
+                healthcare_partner: parseInt(document.getElementById('healthcarePartner').value),
+                insurance_package: document.getElementById('insurancePackage').value || null,
+                status: document.getElementById('status').value,
+                tier: document.getElementById('tier').value,
+                discount_percentage: parseFloat(document.getElementById('discountPercentage').value),
+                start_date: document.getElementById('startDate').value,
+                end_date: document.getElementById('endDate').value || null,
+                is_preferred: document.getElementById('isPreferred').checked
+            };
+
+            const url = partnerId
+                ? `/api/v1/insurance/network/${partnerId}/`
+                : '/api/v1/insurance/network/';
+            const method = partnerId ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(JSON.stringify(errorData));
+                }
+
+                showAlert(partnerId ? 'Partenaire modifié avec succès' : 'Partenaire ajouté avec succès', 'success');
+                closePartnerModal();
+                loadNetwork();
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                showAlert('Erreur lors de l\'enregistrement du partenaire', 'error');
+            }
+        }
+
+        // Delete partner
+        async function deletePartner(partnerId) {
+            if (!confirm('Êtes-vous sûr de vouloir retirer ce partenaire du réseau ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/insurance/network/${partnerId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'X-CSRFToken': csrftoken
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to delete partner');
+
+                showAlert('Partenaire retiré avec succès', 'success');
+                loadNetwork();
+            } catch (error) {
+                console.error('Error deleting partner:', error);
+                showAlert('Erreur lors de la suppression du partenaire', 'error');
+            }
+        }
+
+        // Initialize
+        loadNetwork();
+        loadInsurancePackages();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

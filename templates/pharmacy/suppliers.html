@@ -1,0 +1,479 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fournisseurs - Pharmacie Centrale BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_suppliers.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    {% include "components/translation_script.html" %}
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .btn-add-supplier {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        .btn-add-supplier:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        .supplier-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-edit {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-edit:hover {
+            background: #2563eb;
+        }
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+        .btn-view {
+            background: #6b7280;
+            color: white;
+        }
+        .btn-view:hover {
+            background: #4b5563;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            color: #1f2937;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .close-btn:hover {
+            color: #1f2937;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .form-checkbox {
+            margin-right: 8px;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-submit:hover {
+            background: #059669;
+        }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .alert-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy" page_title="Fournisseurs" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_pharmacy.html" %}
+
+    <div class="main-content">
+        <div class="page-header">
+            <h2>Gestion des Fournisseurs</h2>
+            <button onclick="showAddSupplierModal()" class="btn-add-supplier">
+                <span style="font-size: 20px; margin-right: 5px;">+</span> Ajouter Fournisseur
+            </button>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Fournisseurs Actifs</h3>
+                <div class="stat-value" id="activeSuppliers">{{ active_suppliers|default:0 }}</div>
+                <div class="stat-label">En partenariat</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Fournisseurs</h3>
+                <div class="stat-value" id="totalSuppliers">{{ total_suppliers|default:0 }}</div>
+                <div class="stat-label">Dans la base</div>
+            </div>
+        </div>
+
+        <div class="suppliers-grid" id="suppliersGrid">
+            {% if suppliers %}
+                {% for supplier in suppliers %}
+                <div class="supplier-card" data-supplier-id="{{ supplier.id }}">
+                    <div class="supplier-header">
+                        <div class="supplier-name">{{ supplier.name }}</div>
+                        <span class="supplier-status {% if supplier.is_active %}status-active{% else %}status-inactive{% endif %}">
+                            {% if supplier.is_active %}Actif{% else %}Inactif{% endif %}
+                        </span>
+                    </div>
+                    <div class="supplier-info">
+                        {% if supplier.contact_person %}
+                        <div class="info-row">
+                            <span class="info-icon">👤</span>
+                            <span class="info-text">{{ supplier.contact_person }}</span>
+                        </div>
+                        {% endif %}
+                        {% if supplier.phone_number %}
+                        <div class="info-row">
+                            <span class="info-icon">📞</span>
+                            <span class="info-text">{{ supplier.phone_number }}</span>
+                        </div>
+                        {% endif %}
+                        {% if supplier.email %}
+                        <div class="info-row">
+                            <span class="info-icon">📧</span>
+                            <span class="info-text">{{ supplier.email }}</span>
+                        </div>
+                        {% endif %}
+                        {% if supplier.address %}
+                        <div class="info-row">
+                            <span class="info-icon">📍</span>
+                            <span class="info-text">{{ supplier.address }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="supplier-actions">
+                        <button type="button" class="action-btn btn-edit" onclick="editSupplier('{{ supplier.id }}')">Modifier</button>
+                        <button type="button" class="action-btn btn-delete" onclick="deleteSupplier('{{ supplier.id }}', '{{ supplier.name }}')">Supprimer</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏭</div>
+                    <h3>Aucun fournisseur</h3>
+                    <p>Cliquez sur "Ajouter Fournisseur" pour commencer</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add/Edit Supplier Modal -->
+    <div id="supplierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ajouter un Fournisseur</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="supplierForm" onsubmit="saveSupplier(event)">
+                <input type="hidden" id="supplierId" value="">
+
+                <div class="form-group">
+                    <label class="form-label" for="name">Nom du Fournisseur *</label>
+                    <input type="text" id="name" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="contact_person">Personne de Contact</label>
+                    <input type="text" id="contact_person" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="phone_number">Téléphone</label>
+                    <input type="tel" id="phone_number" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="address">Adresse</label>
+                    <textarea id="address" class="form-textarea"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="is_active" class="form-checkbox" checked>
+                        Fournisseur actif
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-submit">Enregistrer</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.add('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        function showAddSupplierModal() {
+            document.getElementById('modalTitle').textContent = 'Ajouter un Fournisseur';
+            document.getElementById('supplierForm').reset();
+            document.getElementById('supplierId').value = '';
+            document.getElementById('is_active').checked = true;
+            document.getElementById('supplierModal').classList.add('active');
+        }
+
+        async function editSupplier(supplierId) {
+            try {
+                const response = await fetch(`/api/v1/pharmacy/suppliers/${supplierId}/`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const supplier = await response.json();
+                    document.getElementById('modalTitle').textContent = 'Modifier le Fournisseur';
+                    document.getElementById('supplierId').value = supplier.id;
+                    document.getElementById('name').value = supplier.name || '';
+                    document.getElementById('contact_person').value = supplier.contact_person || '';
+                    document.getElementById('email').value = supplier.email || '';
+                    document.getElementById('phone_number').value = supplier.phone_number || '';
+                    document.getElementById('address').value = supplier.address || '';
+                    document.getElementById('is_active').checked = supplier.is_active;
+                    document.getElementById('supplierModal').classList.add('active');
+                } else {
+                    showAlert('Erreur lors du chargement du fournisseur', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Erreur de connexion', 'error');
+            }
+        }
+
+        async function saveSupplier(event) {
+            event.preventDefault();
+
+            const supplierId = document.getElementById('supplierId').value;
+            const isEdit = supplierId !== '';
+            const url = isEdit
+                ? `/api/v1/pharmacy/suppliers/${supplierId}/`
+                : '/api/v1/pharmacy/suppliers/';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const data = {
+                name: document.getElementById('name').value,
+                contact_person: document.getElementById('contact_person').value,
+                email: document.getElementById('email').value,
+                phone_number: document.getElementById('phone_number').value,
+                address: document.getElementById('address').value,
+                is_active: document.getElementById('is_active').checked
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken,
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showAlert(`Fournisseur ${isEdit ? 'modifié' : 'ajouté'} avec succès!`, 'success');
+                    closeModal();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const error = await response.json();
+                    showAlert(error.message || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Erreur de connexion', 'error');
+            }
+        }
+
+        async function deleteSupplier(supplierId, supplierName) {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer le fournisseur "${supplierName}" ?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/pharmacy/suppliers/${supplierId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    showAlert('Fournisseur supprimé avec succès!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert('Erreur lors de la suppression', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Erreur de connexion', 'error');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('supplierModal').classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.getElementById('supplierModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+

@@ -1,0 +1,348 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polices - Assurance Santé BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/policies.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Polices" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-label">Total Polices</div>
+                <div class="stat-value" id="totalPolicies">0</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-label">Actives</div>
+                <div class="stat-value" id="activePolicies">0</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-label">Individuelles</div>
+                <div class="stat-value" id="individualPolicies">0</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-label">Familiales</div>
+                <div class="stat-value" id="familyPolicies">0</div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-header">
+                <h2>Liste des Polices</h2>
+                <button class="add-package-btn" onclick="openPackageModal()">+ Créer une Police</button>
+            </div>
+            <div class="filter-buttons">
+                <button onclick="filterPolicies('all')" class="filter-btn">Toutes</button>
+                <button onclick="filterPolicies('individual')" class="filter-btn">Individuelles</button>
+                <button onclick="filterPolicies('family')" class="filter-btn">Familiales</button>
+                <button onclick="filterPolicies('active')" class="filter-btn">Actives</button>
+            </div>
+            <div id="policiesList" class="policies-list"></div>
+        </div>
+    </div>
+
+    <div id="packageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Créer une Police d'Assurance</h3>
+                <button class="close-btn" onclick="closePackageModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="packageForm">
+                    <input type="hidden" id="packageId">
+                    <div class="form-group">
+                        <label>Nom de la Police *</label>
+                        <input type="text" id="packageName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description *</label>
+                        <textarea id="packageDescription" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Type de Police *</label>
+                        <select id="packageType" required>
+                            <option value="individual">Individuelle</option>
+                            <option value="family">Familiale</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Prime (FCFA) *</label>
+                        <input type="number" id="premiumAmount" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Fréquence de Paiement *</label>
+                        <select id="paymentFrequency" required>
+                            <option value="monthly">Mensuelle</option>
+                            <option value="quarterly">Trimestrielle</option>
+                            <option value="semi_annual">Semestrielle</option>
+                            <option value="annual">Annuelle</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Couverture Maximale (FCFA)</label>
+                        <input type="number" id="maxCoverage" min="0" placeholder="Laisser vide pour illimité">
+                    </div>
+                    <div class="form-group">
+                        <label>Réduction Consultation (%)</label>
+                        <input type="number" id="consultationDiscount" min="0" max="100" value="0">
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="consultationFree">
+                            <label for="consultationFree">Consultations Gratuites</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closePackageModal()">Annuler</button>
+                <button class="btn-save" onclick="savePackage()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        let allPolicies = [];
+        let currentFilter = 'all';
+
+        async function loadPolicies() {
+            try {
+                const response = await fetch('/api/v1/insurance/packages/');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                allPolicies = data.results || data;
+                updateStats();
+                renderPolicies(allPolicies);
+            } catch (error) {
+                console.error('Error loading policies:', error);
+                document.getElementById('policiesList').innerHTML = '<div class="empty-state">Erreur de chargement des polices</div>';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalPolicies').textContent = allPolicies.length;
+            document.getElementById('activePolicies').textContent = allPolicies.filter(p => p.is_active).length;
+            document.getElementById('individualPolicies').textContent = allPolicies.filter(p => p.package_type === 'individual').length;
+            document.getElementById('familyPolicies').textContent = allPolicies.filter(p => p.package_type === 'family').length;
+        }
+
+        function filterPolicies(filter) {
+            currentFilter = filter;
+            let filtered = allPolicies;
+            if (filter === 'individual') filtered = allPolicies.filter(p => p.package_type === 'individual');
+            if (filter === 'family') filtered = allPolicies.filter(p => p.package_type === 'family');
+            if (filter === 'active') filtered = allPolicies.filter(p => p.is_active);
+            renderPolicies(filtered);
+        }
+
+        function renderPolicies(policies) {
+            const container = document.getElementById('policiesList');
+            if (policies.length === 0) {
+                container.innerHTML = '<div class="empty-state">Aucune police trouvée</div>';
+                return;
+            }
+            container.innerHTML = policies.map(policy => `
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <div>
+                            <h3 class="policy-title">${policy.name}</h3>
+                            <p class="policy-description">${policy.description}</p>
+                        </div>
+                        <span class="policy-status ${policy.is_active ? 'active' : 'inactive'}">
+                            ${policy.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </div>
+                    <div class="policy-details">
+                        <div>
+                            <div class="policy-detail-item">Type</div>
+                            <div class="policy-detail-value">${policy.package_type === 'individual' ? 'Individuelle' : 'Familiale'}</div>
+                        </div>
+                        <div>
+                            <div class="policy-detail-item">Prime</div>
+                            <div class="policy-detail-value">${policy.premium_amount.toLocaleString()} FCFA</div>
+                        </div>
+                        <div>
+                            <div class="policy-detail-item">Couverture Max</div>
+                            <div class="policy-detail-value">${policy.max_coverage_amount ? policy.max_coverage_amount.toLocaleString() + ' FCFA' : 'Illimitée'}</div>
+                        </div>
+                        <div>
+                            <div class="policy-detail-item">Fréquence</div>
+                            <div class="policy-detail-value">${policy.payment_frequency === 'monthly' ? 'Mensuelle' : policy.payment_frequency === 'quarterly' ? 'Trimestrielle' : policy.payment_frequency === 'semi_annual' ? 'Semestrielle' : 'Annuelle'}</div>
+                        </div>
+                    </div>
+                    ${policy.is_consultation_free ? '<div class="policy-feature">✓ Consultations gratuites</div>' : ''}
+                    <div class="policy-actions">
+                        <button type="button" class="btn-edit" onclick="editPackage('${policy.id}')">Modifier</button>
+                        <button type="button" class="btn-toggle" onclick="togglePackageStatus('${policy.id}', ${policy.is_active})">${policy.is_active ? 'Désactiver' : 'Activer'}</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openPackageModal(packageId = null) {
+            const modal = document.getElementById('packageModal');
+            const form = document.getElementById('packageForm');
+            form.reset();
+
+            if (packageId) {
+                const policy = allPolicies.find(p => p.id === packageId);
+                if (policy) {
+                    document.getElementById('modalTitle').textContent = 'Modifier la Police';
+                    document.getElementById('packageId').value = policy.id;
+                    document.getElementById('packageName').value = policy.name;
+                    document.getElementById('packageDescription').value = policy.description;
+                    document.getElementById('packageType').value = policy.package_type;
+                    document.getElementById('premiumAmount').value = policy.premium_amount;
+                    document.getElementById('paymentFrequency').value = policy.payment_frequency;
+                    document.getElementById('maxCoverage').value = policy.max_coverage_amount || '';
+                    document.getElementById('consultationDiscount').value = policy.consultation_discount_percentage || 0;
+                    document.getElementById('consultationFree').checked = policy.is_consultation_free;
+                }
+            } else {
+                document.getElementById('modalTitle').textContent = 'Créer une Police d\'Assurance';
+                document.getElementById('packageId').value = '';
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closePackageModal() {
+            document.getElementById('packageModal').classList.remove('active');
+        }
+
+        function editPackage(packageId) {
+            openPackageModal(packageId);
+        }
+
+        async function savePackage() {
+            const form = document.getElementById('packageForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const packageId = document.getElementById('packageId').value;
+            const data = {
+                name: document.getElementById('packageName').value,
+                description: document.getElementById('packageDescription').value,
+                package_type: document.getElementById('packageType').value,
+                premium_amount: parseInt(document.getElementById('premiumAmount').value),
+                payment_frequency: document.getElementById('paymentFrequency').value,
+                max_coverage_amount: document.getElementById('maxCoverage').value ? parseInt(document.getElementById('maxCoverage').value) : null,
+                consultation_discount_percentage: parseFloat(document.getElementById('consultationDiscount').value) || 0,
+                is_consultation_free: document.getElementById('consultationFree').checked
+            };
+
+            try {
+                const url = packageId ? `/api/v1/insurance/packages/${packageId}/` : '/api/v1/insurance/packages/';
+                const method = packageId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert(packageId ? 'Police mise à jour avec succès!' : 'Police créée avec succès!');
+                    closePackageModal();
+                    await loadPolicies();
+                } else {
+                    const error = await response.json();
+                    const errorMessage = error.detail || error.error || JSON.stringify(error);
+                    alert('Erreur: ' + errorMessage);
+                }
+            } catch (error) {
+                console.error('Error saving package:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function togglePackageStatus(packageId, currentStatus) {
+            if (!confirm(currentStatus ? 'Désactiver cette police?' : 'Activer cette police?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/insurance/packages/${packageId}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ is_active: !currentStatus })
+                });
+
+                if (response.ok) {
+                    alert('Statut mis à jour avec succès!');
+                    await loadPolicies();
+                } else {
+                    const error = await response.json();
+                    const errorMessage = error.detail || error.error || JSON.stringify(error);
+                    alert('Erreur: ' + errorMessage);
+                }
+            } catch (error) {
+                console.error('Error toggling status:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        loadPolicies();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

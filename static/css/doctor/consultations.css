@@ -1,0 +1,274 @@
+:root {
+    --accent-color: #28a745;
+}
+
+.main-content {
+    padding: 80px 20px 40px;
+}
+
+.filter-tabs {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    flex: 1;
+    min-width: 150px;
+    padding: 15px 20px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: #f8f9fa;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.filter-tab:hover {
+    background: #e9ecef;
+}
+
+.filter-tab.active {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+    border-color: #28a745;
+}
+
+.tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.filter-tab.active .tab-count {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.consultation-list {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.consultation-item {
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    transition: all 0.2s;
+}
+
+.consultation-item:hover {
+    background: #f8f9fa;
+}
+
+.consultation-item:last-child {
+    border-bottom: none;
+}
+
+.consultation-item.waiting {
+    border-left: 4px solid #ffc107;
+    background: #fff3cd;
+}
+
+.consultation-item.scheduled {
+    border-left: 4px solid #0d6efd;
+    background: #cfe2ff;
+}
+
+.consultation-item.in-progress {
+    border-left: 4px solid #17a2b8;
+    background: #d1ecf1;
+}
+
+.consultation-item.completed {
+    border-left: 4px solid #28a745;
+    background: #d4edda;
+}
+
+.consultation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 15px;
+    gap: 20px;
+}
+
+.patient-info-main {
+    flex: 1;
+}
+
+.patient-name-large {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 5px;
+}
+
+.consultation-details {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: #555;
+}
+
+.consultation-detail {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    gap: 5px;
+}
+
+.status-badge.waiting {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.scheduled {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status-badge.in-progress {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.status-badge.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.waiting-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff3cd;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    color: #856404;
+}
+
+.pulse {
+    width: 8px;
+    height: 8px;
+    background: #ffc107;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.consultation-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-call {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-call:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.btn-dossier {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+}
+
+.btn-dossier:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-complete {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+}
+
+.btn-complete:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #718096;
+}
+
+.empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.queue-position {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    font-weight: 700;
+    margin-right: 10px;
+}
+
+@media (max-width: 768px) {
+    .consultation-header {
+        flex-direction: column;
+    }
+
+    .consultation-actions {
+        width: 100%;
+    }
+
+    .btn {
+        flex: 1;
+        justify-content: center;
+    }
+}

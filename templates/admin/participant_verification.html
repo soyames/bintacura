@@ -1,0 +1,439 @@
+{% load static %}
+<!DOCTYPE HTML>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provider Verification - BINTACURA Admin</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <style>
+        :root {
+            --accent-color: #dc3545;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .profile-icon {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .filter-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .filter-btn {
+            padding: 10px 25px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            align-self: flex-end;
+        }
+
+        .filter-btn:hover {
+            background: #c82333;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .providers-table {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-verified {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-doctor {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-hospital {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-pharmacy {
+            background: #e2d5f3;
+            color: #6f42c1;
+        }
+
+        .badge-insurance_company {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 13px;
+            color: white;
+            background: var(--accent-color);
+            display: inline-block;
+        }
+
+        .action-btn:hover {
+            background: #c82333;
+        }
+
+        .verification-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .verified-icon {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .page-link {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .page-link.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="logo-img">
+                <span class="logo-text">BINTACURA Admin</span>
+            </div>
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">👨‍💼</div>
+                <div class="sidebar-user-info">
+                    <h3>{{ request.user.full_name|default:request.user.email }}</h3>
+                    <p>Super Administrator</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Administration</div>
+                <a href="{% url 'superadmin:dashboard' %}" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">📊</span>
+                    <span class="sidebar-menu-item-text">Dashboard</span>
+                </a>
+                <a href="{% url 'superadmin:provider_verification' %}" class="sidebar-menu-item active">
+                    <span class="sidebar-menu-item-icon">✓</span>
+                    <span class="sidebar-menu-item-text">Provider Verification</span>
+                </a>
+                <a href="{% url 'superadmin:user_management' %}" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">👥</span>
+                    <span class="sidebar-menu-item-text">User Management</span>
+                </a>
+                <a href="{% url 'superadmin:refund_management' %}" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">💰</span>
+                    <span class="sidebar-menu-item-text">Refund Requests</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Analytics & Reports</div>
+                <a href="{% url 'superadmin:analytics' %}" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">📈</span>
+                    <span class="sidebar-menu-item-text">Analytics Dashboard</span>
+                </a>
+                <a href="{% url 'superadmin:financial_dashboard' %}" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">💵</span>
+                    <span class="sidebar-menu-item-text">Financial Reports</span>
+                </a>
+                <a href="{% url 'superadmin:audit_logs' %}" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">📋</span>
+                    <span class="sidebar-menu-item-text">Audit Logs</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">System</div>
+                <a href="/admin/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">⚙️</span>
+                    <span class="sidebar-menu-item-text">Django Admin</span>
+                </a>
+                <a href="{% url 'auth_web:logout' %}" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">🚪</span>
+                    <span class="sidebar-menu-item-text">Logout</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <header class="mobile-header">
+        <div class="menu-icon" id="menuIcon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="mobile-logo-img">
+            ADMIN
+        </div>
+        <div class="profile-icon">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </header>
+
+    <main class="main-content">
+
+        <div class="stats-summary">
+            <div class="stat-box">
+                <div class="stat-label">Pending Verification</div>
+                <div class="stat-number" style="color: #ffc107;">{{ pending_count }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Verified Providers</div>
+                <div class="stat-number" style="color: #28a745;">{{ verified_count }}</div>
+            </div>
+        </div>
+
+        <form method="get" class="filter-bar">
+            <div class="filter-group">
+                <label>Status</label>
+                <select name="status">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Verified</option>
+                    <option value="unverified" {% if status_filter == 'unverified' %}selected{% endif %}>Unverified
+                    </option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Provider Type</label>
+                <select name="role">
+                    <option value="">All Types</option>
+                    <option value="doctor" {% if role_filter == 'doctor' %}selected{% endif %}>Doctor</option>
+                    <option value="hospital" {% if role_filter == 'hospital' %}selected{% endif %}>Hospital</option>
+                    <option value="pharmacy" {% if role_filter == 'pharmacy' %}selected{% endif %}>Pharmacy</option>
+                    <option value="insurance_company" {% if role_filter == 'insurance_company' %}selected{% endif %}>
+                        Insurance Company</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Search</label>
+                <input type="text" name="search" placeholder="Name, email, phone..." value="{{ search_query }}">
+            </div>
+            <button type="submit" class="filter-btn">Apply Filters</button>
+        </form>
+
+        <div class="providers-table">
+            {% if providers %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Type</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                        <th>Registered</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for provider in providers %}
+                    <tr>
+                        <td>
+                            <strong>{{ provider.full_name|default:"No Name" }}</strong>
+                            {% if provider.has_blue_checkmark %}
+                            <span class="verified-icon">✓</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ provider.role }}">{{ provider.get_role_display }}</span>
+                        </td>
+                        <td>
+                            {{ provider.email }}<br>
+                            <small style="color: #999;">{{ provider.phone_number|default:"No phone" }}</small>
+                        </td>
+                        <td>
+                            {% if provider.has_blue_checkmark %}
+                            <span class="badge badge-verified">Verified ✓</span>
+                            {% else %}
+                            <span class="badge badge-pending">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ provider.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <a href="{% url 'superadmin:provider_detail' provider.uid %}" class="action-btn">Review</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if is_paginated %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                <a href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+                    class="page-link">First</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+                    class="page-link">Previous</a>
+                {% endif %}
+
+                <span class="page-link active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+                    class="page-link">Next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}"
+                    class="page-link">Last</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">
+                <h3>No providers found</h3>
+                <p>Try adjusting your filters</p>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <script>
+        const menuIcon = document.getElementById('menuIcon');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        menuIcon.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        });
+
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
+

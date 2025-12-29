@@ -1,0 +1,207 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Patients - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/receptionist_patients.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="receptionist" page_title="Gestion des Patients" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_receptionist.html" %}
+
+    <div class="main-content">
+        <div class="patients-container">
+            <div class="filters-section">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label for="searchInput">Rechercher</label>
+                        <input type="text" id="searchInput" placeholder="Nom, téléphone ou email" oninput="filterPatients()">
+                    </div>
+                    <div class="filter-group">
+                        <label for="genderFilter">Genre</label>
+                        <select id="genderFilter" onchange="filterPatients()">
+                            <option value="">Tous</option>
+                            <option value="M">Homme</option>
+                            <option value="F">Femme</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sortBy">Trier par</label>
+                        <select id="sortBy" onchange="sortPatients()">
+                            <option value="recent">Plus récent</option>
+                            <option value="name">Nom (A-Z)</option>
+                            <option value="visits">Nombre de visites</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="patients-table-container">
+                <table class="patients-table">
+                    <thead>
+                        <tr>
+                            <th>Nom Complet</th>
+                            <th>Date de Naissance</th>
+                            <th>Genre</th>
+                            <th>Téléphone</th>
+                            <th>Email</th>
+                            <th>Dernière Visite</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="patientsTableBody">
+                        {% for patient in recent_patients %}
+                            <tr>
+                                <td>{{ patient.patient.full_name }}</td>
+                                <td>{{ patient.patient.date_of_birth|date:"d/m/Y" }}</td>
+                                <td>{{ patient.patient.gender }}</td>
+                                <td>{{ patient.patient.phone_number }}</td>
+                                <td>{{ patient.patient.email }}</td>
+                                <td>{{ patient.appointment_date|date:"d/m/Y" }}</td>
+                                <td>
+                                    <button class="btn-sm btn-view" onclick="viewPatient('{{ patient.patient.id }}')">Voir</button>
+                                    <button class="btn-sm btn-appointment" onclick="createAppointmentForPatient('{{ patient.patient.id }}')">RDV</button>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="no-data">Aucun patient trouvé</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="newPatientModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Enregistrer Nouveau Patient</h3>
+                <span class="close" onclick="closeModal('newPatientModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="newPatientForm" onsubmit="submitNewPatient(event)">
+                    <div class="form-section">
+                        <h4>Informations Personnelles</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">Prénom</label>
+                                <input type="text" id="firstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Nom</label>
+                                <input type="text" id="lastName" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="dateOfBirth">Date de Naissance</label>
+                                <input type="date" id="dateOfBirth" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="gender">Genre</label>
+                                <select id="gender" required>
+                                    <option value="">Sélectionner</option>
+                                    <option value="M">Homme</option>
+                                    <option value="F">Femme</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Contact</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="phone_number">Téléphone</label>
+                                <input type="tel" id="phone_number" name="phone_number" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="address">Adresse</label>
+                            <textarea id="address" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Contact d'Urgence</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="emergencyContactName">Nom</label>
+                                <input type="text" id="emergencyContactName">
+                            </div>
+                            <div class="form-group">
+                                <label for="emergencyContactPhone">Téléphone</label>
+                                <input type="tel" id="emergencyContactPhone">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="emergencyContactRelationship">Relation</label>
+                            <input type="text" id="emergencyContactRelationship" placeholder="Ex: Époux, Parent, Ami">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Informations Médicales</h4>
+                        <div class="form-group">
+                            <label for="bloodGroup">Groupe Sanguin</label>
+                            <select id="bloodGroup">
+                                <option value="">Sélectionner</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="allergies">Allergies Connues</label>
+                            <textarea id="allergies" rows="2" placeholder="Listez toutes les allergies connues"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="chronicConditions">Conditions Chroniques</label>
+                            <textarea id="chronicConditions" rows="2" placeholder="Diabète, hypertension, etc."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" onclick="closeModal('newPatientModal')">Annuler</button>
+                        <button type="submit" class="btn-primary">Enregistrer Patient</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewPatientModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Détails du Patient</h3>
+                <span class="close" onclick="closeModal('viewPatientModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="patientDetailsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/receptionist_patients.js' %}"></script>
+</body>
+</html>
+

@@ -1,0 +1,158 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Réclamations - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/insurance-subscription/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Mes Réclamations</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+        <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h2 style="margin-bottom: 20px;">📋 Mes Réclamations d'Assurance</h2>
+            
+            <div id="claimsList">
+                <div style="text-align: center; padding: 40px; color: #6b7280;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">⏳</div>
+                    <p>Chargement des réclamations...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const subscriptionId = urlParams.get('subscription');
+
+        async function loadClaims() {
+            try {
+                let url = '/api/v1/insurance/claims/';
+                if (subscriptionId) {
+                    url += `?subscription=${subscriptionId}`;
+                }
+                
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load claims');
+                }
+                
+                const data = await response.json();
+                displayClaims(data.results || data);
+            } catch (error) {
+                console.error('Error loading claims:', error);
+                document.getElementById('claimsList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #dc3545;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">❌</div>
+                        <p>Erreur lors du chargement des réclamations</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayClaims(claims) {
+            const container = document.getElementById('claimsList');
+            
+            if (!claims || claims.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #6b7280;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
+                        <p>Aucune réclamation trouvée</p>
+                        <button onclick="window.location.href='/patient/insurance-subscription/'" 
+                                style="margin-top: 20px; padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            Retour à l'assurance
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = claims.map(claim => `
+                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-weight: 700; font-size: 16px; margin-bottom: 5px;">
+                                Réclamation #${claim.claim_number}
+                            </div>
+                            <div style="color: #6b7280; font-size: 14px;">
+                                ${new Date(claim.created_at).toLocaleDateString('fr-FR')}
+                            </div>
+                        </div>
+                        <span style="padding: 6px 12px; background: ${getStatusColor(claim.status)}; color: white; border-radius: 6px; font-size: 13px;">
+                            ${getStatusLabel(claim.status)}
+                        </span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Type</div>
+                            <div style="font-weight: 600;">${claim.claim_type || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Montant</div>
+                            <div style="font-weight: 600;">${claim.claimed_amount} FCFA</div>
+                        </div>
+                    </div>
+                    
+                    ${claim.description ? `
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; font-size: 14px;">
+                            ${claim.description}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                'submitted': '#6b7280',
+                'under_review': '#f59e0b',
+                'approved': '#10b981',
+                'rejected': '#ef4444',
+                'paid': '#10b981'
+            };
+            return colors[status] || '#6b7280';
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'submitted': 'Soumise',
+                'under_review': 'En cours',
+                'approved': 'Approuvée',
+                'rejected': 'Rejetée',
+                'paid': 'Payée'
+            };
+            return labels[status] || status;
+        }
+
+        loadClaims();
+    </script>
+</body>
+</html>
+

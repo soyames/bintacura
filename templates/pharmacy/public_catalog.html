@@ -1,0 +1,138 @@
+{% load static %}
+{% load currency_filters %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogue Médicaments - {{ pharmacy_name }}</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_catalog.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type=user_role page_title="Catalogue" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% if user.role == 'pharmacy' %}
+        {% include "layout/_sidebar_pharmacy.html" %}
+    {% elif user.role == 'doctor' %}
+        {% include "layout/_sidebar_doctor.html" %}
+    {% elif user.role == 'hospital' %}
+        {% include "layout/_sidebar_hospital.html" %}
+    {% elif user.role == 'patient' %}
+        {% include "layout/_sidebar_patient.html" %}
+    {% endif %}
+
+    <div class="main-content">
+        <div class="page-header-modern">
+            <div class="page-header-left">
+                <div class="page-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                </div>
+                <div class="page-header-text">
+                    <h1>Catalogue de Médicaments</h1>
+                    <p>{{ pharmacy_name }} - Parcourez et commandez des médicaments</p>
+                </div>
+            </div>
+            <div class="page-header-actions">
+                <button class="btn-modern btn-secondary-modern" id="viewCartBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" y="21" r="1"></circle>
+                        <circle cx="20" y="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    Panier (<span id="cartCount">0</span>)
+                </button>
+            </div>
+        </div>
+
+        <div class="catalog-filters-section">
+            <div class="filter-group">
+                <input type="text" id="searchInput" class="filter-input" placeholder="Rechercher un médicament...">
+            </div>
+            <div class="filter-group">
+                <select id="categoryFilter" class="filter-select">
+                    <option value="">Toutes catégories</option>
+                    <option value="antibiotics">Antibiotiques</option>
+                    <option value="painkillers">Analgésiques</option>
+                    <option value="vitamins">Vitamines</option>
+                    <option value="chronic">Maladies chroniques</option>
+                    <option value="pediatric">Pédiatrie</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="stockFilter" class="filter-select">
+                    <option value="">Tous les stocks</option>
+                    <option value="in_stock">En stock</option>
+                    <option value="low_stock">Stock faible</option>
+                    <option value="out_of_stock">Rupture de stock</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="sortFilter" class="filter-select">
+                    <option value="name_asc">Nom (A-Z)</option>
+                    <option value="name_desc">Nom (Z-A)</option>
+                    <option value="price_asc">Prix croissant</option>
+                    <option value="price_desc">Prix décroissant</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="catalog-grid" id="catalogGrid">
+            {% for item in inventory_items %}
+            <div class="catalog-item" data-id="{{ item.id }}" data-category="{{ item.medication.category }}" data-stock="{{ item.quantity_in_stock }}">
+                <div class="catalog-item-header">
+                    <span class="stock-badge {% if item.quantity_in_stock > item.reorder_level %}stock-good{% elif item.quantity_in_stock > 0 %}stock-low{% else %}stock-out{% endif %}">
+                        {% if item.quantity_in_stock > item.reorder_level %}
+                            En stock
+                        {% elif item.quantity_in_stock > 0 %}
+                            Stock limité
+                        {% else %}
+                            Rupture
+                        {% endif %}
+                    </span>
+                    {% if item.medication.requires_prescription %}
+                    <span class="prescription-badge">Sur ordonnance</span>
+                    {% endif %}
+                </div>
+                <div class="catalog-item-body">
+                    <h3 class="medication-name">{{ item.medication.name }}</h3>
+                    <p class="medication-generic">{{ item.medication.generic_name }}</p>
+                    <p class="medication-manufacturer">{{ item.manufacturer }}</p>
+                    <div class="medication-details">
+                        <span class="detail-item">Lot: {{ item.batch_number }}</span>
+                        <span class="detail-item">Exp: {{ item.expiry_date|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="catalog-item-price">
+                        <span class="price-amount">{{ item.selling_price|convert_currency:user.preferred_currency }}</span>
+                        <span class="price-currency">{{ user.preferred_currency }}</span>
+                    </div>
+                </div>
+                <div class="catalog-item-footer">
+                    <div class="quantity-selector">
+                        <button class="qty-btn" onclick="decrementQty(this)">-</button>
+                        <input type="number" class="qty-input" value="1" min="1" max="{{ item.quantity_in_stock }}">
+                        <button class="qty-btn" onclick="incrementQty(this)">+</button>
+                    </div>
+                    <button class="btn-add-cart" onclick="addToCart('{{ item.id }}', this)" {% if item.quantity_in_stock == 0 %}disabled{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                        Ajouter
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="{% static 'js/pharmacy/public_catalog.js' %}"></script>
+</body>
+</html>

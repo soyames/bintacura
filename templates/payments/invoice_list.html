@@ -1,0 +1,274 @@
+{% load static %}
+{% load currency_filters %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Factures - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/payments/invoices.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/{{ portal }}/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Mes Factures</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/{{ portal }}/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+    
+    {% if portal == 'patient' %}
+        {% include "layout/_sidebar_patient.html" %}
+    {% elif portal == 'doctor' %}
+        {% include "layout/_sidebar_doctor.html" %}
+    {% elif portal == 'hospital' %}
+        {% include "layout/_sidebar_hospital.html" %}
+    {% elif portal == 'pharmacy' %}
+        {% include "layout/_sidebar_pharmacy.html" %}
+    {% elif portal == 'insurance' %}
+        {% include "layout/_sidebar_insurance.html" %}
+    {% endif %}
+    
+<div class="invoice-list-container">
+    {% if unpaid_count > 0 %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-circle"></i>
+        <strong>{{ unpaid_count }} Facture(s) en attente</strong>
+        <p>Vous avez actuellement {{ unpaid_count }} factures impayées pour un total de {{ unpaid_total|format_currency:currency }}</p>
+    </div>
+    {% endif %}
+
+    <div class="invoice-stats">
+        <div class="stat-card stat-paid">
+            <div class="stat-number">{{ paid_count }}</div>
+            <div class="stat-label">PAYÉE</div>
+        </div>
+        <div class="stat-card stat-unpaid">
+            <div class="stat-number">{{ unpaid_count }}</div>
+            <div class="stat-label">NON PAYÉE</div>
+        </div>
+        <div class="stat-card stat-cancelled">
+            <div class="stat-number">{{ cancelled_count }}</div>
+            <div class="stat-label">ANNULÉE</div>
+        </div>
+        <div class="stat-card stat-refunded">
+            <div class="stat-number">{{ refunded_count }}</div>
+            <div class="stat-label">REMBOURSÉE</div>
+        </div>
+    </div>
+
+    <div class="invoice-table-container">
+        <div class="table-header">
+            <div class="pagination-info">
+                {% if invoices %}
+                1 de {{ invoices|length }} / {{ total_invoices }}
+                {% else %}
+                0 de 0 / 0
+                {% endif %}
+            </div>
+        </div>
+
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>Facture #</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>État</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td class="invoice-number">
+                        <a href="{% if invoice.type == 'insurance_premium' %}/patient/insurance/invoices/{% else %}{% url portal|add:':view-invoice-detail' invoice.id %}{% endif %}">
+                            {{ invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if invoice.type == 'insurance_premium' %}
+                            <span class="badge badge-info">Prime d'assurance</span>
+                        {% elif invoice.type == 'hospital_bill' %}
+                            <span class="badge badge-warning">Facture hôpital</span>
+                        {% else %}
+                            <span class="badge badge-secondary">Paiement de service</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ invoice.description }}</td>
+                    <td>{{ invoice.date|date:"d/m/Y" }}</td>
+                    <td class="amount">{{ invoice.display_amount|floatformat:0 }} {{ currency }}</td>
+                    <td>
+                        <span class="status-badge status-{{ invoice.status|lower }}">
+                            {% if invoice.status == 'PAID' or invoice.status == 'paid' %}
+                                PAYÉE
+                            {% elif invoice.status == 'PENDING' or invoice.status == 'pending' %}
+                                EN ATTENTE
+                            {% elif invoice.status == 'overdue' %}
+                                EN RETARD
+                            {% elif invoice.status == 'FAILED' or invoice.status == 'cancelled' %}
+                                ANNULÉE
+                            {% elif invoice.status == 'REFUNDED' or invoice.status == 'refunded' %}
+                                REMBOURSÉE
+                            {% else %}
+                                {{ invoice.status|upper }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        {% if invoice.status == 'PENDING' or invoice.status == 'pending' or invoice.status == 'OVERDUE' or invoice.status == 'overdue' %}
+                            {% if invoice.type == 'insurance_premium' %}
+                                <button type="button" onclick="payInsuranceInvoice('{{ invoice.id }}')" class="btn btn-primary btn-sm">Payer</button>
+                            {% elif invoice.type == 'hospital_bill' %}
+                                <button type="button" onclick="payHospitalBill('{{ invoice.id }}')" class="btn btn-primary btn-sm">Payer</button>
+                            {% else %}
+                                <button type="button" onclick="payServiceInvoice('{{ invoice.id }}')" class="btn btn-primary btn-sm">Payer</button>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if invoice.type == 'insurance_premium' %}
+                            <a href="/patient/insurance/invoices/" class="btn btn-secondary btn-sm">Voir</a>
+                        {% elif invoice.type == 'hospital_bill' %}
+                            <a href="/patient/admissions/" class="btn btn-secondary btn-sm">Voir</a>
+                        {% else %}
+                            <a href="{% url portal|add:':view-invoice-detail' invoice.id %}" class="btn btn-secondary btn-sm">Voir</a>
+                        {% endif %}
+
+                        {% if invoice.status == 'PAID' or invoice.status == 'paid' %}
+                            {% if invoice.type == 'service_payment' %}
+                                <a href="{% url portal|add:':download-invoice' invoice.id %}" class="btn btn-success btn-sm">Télécharger</a>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center">Aucune facture trouvée</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="table-footer">
+            <div class="pagination">
+                <button type="button" class="btn btn-pagination" disabled>Précédent</button>
+                <button type="button" class="btn btn-pagination active">1</button>
+                <button type="button" class="btn btn-pagination" disabled>Suivant</button>
+            </div>
+            <div class="per-page">
+                <label for="per-page-select">Afficher</label>
+                <select id="per-page-select" class="form-control">
+                    <option selected>10</option>
+                    <option>25</option>
+                    <option>50</option>
+                    <option>100</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    {% if request.user.role != 'patient' %}
+    <div class="quick-actions">
+        <h3>Actions rapides</h3>
+        <ul class="action-menu">
+            <li class="active">
+                <a href="{% url portal|add:':invoices' %}">
+                    <i class="fas fa-file-invoice"></i> Mes factures
+                </a>
+            </li>
+            <li>
+                <a href="{% url portal|add:':wallet' %}">
+                    <i class="fas fa-wallet"></i> Portefeuille
+                </a>
+            </li>
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function payInsuranceInvoice(invoiceId) {
+    if (!confirm('Voulez-vous payer cette facture d\'assurance avec votre portefeuille?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/v1/insurance/invoices/${invoiceId}/pay_with_wallet/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('Paiement réussi! Nouveau solde: ' + data.new_balance + ' FCFA');
+            window.location.reload();
+        } else {
+            alert('Erreur: ' + (data.error || 'Le paiement a échoué'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+async function payHospitalBill(billId) {
+    alert('Le paiement des factures d\'hôpital sera bientôt disponible.\n\nVeuillez contacter l\'hôpital pour payer votre facture.');
+}
+
+async function payServiceInvoice(invoiceId) {
+    if (!confirm('Voulez-vous payer cette facture avec votre portefeuille?')) {
+        return;
+    }
+
+    try {
+        // For now, show info about the payment
+        alert('Le paiement des factures de service sera bientôt disponible.\n\nVeuillez utiliser la page de détails de la facture pour voir les options de paiement.');
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Erreur de connexion');
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<script src="{% static 'js/payments/invoices.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+

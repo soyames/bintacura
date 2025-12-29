@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Tableau de Bord Personnel - {{ insurance_company.full_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <h1>Tableau de Bord Personnel</h1>
+                <p class="text-muted">{{ insurance_company.full_name }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Info Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user-tie"></i> Informations du Personnel
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><strong>Nom:</strong> {{ staff_participant.full_name }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Rôle:</strong> {{ staff_participant.get_staff_role_display }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Email:</strong> {{ staff_participant.email }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Based on Staff Role -->
+    {% if staff_role == 'claims_processor' %}
+    <!-- Claims Processor Dashboard -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-file-medical"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="pendingClaimsCount">0</h3>
+                    <p>Réclamations en Attente</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="approvedClaimsCount">0</h3>
+                    <p>Réclamations Approuvées</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="rejectedClaimsCount">0</h3>
+                    <p>Réclamations Rejetées</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="avgProcessingTime">0h</h3>
+                    <p>Temps Moyen</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Claims -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Réclamations Récentes</h5>
+                </div>
+                <div class="card-body">
+                    <div id="recentClaimsList">
+                        <p class="text-muted">Chargement...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif staff_role == 'underwriter' %}
+    <!-- Underwriter Dashboard -->
+    <div class="row">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="pendingSubscriptionsCount">0</h3>
+                    <p>Souscriptions en Attente</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="approvedSubscriptionsCount">0</h3>
+                    <p>Souscriptions Approuvées</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="riskAssessmentCount">0</h3>
+                    <p>Évaluations de Risque</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif staff_role == 'customer_service' %}
+    <!-- Customer Service Dashboard -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="openTicketsCount">0</h3>
+                    <p>Tickets Ouverts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="enquiriesCount">0</h3>
+                    <p>Demandes de Renseignements</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="activeMembersCount">0</h3>
+                    <p>Membres Actifs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="satisfactionScore">0%</h3>
+                    <p>Satisfaction Client</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Generic Staff Dashboard -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Mes Tâches</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Tableau de bord en cours de développement pour votre rôle.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Notifications</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Aucune notification pour le moment.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Actions Rapides</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if staff_role == 'claims_processor' %}
+                        <div class="col-md-3">
+                            <a href="/insurance/claims/" class="btn btn-primary btn-block">
+                                <i class="fas fa-file-medical"></i> Traiter les Réclamations
+                            </a>
+                        </div>
+                        {% elif staff_role == 'underwriter' %}
+                        <div class="col-md-3">
+                            <a href="/insurance/validation/" class="btn btn-primary btn-block">
+                                <i class="fas fa-file-contract"></i> Valider les Souscriptions
+                            </a>
+                        </div>
+                        {% elif staff_role == 'customer_service' %}
+                        <div class="col-md-3">
+                            <a href="/insurance/enquiries/" class="btn btn-primary btn-block">
+                                <i class="fas fa-question-circle"></i> Gérer les Demandes
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="/insurance/members/" class="btn btn-primary btn-block">
+                                <i class="fas fa-users"></i> Membres
+                            </a>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-3">
+                            <a href="/insurance/reports/" class="btn btn-secondary btn-block">
+                                <i class="fas fa-chart-bar"></i> Rapports
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="/insurance/profile/" class="btn btn-secondary btn-block">
+                                <i class="fas fa-user"></i> Mon Profil
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load staff-specific data based on role
+    document.addEventListener('DOMContentLoaded', function() {
+        const staffRole = '{{ staff_role }}';
+        
+        if (staffRole === 'claims_processor') {
+            loadClaimsData();
+        } else if (staffRole === 'underwriter') {
+            loadUnderwritingData();
+        } else if (staffRole === 'customer_service') {
+            loadCustomerServiceData();
+        }
+    });
+
+    function loadClaimsData() {
+        // Load claims statistics
+        fetch('/api/insurance/claims/?status=pending')
+            .then(response => response.json())
+            .then(data => {
+                // Update UI with data
+                console.log('Claims data loaded');
+            })
+            .catch(error => console.error('Error loading claims:', error));
+    }
+
+    function loadUnderwritingData() {
+        // Load underwriting statistics
+        console.log('Loading underwriting data...');
+    }
+
+    function loadCustomerServiceData() {
+        // Load customer service statistics
+        console.log('Loading customer service data...');
+    }
+</script>
+{% endblock %}

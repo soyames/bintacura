@@ -1,0 +1,86 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Vérification de votre compte - BintaCura{% endblock %}
+
+{% block content %}
+<h2 style="color: #2196F3; margin-bottom: 20px;">Vérifiez votre adresse email</h2>
+
+<p style="margin-bottom: 15px;">Bonjour <strong>{{ user_name }}</strong>,</p>
+
+<p style="margin-bottom: 15px;">
+    Merci d'avoir créé votre compte BintaCura et d'avoir accepté nos conditions d'utilisation!
+</p>
+
+<p style="margin-bottom: 20px;">
+    Pour accéder à toutes les fonctionnalités de la plateforme, veuillez vérifier votre adresse email en utilisant l'une des deux méthodes ci-dessous :
+</p>
+
+<div style="background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0 0 10px 0; font-weight: bold; color: #1976D2;">Option 1 : Cliquez sur le bouton</p>
+    <div style="text-align: center; margin: 15px 0;">
+        <a href="{{ verification_link }}"
+           style="display: inline-block; padding: 15px 30px; background-color: #2196F3; color: white;
+                  text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+            Vérifier mon email
+        </a>
+    </div>
+</div>
+
+<div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0 0 10px 0; font-weight: bold; color: #856404;">Option 2 : Entrez le code de vérification</p>
+    <p style="margin: 0; color: #856404; font-size: 14px;">
+        Connectez-vous et entrez ce code sur la page de vérification :
+    </p>
+    <div style="text-align: center; margin: 15px 0;">
+        <div style="display: inline-block; background-color: white; padding: 15px 30px;
+                    border: 2px dashed #ffc107; border-radius: 8px; font-size: 32px;
+                    font-weight: bold; letter-spacing: 8px; color: #2196F3; font-family: monospace;">
+            {{ activation_code }}
+        </div>
+    </div>
+</div>
+
+<div style="background-color: #fff; border: 1px solid #e0e0e0; border-radius: 5px; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0 0 10px 0; color: #666;">
+        <strong>⏰ Validité :</strong> Ce code est valide pendant <strong>24 heures</strong>
+    </p>
+    <p style="margin: 0; color: #666;">
+        <strong>🔒 Accès actuel :</strong> Vous pouvez explorer votre tableau de bord, mais certaines fonctionnalités nécessitent la vérification de votre email.
+    </p>
+</div>
+
+<div style="margin-top: 30px; padding: 20px; background-color: #f5f5f5; border-radius: 5px;">
+    <p style="margin: 0 0 10px 0; font-weight: bold; color: #333;">
+        Fonctionnalités disponibles après vérification :
+    </p>
+    <ul style="margin: 10px 0 0 20px; color: #666; line-height: 1.8;">
+        <li>Prendre des rendez-vous avec les médecins</li>
+        <li>Effectuer des paiements et transactions</li>
+        <li>Accéder à vos dossiers médicaux</li>
+        <li>Communiquer avec les professionnels de santé</li>
+        <li>Soumettre des demandes d'assurance</li>
+        <li>Utiliser toutes les fonctionnalités de la plateforme</li>
+    </ul>
+</div>
+
+<p style="margin-top: 25px; color: #666; font-size: 14px;">
+    Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :
+</p>
+<p style="word-break: break-all; color: #2196F3; font-size: 13px;">
+    {{ verification_link }}
+</p>
+
+<div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+    <p style="color: #666; font-size: 14px; margin: 0;">
+        <strong>Besoin d'aide ?</strong><br>
+        Si vous rencontrez des difficultés, contactez notre équipe support à
+        <a href="mailto:contacts@bintacura.org" style="color: #2196F3;">contacts@bintacura.org</a>
+    </p>
+</div>
+
+<div style="margin-top: 20px; padding: 15px; background-color: #ffebee; border-radius: 5px;">
+    <p style="margin: 0; color: #c62828; font-size: 13px;">
+        <strong>⚠️ Attention :</strong> Si vous n'avez pas créé de compte BintaCura, veuillez ignorer cet email.
+    </p>
+</div>
+{% endblock %}

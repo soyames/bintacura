@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_payment.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="pharmacy_staff" page_title="Paiement" %}
+
+    <div class="main-content">
+        <div class="payment-container">
+            <div class="payment-header">
+                <h2>Traitement du Paiement</h2>
+                <span class="order-number">Commande #{{ order.order_number }}</span>
+            </div>
+
+            <div class="payment-layout">
+                <!-- Left: Order Summary -->
+                <div class="order-summary">
+                    <h3>Résumé de la Commande</h3>
+                    
+                    <div class="patient-info-box">
+                        <h4>Patient</h4>
+                        <p><strong>{{ order.prescription.patient.full_name }}</strong></p>
+                        <p>{{ order.prescription.patient.phone_number }}</p>
+                    </div>
+
+                    <div class="medications-summary">
+                        <h4>Médicaments</h4>
+                        {% for item in order.items.all %}
+                        <div class="med-item">
+                            <div class="med-info">
+                                <p class="med-name">{{ item.medicine.name }}</p>
+                                <p class="med-qty">Qté: {{ item.quantity }}</p>
+                            </div>
+                            <div class="med-price">
+                                <p>{{ item.unit_price_local }} {{ order.local_currency }}</p>
+                                <p class="med-total">{{ item.total_price_local }} {{ order.local_currency }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="price-breakdown">
+                        <div class="price-row">
+                            <span>Sous-total:</span>
+                            <span>{{ order.subtotal_local }} {{ order.local_currency }}</span>
+                        </div>
+                        {% if order.discount_amount_local > 0 %}
+                        <div class="price-row discount">
+                            <span>Remise:</span>
+                            <span>-{{ order.discount_amount_local }} {{ order.local_currency }}</span>
+                        </div>
+                        {% endif %}
+                        {% if order.insurance_coverage_local > 0 %}
+                        <div class="price-row insurance">
+                            <span>Couverture Assurance:</span>
+                            <span>-{{ order.insurance_coverage_local }} {{ order.local_currency }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="price-row total">
+                            <span>Total à Payer:</span>
+                            <span>{{ order.final_amount_local }} {{ order.local_currency }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Payment Methods -->
+                <div class="payment-methods">
+                    <h3>Méthode de Paiement</h3>
+                    
+                    <div class="payment-options">
+                        <div class="payment-option" data-method="mobile_money" onclick="selectPaymentMethod('mobile_money')">
+                            <div class="option-icon">
+                                <img src="{% static 'images/mobile-money.svg' %}" alt="Mobile Money">
+                            </div>
+                            <div class="option-info">
+                                <h4>Mobile Money</h4>
+                                <p>MTN, Orange, Moov, etc.</p>
+                            </div>
+                            <div class="option-check">
+                                <span class="checkmark"></span>
+                            </div>
+                        </div>
+
+                        <div class="payment-option" data-method="cash" onclick="selectPaymentMethod('cash')">
+                            <div class="option-icon">
+                                <img src="{% static 'images/cash.svg' %}" alt="Espèces">
+                            </div>
+                            <div class="option-info">
+                                <h4>Espèces</h4>
+                                <p>Paiement en liquide</p>
+                            </div>
+                            <div class="option-check">
+                                <span class="checkmark"></span>
+                            </div>
+                        </div>
+
+                        <div class="payment-option" data-method="card" onclick="selectPaymentMethod('card')">
+                            <div class="option-icon">
+                                <img src="{% static 'images/card.svg' %}" alt="Carte">
+                            </div>
+                            <div class="option-info">
+                                <h4>Carte Bancaire</h4>
+                                <p>Visa, Mastercard</p>
+                            </div>
+                            <div class="option-check">
+                                <span class="checkmark"></span>
+                            </div>
+                        </div>
+
+                        <div class="payment-option" data-method="insurance" onclick="selectPaymentMethod('insurance')">
+                            <div class="option-icon">
+                                <img src="{% static 'images/insurance.svg' %}" alt="Assurance">
+                            </div>
+                            <div class="option-info">
+                                <h4>Assurance</h4>
+                                <p>Paiement par assurance</p>
+                            </div>
+                            <div class="option-check">
+                                <span class="checkmark"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Form (Dynamic based on selection) -->
+                    <div id="paymentForm" class="payment-form" style="display: none;">
+                        <!-- Mobile Money Form -->
+                        <div id="mobileMoneyForm" class="method-form" style="display: none;">
+                            <h4>Détails Mobile Money</h4>
+                            <div class="form-group">
+                                <label>Opérateur</label>
+                                <select id="mobileOperator" class="form-control">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="mtn">MTN Mobile Money</option>
+                                    <option value="orange">Orange Money</option>
+                                    <option value="moov">Moov Money</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Numéro de Téléphone</label>
+                                <input type="tel" id="mobilePhone" class="form-control" placeholder="+XXX XXXXXXXXX">
+                            </div>
+                        </div>
+
+                        <!-- Cash Form -->
+                        <div id="cashForm" class="method-form" style="display: none;">
+                            <h4>Paiement en Espèces</h4>
+                            <div class="form-group">
+                                <label>Montant Reçu</label>
+                                <input type="number" id="cashReceived" class="form-control" placeholder="0.00" step="0.01">
+                            </div>
+                            <div class="change-display" id="changeDisplay" style="display: none;">
+                                <p>Monnaie à Rendre: <strong id="changeAmount">0.00 {{ order.local_currency }}</strong></p>
+                            </div>
+                        </div>
+
+                        <!-- Card Form -->
+                        <div id="cardForm" class="method-form" style="display: none;">
+                            <h4>Paiement par Carte</h4>
+                            <p class="info-text">Veuillez insérer ou présenter la carte au terminal</p>
+                            <div class="terminal-status">
+                                <span class="status-icon">💳</span>
+                                <p>En attente de la carte...</p>
+                            </div>
+                        </div>
+
+                        <!-- Insurance Form -->
+                        <div id="insuranceForm" class="method-form" style="display: none;">
+                            <h4>Paiement par Assurance</h4>
+                            <div class="form-group">
+                                <label>Numéro de Police</label>
+                                <input type="text" id="policyNumber" class="form-control" placeholder="Numéro de police">
+                            </div>
+                            <div class="form-group">
+                                <label>Code d'Autorisation</label>
+                                <input type="text" id="authCode" class="form-control" placeholder="Code d'autorisation">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="payment-actions">
+                        <button id="processPaymentBtn" class="btn-primary btn-large" onclick="processPayment()" disabled>
+                            Traiter le Paiement
+                        </button>
+                        <button class="btn-secondary" onclick="cancelPayment()">
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/pharmacy_payment.js' %}"></script>
+    <script>
+        const ORDER_ID = '{{ order.id }}';
+        const TOTAL_AMOUNT = {{ order.final_amount_local }};
+        const CURRENCY = '{{ order.local_currency }}';
+    </script>
+</body>
+</html>

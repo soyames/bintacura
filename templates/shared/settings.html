@@ -1,0 +1,230 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ preferences.language|default:'fr' }}" data-theme="{{ preferences.theme|default:'light' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/settings.css' %}">
+    <link rel="stylesheet" href="{% static 'css/settings-page.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type=request.user.role page_title="Paramètres" %}
+    
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <div class="main-content">
+        <div class="settings-container">
+            <!-- Appearance Settings -->
+            <div class="settings-section">
+                <h2>🎨 Apparence</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Mode Sombre</h3>
+                        <p>Activer le thème sombre pour réduire la fatigue oculaire</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="darkModeToggle" {% if preferences.theme == 'dark' %}checked{% endif %} onchange="toggleDarkMode()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Taille de Police</h3>
+                        <p>Ajuster la taille du texte pour plus de confort</p>
+                    </div>
+                    <select id="fontSizeSelect" class="select-control" onchange="changeFontSize(this.value)">
+                        <option value="small" {% if preferences.font_size == 'small' %}selected{% endif %}>Petit</option>
+                        <option value="medium" {% if preferences.font_size == 'medium' %}selected{% endif %}>Normal</option>
+                        <option value="large" {% if preferences.font_size == 'large' %}selected{% endif %}>Grand</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Langue</h3>
+                        <p>Choisissez votre langue préférée</p>
+                    </div>
+                    {% include "components/language_switcher.html" %}
+                </div>
+            </div>
+            
+            <!-- Notification Settings -->
+            <div class="settings-section">
+                <h2>🔔 Notifications</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Notifications Push</h3>
+                        <p>Recevoir des alertes pour les événements importants</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="notificationsToggle" {% if preferences.enable_push_notifications %}checked{% endif %} onchange="toggleNotifications()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Notifications Email</h3>
+                        <p>Recevoir des résumés et alertes par email</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="emailNotificationsToggle" {% if preferences.enable_email_notifications %}checked{% endif %} onchange="toggleEmailNotifications()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Notifications SMS</h3>
+                        <p>Recevoir des rappels importants par SMS</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="smsNotificationsToggle" {% if preferences.enable_sms_notifications %}checked{% endif %} onchange="toggleSmsNotifications()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Rappels de Rendez-vous</h3>
+                        <p>Temps avant le rendez-vous pour recevoir un rappel</p>
+                    </div>
+                    <select id="reminderTimeSelect" class="select-control" onchange="updateReminderTime()">
+                        <option value="0" {% if preferences.appointment_reminder_time == 0 %}selected{% endif %}>Désactivé</option>
+                        <option value="15" {% if preferences.appointment_reminder_time == 15 %}selected{% endif %}>15 minutes avant</option>
+                        <option value="30" {% if preferences.appointment_reminder_time == 30 %}selected{% endif %}>30 minutes avant</option>
+                        <option value="60" {% if preferences.appointment_reminder_time == 60 %}selected{% endif %}>1 heure avant</option>
+                        <option value="120" {% if preferences.appointment_reminder_time == 120 %}selected{% endif %}>2 heures avant</option>
+                        <option value="1440" {% if preferences.appointment_reminder_time == 1440 %}selected{% endif %}>1 jour avant</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Privacy & Security -->
+            <div class="settings-section">
+                <h2>🔐 Confidentialité et Sécurité</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Authentification à Deux Facteurs</h3>
+                        <p>Renforcez la sécurité de votre compte</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="twoFactorToggle" {% if preferences.enable_two_factor_auth %}checked{% endif %} onchange="toggleTwoFactor()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Profil Visible</h3>
+                        <p>Autoriser les professionnels de santé à voir votre profil</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="profileVisibleToggle" {% if preferences.profile_visible_to_providers %}checked{% endif %} onchange="toggleProfileVisible()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Partage de Données</h3>
+                        <p>Partager anonymement pour la recherche médicale</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dataSharingToggle" {% if preferences.allow_anonymous_data_sharing %}checked{% endif %} onchange="toggleDataSharing()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Changer le Mot de Passe</h3>
+                        <p>Modifier votre mot de passe actuel</p>
+                    </div>
+                    <button class="btn-primary" onclick="window.location.href='/auth/change-password/'">Changer</button>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Sessions Actives</h3>
+                        <p>Gérer les appareils connectés à votre compte</p>
+                    </div>
+                    <button class="btn-primary" onclick="window.location.href='/account/sessions/'">Voir Sessions</button>
+                </div>
+            </div>
+            
+            <!-- Data & Storage -->
+            <div class="settings-section">
+                <h2>💾 Données et Stockage</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Sauvegarde Automatique</h3>
+                        <p>Sauvegarder automatiquement vos documents</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoBackupToggle" {% if preferences.enable_auto_backup %}checked{% endif %} onchange="toggleAutoBackup()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Télécharger Mes Données</h3>
+                        <p>Exporter toutes vos données personnelles</p>
+                    </div>
+                    <button class="btn-primary" onclick="window.location.href='/account/export-data/'">Télécharger</button>
+                </div>
+            </div>
+            
+            <!-- Medical Preferences (for patients) -->
+            {% if request.user.role == 'patient' %}
+            <div class="settings-section">
+                <h2>💊 Informations Médicales</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Groupe Sanguin</h3>
+                        <p>Information importante pour les urgences</p>
+                    </div>
+                    <select id="bloodTypeSelect" class="select-control" onchange="updateBloodType()">
+                        <option value="" {% if not preferences.blood_type %}selected{% endif %}>Non spécifié</option>
+                        <option value="A+" {% if preferences.blood_type == 'A+' %}selected{% endif %}>A+</option>
+                        <option value="A-" {% if preferences.blood_type == 'A-' %}selected{% endif %}>A-</option>
+                        <option value="B+" {% if preferences.blood_type == 'B+' %}selected{% endif %}>B+</option>
+                        <option value="B-" {% if preferences.blood_type == 'B-' %}selected{% endif %}>B-</option>
+                        <option value="AB+" {% if preferences.blood_type == 'AB+' %}selected{% endif %}>AB+</option>
+                        <option value="AB-" {% if preferences.blood_type == 'AB-' %}selected{% endif %}>AB-</option>
+                        <option value="O+" {% if preferences.blood_type == 'O+' %}selected{% endif %}>O+</option>
+                        <option value="O-" {% if preferences.blood_type == 'O-' %}selected{% endif %}>O-</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Contacts d'Urgence</h3>
+                        <p>Gérer vos contacts en cas d'urgence</p>
+                    </div>
+                    <button class="btn-primary" onclick="window.location.href='/account/emergency-contacts/'">Gérer</button>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Danger Zone -->
+            <div class="settings-section danger-zone">
+                <h2>⚠️ Zone Dangereuse</h2>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Réinitialiser les Paramètres</h3>
+                        <p>Restaurer tous les paramètres par défaut</p>
+                    </div>
+                    <button class="btn-danger" onclick="resetSettings()">Réinitialiser</button>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Supprimer le Compte</h3>
+                        <p>Supprimer définitivement votre compte et vos données</p>
+                    </div>
+                    <button class="btn-danger" onclick="deleteAccount()">Supprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/settings.js' %}"></script>
+</body>
+</html>
+

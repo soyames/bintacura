@@ -1,0 +1,606 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/settings.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+    <style>
+        .settings-container {
+            max-width: 1200px;
+            margin: 80px auto 40px;
+            padding: 20px;
+        }
+
+        .settings-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .settings-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .settings-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .settings-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .settings-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: linear-gradient(to right, #f7fafc, #edf2f7);
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-body {
+            padding: 0;
+        }
+
+        .setting-item {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-item:hover {
+            background: #f7fafc;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: #2d3748;
+        }
+
+        .setting-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .setting-control {
+            margin-left: 20px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #cbd5e0;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #48bb78;
+        }
+
+        .toggle-switch-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active .toggle-switch-slider {
+            transform: translateX(24px);
+        }
+
+        .select-control {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: white;
+            min-width: 150px;
+            cursor: pointer;
+        }
+
+        .select-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .danger-zone {
+            border: 2px solid #fc8181;
+        }
+
+        .danger-zone .section-header {
+            background: #fff5f5;
+            border-bottom-color: #fc8181;
+        }
+
+        .danger-btn {
+            padding: 8px 16px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .danger-btn:hover {
+            background: #e53e3e;
+        }
+
+        .primary-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .primary-btn:hover {
+            background: #5a67d8;
+        }
+
+        .info-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #bee3f8;
+            color: #2c5282;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .success-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #c6f6d5;
+            color: #22543d;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    {% include "components/top_nav.html" with page_title="Paramètres" user_type="patient" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <div class="settings-container">
+        <div class="settings-header">
+            <h1>⚙️ Paramètres</h1>
+            <p>Gérez vos préférences et personnalisez votre expérience BINTACURA</p>
+        </div>
+
+        <div class="settings-grid">
+            <!-- Account Settings -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2>👤 Compte</h2>
+                </div>
+                <div class="section-body">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Nom d'utilisateur</h3>
+                            <p>{{ request.user.get_full_name|default:request.user.email }}</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="primary-btn" onclick="window.location.href='/patient/profile/'">Modifier</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Email</h3>
+                            <p>{{ request.user.email }}</p>
+                        </div>
+                        <div class="setting-control">
+                            <span class="success-badge">✓ Vérifié</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Mot de passe</h3>
+                            <p>Dernière modification il y a 30 jours</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="primary-btn">Changer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appearance Settings -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2>🎨 Apparence</h2>
+                </div>
+                <div class="section-body">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Mode Sombre</h3>
+                            <p>Activer le thème sombre pour réduire la fatigue oculaire</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" id="darkModeToggle" onclick="toggleDarkMode()">
+                                <div class="toggle-switch-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Langue</h3>
+                            <p>Choisissez votre langue préférée</p>
+                        </div>
+                        <div class="setting-control">
+                            {% include "components/language_switcher.html" %}
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Taille de police</h3>
+                            <p>Ajuster la taille du texte</p>
+                        </div>
+                        <div class="setting-control">
+                            <select id="fontSizeSelect" class="select-control" onchange="changeFontSize(this.value)">
+                                <option value="small">Petit</option>
+                                <option value="medium" selected>Normal</option>
+                                <option value="large">Grand</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Settings -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2>🔔 Notifications</h2>
+                </div>
+                <div class="section-body">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Notifications Push</h3>
+                            <p>Recevoir des alertes pour les rendez-vous</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" id="notificationsToggle" onclick="toggleNotifications()">
+                                <div class="toggle-switch-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Notifications Email</h3>
+                            <p>Recevoir des résumés par email</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" id="emailNotificationsToggle" onclick="toggleEmailNotifications()">
+                                <div class="toggle-switch-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Notifications SMS</h3>
+                            <p>Recevoir des rappels par SMS</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" id="smsNotificationsToggle" onclick="toggleSmsNotifications()">
+                                <div class="toggle-switch-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Rappels de rendez-vous</h3>
+                            <p>Recevoir un rappel avant vos rendez-vous</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="select-control" id="reminderTimeSelect">
+                                <option value="0">Désactivé</option>
+                                <option value="15">15 minutes avant</option>
+                                <option value="30">30 minutes avant</option>
+                                <option value="60" selected>1 heure avant</option>
+                                <option value="1440">1 jour avant</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Privacy & Security -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2>🔐 Sécurité et Confidentialité</h2>
+                </div>
+                <div class="section-body">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Authentification à deux facteurs</h3>
+                            <p>Sécurisez votre compte avec 2FA</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" id="twoFactorToggle" onclick="toggleTwoFactor()">
+                                <div class="toggle-switch-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Profil visible</h3>
+                            <p>Autoriser les professionnels à voir votre profil</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" id="profileVisibleToggle" onclick="toggleProfileVisible()">
+                                <div class="toggle-switch-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Partage de données</h3>
+                            <p>Partager anonymement pour la recherche médicale</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" id="dataSharingToggle" onclick="toggleDataSharing()">
+                                <div class="toggle-switch-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Sessions actives</h3>
+                            <p>Gérer les appareils connectés</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="primary-btn">Voir</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medical Preferences -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2>💊 Préférences Médicales</h2>
+                </div>
+                <div class="section-body">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Groupe sanguin</h3>
+                            <p>Information importante pour les urgences</p>
+                        </div>
+                        <div class="setting-control">
+                            <select class="select-control" id="bloodTypeSelect">
+                                <option value="">Non spécifié</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Allergies médicamenteuses</h3>
+                            <p>Gérer vos allergies connues</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="primary-btn" onclick="window.location.href='/patient/health-records/'">Gérer</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Contact d'urgence</h3>
+                            <p>Personne à contacter en cas d'urgence</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="primary-btn">Ajouter</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data & Storage -->
+            <div class="settings-section">
+                <div class="section-header">
+                    <h2>💾 Données et Stockage</h2>
+                </div>
+                <div class="section-body">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Télécharger mes données</h3>
+                            <p>Exporter toutes vos données médicales</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="primary-btn">Télécharger</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Stockage utilisé</h3>
+                            <p>Documents et fichiers: 45 MB / 2 GB</p>
+                        </div>
+                        <div class="setting-control">
+                            <span class="info-badge">2% utilisé</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Sauvegarde automatique</h3>
+                            <p>Sauvegarder automatiquement vos documents</p>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" id="autoBackupToggle" onclick="toggleAutoBackup()">
+                                <div class="toggle-switch-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="settings-section danger-zone">
+                <div class="section-header">
+                    <h2>⚠️ Zone Dangereuse</h2>
+                </div>
+                <div class="section-body">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Réinitialiser les paramètres</h3>
+                            <p>Restaurer tous les paramètres par défaut</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="danger-btn" onclick="resetSettings()">Réinitialiser</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3>Supprimer le compte</h3>
+                            <p>Supprimer définitivement votre compte et vos données</p>
+                        </div>
+                        <div class="setting-control">
+                            <button class="danger-btn" onclick="deleteAccount()">Supprimer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/settings.js' %}"></script>
+    <script>
+        // Settings.js handles all the toggle functions now
+        // Keeping this for backwards compatibility if needed
+        function toggleDarkMode_old() {
+            const html = document.documentElement;
+            const toggle = document.getElementById('darkModeToggle');
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            toggle.classList.toggle('active');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        function changeFontSize(size) {
+            const sizes = { 'small': '14px', 'medium': '16px', 'large': '18px' };
+            document.documentElement.style.fontSize = sizes[size];
+            localStorage.setItem('fontSize', size);
+        }
+
+        function toggleNotifications() {
+            const toggle = document.getElementById('notificationsToggle');
+            toggle.classList.toggle('active');
+            localStorage.setItem('notifications', toggle.classList.contains('active'));
+            if (toggle.classList.contains('active') && 'Notification' in window) {
+                Notification.requestPermission();
+            }
+        }
+
+        function toggleEmailNotifications() {
+            const toggle = document.getElementById('emailNotificationsToggle');
+            toggle.classList.toggle('active');
+            localStorage.setItem('emailNotifications', toggle.classList.contains('active'));
+        }
+
+        function toggleSmsNotifications() {
+            const toggle = document.getElementById('smsNotificationsToggle');
+            toggle.classList.toggle('active');
+            localStorage.setItem('smsNotifications', toggle.classList.contains('active'));
+        }
+
+        function toggleTwoFactor() {
+            const toggle = document.getElementById('twoFactorToggle');
+            if (!toggle.classList.contains('active')) {
+                alert('Configuration de 2FA bientôt disponible');
+            } else {
+                if (confirm('Désactiver l\'authentification à deux facteurs ?')) {
+                    toggle.classList.toggle('active');
+                }
+            }
+        }
+
+        function toggleProfileVisible() {
+            const toggle = document.getElementById('profileVisibleToggle');
+            toggle.classList.toggle('active');
+            localStorage.setItem('profileVisible', toggle.classList.contains('active'));
+        }
+
+        function toggleDataSharing() {
+            const toggle = document.getElementById('dataSharingToggle');
+            toggle.classList.toggle('active');
+            localStorage.setItem('dataSharing', toggle.classList.contains('active'));
+        }
+
+        function toggleAutoBackup() {
+            const toggle = document.getElementById('autoBackupToggle');
+            toggle.classList.toggle('active');
+            localStorage.setItem('autoBackup', toggle.classList.contains('active'));
+        }
+
+        function resetSettings() {
+            if (confirm('Réinitialiser tous les paramètres ? Cette action ne peut pas être annulée.')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // All functions are now in settings.js which loads from database
+    </script>
+</body>
+</html>

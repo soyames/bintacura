@@ -1,0 +1,339 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+     <link rel="stylesheet" href="{% static 'css/doctor/services.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Services" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="action-bar">
+            <button class="btn-add-service" onclick="showAddServiceModal()">
+                ➕ Ajouter un Service
+            </button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_services }}</div>
+                <div class="stat-label">Total Services</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ active_services }}</div>
+                <div class="stat-label">Services Actifs</div>
+            </div>
+        </div>
+
+        <div class="services-grid">
+            {% for service in services %}
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-category">{{ service.get_category_display }}</div>
+                    <span class="service-status {% if service.is_available %}available{% else %}unavailable{% endif %}">
+                        {{ service.is_available|yesno:"Disponible,Indisponible" }}
+                    </span>
+                </div>
+                <h3 class="service-name">{{ service.name }}</h3>
+                <p class="service-description">{{ service.description|default:"Aucune description" }}</p>
+                <div class="service-details">
+                    <div class="service-price">{{ service.price }} {{ service.currency }}</div>
+                    <div class="service-duration">{{ service.duration_minutes }} min</div>
+                </div>
+                <div class="service-actions">
+                    <button class="btn-edit"
+                        onclick='editService("{{ service.id }}", "{{ service.name|escapejs }}", "{{ service.category }}", "{{ service.description|escapejs }}", {{ service.price }}, "{{ service.currency }}", {{ service.duration_minutes }}, {{ service.is_available|yesno:"true,false" }})'>
+                        Modifier
+                    </button>
+                    <button class="btn-delete" onclick="deleteService('{{ service.id }}')">Supprimer</button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <p>Aucun service disponible. Ajoutez votre premier service!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Add Service Modal -->
+    <div class="modal" id="addServiceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter un Service</h2>
+                <button class="modal-close" onclick="closeAddServiceModal()">×</button>
+            </div>
+            <form id="addServiceForm" onsubmit="submitAddService(event)">
+                <div class="form-group">
+                    <label>Nom du service *</label>
+                    <input type="text" id="serviceName" required placeholder="Ex: Consultation générale">
+                </div>
+                <div class="form-group">
+                    <label>Catégorie *</label>
+                    <select id="serviceCategory" required>
+                        <option value="">Sélectionner une catégorie</option>
+                        <option value="consultation">Consultation</option>
+                        <option value="diagnostic">Examen Diagnostique</option>
+                        <option value="therapy">Thérapie</option>
+                        <option value="vaccination">Vaccination</option>
+                        <option value="other">Autre</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="serviceDescription" rows="3" placeholder="Décrivez brièvement ce service..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prix *</label>
+                        <input type="number" id="servicePrice" step="0.01" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Devise *</label>
+                        <select id="serviceCurrency" required>
+                            <option value="FCFA">FCFA</option>
+                            <option value="XOF">XOF</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Durée (minutes) *</label>
+                    <input type="number" id="serviceDuration" required placeholder="Ex: 30">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddServiceModal()">Annuler</button>
+                    <button type="submit" class="btn-primary">Ajouter le Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Service Modal -->
+    <div class="modal" id="editServiceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Modifier le Service</h2>
+                <button class="modal-close" onclick="closeEditServiceModal()">×</button>
+            </div>
+            <form id="editServiceForm" onsubmit="submitEditService(event)">
+                <input type="hidden" id="editServiceId">
+                <div class="form-group">
+                    <label>Nom du service *</label>
+                    <input type="text" id="editServiceName" required>
+                </div>
+                <div class="form-group">
+                    <label>Catégorie *</label>
+                    <select id="editServiceCategory" required>
+                        <option value="consultation">Consultation</option>
+                        <option value="diagnostic">Examen Diagnostique</option>
+                        <option value="therapy">Thérapie</option>
+                        <option value="vaccination">Vaccination</option>
+                        <option value="other">Autre</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editServiceDescription" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prix *</label>
+                        <input type="number" id="editServicePrice" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Devise *</label>
+                        <select id="editServiceCurrency" required>
+                            <option value="FCFA">FCFA</option>
+                            <option value="XOF">XOF</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Durée (minutes) *</label>
+                    <input type="number" id="editServiceDuration" required>
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="editServiceAvailable">
+                        Service disponible
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeEditServiceModal()">Annuler</button>
+                    <button type="submit" class="btn-primary">Enregistrer les Modifications</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showAddServiceModal() {
+            document.getElementById('addServiceModal').classList.add('show');
+        }
+
+        function closeAddServiceModal() {
+            document.getElementById('addServiceModal').classList.remove('show');
+            document.getElementById('addServiceForm').reset();
+        }
+
+        async function submitAddService(event) {
+            event.preventDefault();
+
+            const data = {
+                action: 'create',
+                name: document.getElementById('serviceName').value,
+                category: document.getElementById('serviceCategory').value,
+                description: document.getElementById('serviceDescription').value,
+                price: document.getElementById('servicePrice').value,
+                currency: document.getElementById('serviceCurrency').value,
+                duration_minutes: document.getElementById('serviceDuration').value
+            };
+
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                                 document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+
+                const response = await fetch('/doctor/services/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✓ ' + result.message);
+                    closeAddServiceModal();
+                    location.reload();
+                } else {
+                    alert('✗ ' + result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de l\'ajout du service');
+                console.error(error);
+            }
+        }
+
+        function editService(id, name, category, description, price, currency, duration, available) {
+            document.getElementById('editServiceId').value = id;
+            document.getElementById('editServiceName').value = name;
+            document.getElementById('editServiceCategory').value = category;
+            document.getElementById('editServiceDescription').value = description;
+            document.getElementById('editServicePrice').value = price;
+            document.getElementById('editServiceCurrency').value = currency;
+            document.getElementById('editServiceDuration').value = duration;
+            document.getElementById('editServiceAvailable').checked = available;
+            document.getElementById('editServiceModal').classList.add('show');
+        }
+
+        function closeEditServiceModal() {
+            document.getElementById('editServiceModal').classList.remove('show');
+        }
+
+        async function submitEditService(event) {
+            event.preventDefault();
+
+            const data = {
+                action: 'update',
+                service_id: document.getElementById('editServiceId').value,
+                name: document.getElementById('editServiceName').value,
+                category: document.getElementById('editServiceCategory').value,
+                description: document.getElementById('editServiceDescription').value,
+                price: document.getElementById('editServicePrice').value,
+                currency: document.getElementById('editServiceCurrency').value,
+                duration_minutes: document.getElementById('editServiceDuration').value,
+                is_available: document.getElementById('editServiceAvailable').checked
+            };
+
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                                 document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+
+                const response = await fetch('/doctor/services/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✓ ' + result.message);
+                    closeEditServiceModal();
+                    location.reload();
+                } else {
+                    alert('✗ ' + result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de la modification du service');
+                console.error(error);
+            }
+        }
+
+        async function deleteService(serviceId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce service?')) {
+                return;
+            }
+
+            const data = {
+                action: 'delete',
+                service_id: serviceId
+            };
+
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                                 document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+
+                const response = await fetch('/doctor/services/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✓ ' + result.message);
+                    location.reload();
+                } else {
+                    alert('✗ ' + result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de la suppression du service');
+                console.error(error);
+            }
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
+

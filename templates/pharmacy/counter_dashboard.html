@@ -1,0 +1,188 @@
+{% extends 'pharmacy/base.html' %}
+{% load static %}
+
+{% block title %}Counter Dashboard - {{ pharmacy.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pharmacy/counter_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="counter-dashboard">
+    <!-- Header with Staff Info -->
+    <div class="dashboard-header">
+        <div class="staff-info">
+            <i class="fas fa-desktop"></i>
+            <div>
+                <h2>Counter {{ staff.counter.counter_number }}</h2>
+                <p>{{ staff.participant.get_full_name }} - {{ staff.get_role_display }}</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" id="scanQRBtn">
+                <i class="fas fa-qrcode"></i> Scan QR Code
+            </button>
+            <button class="btn btn-primary" id="searchPrescriptionBtn">
+                <i class="fas fa-search"></i> Search Prescription
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <i class="fas fa-clock text-warning"></i>
+            <div>
+                <h3>{{ pending_count }}</h3>
+                <p>Pending Orders</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-check-circle text-success"></i>
+            <div>
+                <h3>{{ completed_today }}</h3>
+                <p>Completed Today</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-dollar-sign text-primary"></i>
+            <div>
+                <h3>{{ currency_symbol }}{{ total_today|floatformat:2 }}</h3>
+                <p>Total Sales Today</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-truck text-info"></i>
+            <div>
+                <h3>{{ delivery_count }}</h3>
+                <p>Out for Delivery</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Queue -->
+    <div class="queue-container">
+        <div class="queue-header">
+            <h3><i class="fas fa-list"></i> Order Queue</h3>
+            <div class="queue-filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="pending">Pending</button>
+                <button class="filter-btn" data-filter="preparing">Preparing</button>
+                <button class="filter-btn" data-filter="ready">Ready</button>
+            </div>
+        </div>
+
+        <div class="order-queue">
+            {% for order in orders %}
+            <div class="order-card" data-order-id="{{ order.id }}" data-status="{{ order.status }}">
+                <div class="order-header">
+                    <div class="order-number">
+                        <strong>#{{ order.order_number }}</strong>
+                        <span class="order-time">{{ order.created_at|timesince }} ago</span>
+                    </div>
+                    <span class="order-status status-{{ order.status }}">
+                        {{ order.get_status_display }}
+                    </span>
+                </div>
+
+                <div class="order-patient">
+                    <i class="fas fa-user"></i>
+                    <div>
+                        <strong>{{ order.patient.get_full_name }}</strong>
+                        <p>{{ order.patient.phone_number }}</p>
+                    </div>
+                </div>
+
+                <div class="order-items">
+                    <h4><i class="fas fa-pills"></i> Items ({{ order.items.count }})</h4>
+                    <ul>
+                        {% for item in order.items.all|slice:":3" %}
+                        <li>{{ item.medicine.name }} - Qty: {{ item.quantity }}</li>
+                        {% endfor %}
+                        {% if order.items.count > 3 %}
+                        <li class="more-items">+{{ order.items.count|add:"-3" }} more items</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <div class="order-details">
+                    <div class="detail-row">
+                        <span>Total:</span>
+                        <strong>{{ order.currency_symbol }}{{ order.total_amount_local|floatformat:2 }}</strong>
+                    </div>
+                    <div class="detail-row">
+                        <span>Delivery:</span>
+                        <span class="delivery-type">
+                            {% if order.delivery_requested %}
+                            <i class="fas fa-truck"></i> Delivery
+                            {% else %}
+                            <i class="fas fa-store"></i> Pickup
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="order-actions">
+                    {% if order.status == 'pending' %}
+                    <button class="btn btn-primary btn-sm process-order" data-id="{{ order.id }}">
+                        <i class="fas fa-play"></i> Start Processing
+                    </button>
+                    {% elif order.status == 'preparing' %}
+                    <button class="btn btn-success btn-sm mark-ready" data-id="{{ order.id }}">
+                        <i class="fas fa-check"></i> Mark Ready
+                    </button>
+                    {% elif order.status == 'ready' %}
+                    <button class="btn btn-info btn-sm initiate-payment" data-id="{{ order.id }}">
+                        <i class="fas fa-credit-card"></i> Process Payment
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-secondary btn-sm view-details" data-id="{{ order.id }}">
+                        <i class="fas fa-eye"></i> Details
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-queue">
+                <i class="fas fa-inbox"></i>
+                <h3>No Orders in Queue</h3>
+                <p>Waiting for new prescription orders...</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- QR Scanner Modal -->
+<div id="qrScannerModal" class="modal">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2><i class="fas fa-qrcode"></i> Scan QR Code</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="qr-reader"></div>
+            <div class="scanner-instructions">
+                <p>Position the QR code within the frame to scan</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div id="orderDetailsModal" class="modal">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2><i class="fas fa-file-invoice"></i> Order Details</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="orderDetailsContent">
+            <!-- Populated dynamically -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="{% static 'js/pharmacy/counter_dashboard.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/language_switcher.css' %}">
+
+<div class="language-switcher">
+    <select id="language-select" class="form-select form-select-sm">
+        <option value="fr" {% if request.LANGUAGE_CODE == 'fr' %}selected{% endif %}>🇫🇷 Français</option>
+        <option value="en" {% if request.LANGUAGE_CODE == 'en' %}selected{% endif %}>🇬🇧 English</option>
+    </select>
+</div>
+
+<script>
+// Set language data attribute on HTML tag for JavaScript detection
+const currentLang = '{{ request.LANGUAGE_CODE|default:"fr" }}';
+console.log('🌐 Language Switcher: Current language =', currentLang);
+document.documentElement.setAttribute('data-language', currentLang);
+document.documentElement.lang = currentLang;
+
+(function() {
+    const languageSelect = document.getElementById('language-select');
+    if (!languageSelect) {
+        console.error('❌ Language select element not found!');
+        return;
+    }
+    
+    console.log('✓ Language switcher initialized');
+
+    languageSelect.addEventListener('change', function(e) {
+        const language = e.target.value;
+        console.log('🔄 Language change requested:', language);
+        
+        const formData = new FormData();
+        formData.append('language', language);
+        
+        const csrfToken = getCSRFToken();
+        if (!csrfToken) {
+            console.error('❌ CSRF token not found!');
+            alert('Erreur: Token de sécurité non trouvé');
+            return;
+        }
+
+        console.log('📡 Sending POST request to set_language...');
+        fetch('{% url "set_language" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => {
+            console.log('📡 Response status:', response.status);
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📡 Response data:', data);
+            if (data.status === 'success') {
+                console.log('✅ Language changed successfully to:', data.language);
+                // Update data attribute before reload
+                document.documentElement.setAttribute('data-language', language);
+                document.documentElement.lang = language;
+                console.log('🔄 Reloading page...');
+                window.location.reload();
+            } else {
+                console.error('❌ Server returned error:', data.message);
+                alert('Erreur: ' + (data.message || 'Impossible de changer la langue'));
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error changing language:', error);
+            alert('Erreur de connexion. Veuillez réessayer.\n' + error.message);
+        });
+    });
+
+    function getCSRFToken() {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === 'csrftoken=') {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+})();
+</script>

@@ -1,0 +1,372 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Rendez-vous - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    
+    <link rel="stylesheet" href="{% static 'css/my_appointments.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" onclick="window.location.href='/patient/dashboard/'" title="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Rendez-vous</span>
+        </div>
+        <div class="nav-right">
+            <button class="nav-next-btn" onclick="window.location.href='/patient/book-appointment/'">→</button>
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="appointments-container">
+        <div class="filter-tabs">
+            <div class="filter-tab active" onclick="filterAppointments('all')">Tous</div>
+            <div class="filter-tab" onclick="filterAppointments('upcoming')">À venir</div>
+            <div class="filter-tab" onclick="filterAppointments('pending')">En attente</div>
+            <div class="filter-tab" onclick="filterAppointments('confirmed')">Confirmés</div>
+            <div class="filter-tab" onclick="filterAppointments('completed')">Terminés</div>
+            <div class="filter-tab" onclick="filterAppointments('cancelled')">Annulés</div>
+        </div>
+
+        <div class="appointments-grid" id="appointmentsGrid">
+            <div class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <p class="empty-state-text">Chargement de vos rendez-vous...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        let allAppointments = [];
+        let currentFilter = 'all';
+
+        async function loadAppointments() {
+            try {
+                console.log('Loading appointments...');
+                const response = await fetchApi('appointments/appointments/');
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Appointments data:', data);
+                allAppointments = data.results || data;
+                console.log('Total appointments loaded:', allAppointments.length);
+                renderAppointments();
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+                showEmptyState('Erreur de chargement: ' + error.message, '❌');
+            }
+        }
+
+        function renderAppointments() {
+            const grid = document.getElementById('appointmentsGrid');
+
+            let filtered = allAppointments;
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'upcoming') {
+                    const now = new Date();
+                    filtered = allAppointments.filter(apt =>
+                        new Date(apt.appointment_date) >= now &&
+                        ['pending', 'confirmed'].includes(apt.status)
+                    );
+                } else {
+                    filtered = allAppointments.filter(apt => apt.status === currentFilter);
+                }
+            }
+
+            if (filtered.length === 0) {
+                showEmptyState('Aucun rendez-vous trouvé', '📅');
+                return;
+            }
+
+            grid.innerHTML = filtered.map(appointment => createAppointmentCard(appointment)).join('');
+        }
+
+        function createAppointmentCard(apt) {
+            const date = new Date(apt.appointment_date);
+            const formattedDate = date.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const formattedTime = apt.appointment_time || date.toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const statusClass = `status-${apt.status}`;
+            const statusText = getStatusText(apt.status);
+
+            // Determine provider name and type
+            let providerName, providerType, providerSpecialty;
+            if (apt.hospital) {
+                // Hospital appointment
+                providerName = apt.hospital.name || 'Hôpital';
+                providerType = '🏥 Hôpital';
+                providerSpecialty = apt.service_name || 'Consultation';
+            } else if (apt.doctor) {
+                // Doctor appointment - check if telemedicine
+                providerName = apt.doctor.name || 'Dr.';
+                if (apt.type === 'telemedicine') {
+                    providerType = '📹 Télémédecine';
+                    providerSpecialty = apt.doctor.specialization || 'Consultation Vidéo';
+                } else {
+                    providerType = '👨‍⚕️ Médecin';
+                    providerSpecialty = apt.doctor.specialization || 'Médecin Généraliste';
+                }
+            } else {
+                // Fallback
+                providerName = 'Non assigné';
+                providerType = '📋';
+                providerSpecialty = 'Consultation';
+            }
+            
+            const providerInitials = providerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+            return `
+                <div class="appointment-card" data-status="${apt.status}">
+                    <div class="appointment-header">
+                        <div class="doctor-info">
+                            <div class="doctor-avatar">${providerInitials}</div>
+                            <div class="doctor-details">
+                                <h3>${providerName}</h3>
+                                <div class="doctor-specialty">${providerType} · ${providerSpecialty}</div>
+                            </div>
+                        </div>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+
+                    <div class="appointment-details">
+                        <div class="detail-row">
+                            <span class="detail-icon">📅</span>
+                            <span class="detail-text">${formattedDate}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-icon">🕐</span>
+                            <span class="detail-text">${formattedTime}</span>
+                        </div>
+                        ${apt.service_name ? `
+                        <div class="detail-row">
+                            <span class="detail-icon">🏷️</span>
+                            <span class="detail-text" style="color: #007bff; font-weight: 600;">${apt.service_name}</span>
+                        </div>
+                        ` : ''}
+                        ${apt.location ? `
+                        <div class="detail-row">
+                            <span class="detail-icon">📍</span>
+                            <span class="detail-text">${apt.location}</span>
+                        </div>
+                        ` : ''}
+                        ${apt.reason ? `
+                        <div class="detail-row">
+                            <span class="detail-icon">📋</span>
+                            <span class="detail-text">${apt.reason}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="appointment-actions">
+                        ${apt.type === 'telemedicine' && (apt.status === 'confirmed' || apt.status === 'in_progress') ? `
+                            <button class="action-btn btn-success" onclick="joinVideoCall('${apt.id}')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                📹 Rejoindre la Consultation Vidéo
+                            </button>
+                        ` : ''}
+                        ${apt.payment_status === 'pending' && apt.status === 'pending' ? `
+                            <button class="action-btn btn-success" onclick="payForAppointment('${apt.id}', ${apt.consultation_fee || 0})">
+                                💳 Payer (<span class="convert-currency" data-amount-cents="${apt.consultation_fee || 0}">${((apt.consultation_fee || 0) / 100).toFixed(2)} USD</span>)
+                            </button>
+                        ` : ''}
+                        ${apt.status === 'pending' || apt.status === 'confirmed' ? `
+                            <button class="action-btn btn-secondary" onclick="rescheduleAppointment('${apt.id}')">
+                                📅 Reprogrammer
+                            </button>
+                            <button class="action-btn btn-danger" onclick="cancelAppointment('${apt.id}')">
+                                ❌ Annuler
+                            </button>
+                        ` : ''}
+                        ${apt.status === 'completed' && apt.type === 'telemedicine' ? `
+                            <button class="action-btn btn-primary" onclick="rateConsultation('${apt.id}')">
+                                ⭐ Évaluer la Consultation
+                            </button>
+                        ` : ''}
+                        ${apt.status === 'completed' && apt.type !== 'telemedicine' ? `
+                            <button class="action-btn btn-primary" onclick="viewReport('${apt.id}')">
+                                📋 Voir le rapport
+                            </button>
+                        ` : ''}
+                        ${apt.status === 'cancelled' ? `
+                            <button class="action-btn btn-primary" onclick="rebookAppointment('${apt.id}')">
+                                🔄 Reprendre RDV
+                            </button>
+                        ` : ''}
+                        ${apt.payment_status === 'paid' || apt.status === 'confirmed' || apt.status === 'completed' ? `
+                            <button class="action-btn btn-info" onclick="downloadReceipt('${apt.id}')">
+                                📥 Télécharger Reçu
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStatusText(status) {
+            const statusTexts = {
+                'pending': 'En attente',
+                'confirmed': 'Confirmé',
+                'completed': 'Terminé',
+                'cancelled': 'Annulé',
+                'no_show': 'Absent'
+            };
+            return statusTexts[status] || status;
+        }
+
+        function filterAppointments(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            renderAppointments();
+        }
+
+        function showEmptyState(message, icon = '📅') {
+            const grid = document.getElementById('appointmentsGrid');
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">${icon}</div>
+                    <p class="empty-state-text">${message}</p>
+                    <button class="btn-book" onclick="window.location.href='/patient/book-appointment/'">
+                        Prendre un rendez-vous
+                    </button>
+                </div>
+            `;
+        }
+
+        async function cancelAppointment(appointmentId) {
+            if (!confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/appointments/appointments/${appointmentId}/cancel/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    alert('Rendez-vous annulé avec succès');
+                    loadAppointments();
+                } else {
+                    alert('Erreur lors de l\'annulation');
+                }
+            } catch (error) {
+                console.error('Error cancelling appointment:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function payForAppointment(appointmentId, amount) {
+            if (!confirm(`Confirmer le paiement de CFA ${amount.toLocaleString()} pour ce rendez-vous?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/appointments/appointments/${appointmentId}/pay/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        payment_method: 'wallet',
+                        amount: amount
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Paiement effectué avec succès! Votre rendez-vous est confirmé.');
+                    loadAppointments();
+                } else {
+                    alert('Erreur de paiement: ' + (result.error || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error processing payment:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        function rescheduleAppointment(appointmentId) {
+            window.location.href = `/patient/reschedule-appointment/${appointmentId}/`;
+        }
+
+        function viewReport(appointmentId) {
+            window.location.href = `/patient/appointment-report/${appointmentId}/`;
+        }
+
+        function rebookAppointment(appointmentId) {
+            window.location.href = `/patient/book-appointment/?ref=${appointmentId}`;
+        }
+
+        function downloadReceipt(appointmentId) {
+            window.location.href = `/api/v1/appointments/appointments/${appointmentId}/download_receipt/`;
+        }
+
+        function joinVideoCall(appointmentId) {
+            window.location.href = `/patient/video-consultation/${appointmentId}/`;
+        }
+
+        function rateConsultation(appointmentId) {
+            window.location.href = `/patient/consultation/${appointmentId}/feedback/`;
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        loadAppointments();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

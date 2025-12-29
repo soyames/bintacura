@@ -1,0 +1,224 @@
+# French translations for VitaCare
+# Copyright (C) 2024
+# This file is distributed under the same license as the VitaCare package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: VitaCare 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-12-04 00:00+0000\n"
+"PO-Revision-Date: 2024-12-04 00:00+0000\n"
+"Last-Translator: VitaCare Team\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Dashboard"
+msgstr "Tableau de bord"
+
+msgid "Home"
+msgstr "Accueil"
+
+msgid "Profile"
+msgstr "Profil"
+
+msgid "Settings"
+msgstr "Paramètres"
+
+msgid "Logout"
+msgstr "Déconnexion"
+
+msgid "Login"
+msgstr "Connexion"
+
+msgid "Register"
+msgstr "S'inscrire"
+
+msgid "Welcome"
+msgstr "Bienvenue"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Password"
+msgstr "Mot de passe"
+
+msgid "Submit"
+msgstr "Soumettre"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+msgid "Save"
+msgstr "Enregistrer"
+
+msgid "Delete"
+msgstr "Supprimer"
+
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "Search"
+msgstr "Rechercher"
+
+msgid "Filter"
+msgstr "Filtrer"
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Phone"
+msgstr "Téléphone"
+
+msgid "Address"
+msgstr "Adresse"
+
+msgid "City"
+msgstr "Ville"
+
+msgid "Country"
+msgstr "Pays"
+
+msgid "Patient"
+msgstr "Patient"
+
+msgid "Doctor"
+msgstr "Médecin"
+
+msgid "Hospital"
+msgstr "Hôpital"
+
+msgid "Pharmacy"
+msgstr "Pharmacie"
+
+msgid "Insurance"
+msgstr "Assurance"
+
+msgid "Appointments"
+msgstr "Rendez-vous"
+
+msgid "Prescriptions"
+msgstr "Ordonnances"
+
+msgid "Medical Records"
+msgstr "Dossiers médicaux"
+
+msgid "Payments"
+msgstr "Paiements"
+
+msgid "Analytics"
+msgstr "Analytique"
+
+msgid "Reports"
+msgstr "Rapports"
+
+msgid "Users"
+msgstr "Utilisateurs"
+
+msgid "Pending"
+msgstr "En attente"
+
+msgid "Approved"
+msgstr "Approuvé"
+
+msgid "Rejected"
+msgstr "Rejeté"
+
+msgid "Completed"
+msgstr "Terminé"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Inactive"
+msgstr "Inactif"
+
+msgid "Success"
+msgstr "Succès"
+
+msgid "Error"
+msgstr "Erreur"
+
+msgid "Warning"
+msgstr "Avertissement"
+
+msgid "Info"
+msgstr "Information"
+
+msgid "View"
+msgstr "Voir"
+
+msgid "Download"
+msgstr "Télécharger"
+
+msgid "Upload"
+msgstr "Téléverser"
+
+msgid "Close"
+msgstr "Fermer"
+
+msgid "Back"
+msgstr "Retour"
+
+msgid "Next"
+msgstr "Suivant"
+
+msgid "Previous"
+msgstr "Précédent"
+
+msgid "Admin Panel"
+msgstr "Panneau d'administration"
+
+msgid "Provider Verification"
+msgstr "Vérification des prestataires"
+
+msgid "Refund Management"
+msgstr "Gestion des remboursements"
+
+msgid "User Management"
+msgstr "Gestion des utilisateurs"
+
+msgid "Audit Logs"
+msgstr "Journaux d'audit"
+
+msgid "Financial Dashboard"
+msgstr "Tableau de bord financier"
+
+msgid "Total Revenue"
+msgstr "Revenu total"
+
+msgid "Total Transactions"
+msgstr "Transactions totales"
+
+msgid "Pending Payments"
+msgstr "Paiements en attente"
+
+msgid "Amount"
+msgstr "Montant"
+
+msgid "Currency"
+msgstr "Devise"
+
+msgid "Language"
+msgstr "Langue"
+
+msgid "French"
+msgstr "Français"
+
+msgid "English"
+msgstr "Anglais"
+
+msgid "Change Language"
+msgstr "Changer de langue"

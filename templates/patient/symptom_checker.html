@@ -1,0 +1,381 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérificateur de Symptômes - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ai_assistant.css' %}">
+    <style>
+        .symptom-checker-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .symptom-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .symptom-input-group {
+            margin-bottom: 20px;
+        }
+
+        .symptom-input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .symptom-tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .symptom-tag {
+            background: #007bff;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .remove-symptom {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .common-symptoms {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .symptom-btn {
+            padding: 10px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .symptom-btn:hover,
+        .symptom-btn.selected {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .analyze-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .analyze-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 20px;
+            border-left: 4px solid #007bff;
+        }
+
+        .urgency-emergency {
+            border-left-color: #dc3545;
+            background: rgba(220, 53, 69, 0.05);
+        }
+
+        .urgency-high {
+            border-left-color: #ff6b6b;
+        }
+
+        .urgency-medium {
+            border-left-color: #ffc107;
+        }
+
+        .urgency-low {
+            border-left-color: #28a745;
+        }
+
+        .disclaimer {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .disclaimer-icon {
+            font-size: 24px;
+        }
+
+        .disclaimer-text {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="nav-back-btn" onclick="window.location.href='/patient/ai-assistant/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Vérificateur de Symptômes</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="symptom-checker-container">
+        <div class="disclaimer">
+            <span class="disclaimer-icon">⚠️</span>
+            <div class="disclaimer-text">
+                <strong>Important:</strong> Ce vérificateur de symptômes est informatif uniquement et ne remplace PAS un avis médical professionnel. En cas d'urgence, appelez le 112 ou rendez-vous aux urgences.
+            </div>
+        </div>
+
+        <div class="symptom-card">
+            <h2>Décrivez vos symptômes</h2>
+            <p>Sélectionnez ou ajoutez les symptômes que vous ressentez</p>
+
+            <div class="symptom-input-group">
+                <label>Symptômes Courants</label>
+                <div class="common-symptoms">
+                    <button class="symptom-btn" onclick="addSymptom('Fièvre')">🌡️ Fièvre</button>
+                    <button class="symptom-btn" onclick="addSymptom('Toux')">😷 Toux</button>
+                    <button class="symptom-btn" onclick="addSymptom('Mal de tête')">🤕 Mal de tête</button>
+                    <button class="symptom-btn" onclick="addSymptom('Fatigue')">😴 Fatigue</button>
+                    <button class="symptom-btn" onclick="addSymptom('Douleur abdominale')">🤰 Douleur abdominale</button>
+                    <button class="symptom-btn" onclick="addSymptom('Nausées')">🤢 Nausées</button>
+                    <button class="symptom-btn" onclick="addSymptom('Douleur thoracique')">💔 Douleur thoracique</button>
+                    <button class="symptom-btn" onclick="addSymptom('Essoufflement')">😮‍💨 Essoufflement</button>
+                </div>
+            </div>
+
+            <div class="symptom-input-group">
+                <label>Ajouter un symptôme personnalisé</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="customSymptom" 
+                           placeholder="Décrivez votre symptôme..."
+                           style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
+                    <button onclick="addCustomSymptom()" 
+                            style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        Ajouter
+                    </button>
+                </div>
+            </div>
+
+            <div class="symptom-input-group">
+                <label>Symptômes sélectionnés</label>
+                <div class="symptom-tag-container" id="selectedSymptoms">
+                    <p style="color: var(--text-secondary); font-size: 14px;">Aucun symptôme sélectionné</p>
+                </div>
+            </div>
+
+            <button class="analyze-btn" id="analyzeBtn" onclick="analyzeSymptoms()" disabled>
+                Analyser mes symptômes
+            </button>
+        </div>
+
+        <div id="resultsContainer"></div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        let selectedSymptoms = [];
+
+        function addSymptom(symptom) {
+            if (!selectedSymptoms.includes(symptom)) {
+                selectedSymptoms.push(symptom);
+                updateSelectedSymptoms();
+            }
+        }
+
+        function addCustomSymptom() {
+            const input = document.getElementById('customSymptom');
+            const symptom = input.value.trim();
+            
+            if (symptom && !selectedSymptoms.includes(symptom)) {
+                selectedSymptoms.push(symptom);
+                updateSelectedSymptoms();
+                input.value = '';
+            }
+        }
+
+        function removeSymptom(symptom) {
+            selectedSymptoms = selectedSymptoms.filter(s => s !== symptom);
+            updateSelectedSymptoms();
+        }
+
+        function updateSelectedSymptoms() {
+            const container = document.getElementById('selectedSymptoms');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            if (selectedSymptoms.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">Aucun symptôme sélectionné</p>';
+                analyzeBtn.disabled = true;
+            } else {
+                container.innerHTML = selectedSymptoms.map(s => `
+                    <span class="symptom-tag">
+                        ${s}
+                        <span class="remove-symptom" onclick="removeSymptom('${s}')">✕</span>
+                    </span>
+                `).join('');
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        async function analyzeSymptoms() {
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyse en cours...';
+
+            try {
+                const response = await fetchApi('ai/symptom-checker/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        symptoms: selectedSymptoms,
+                        additional_info: {
+                            reported_at: new Date().toISOString()
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResults(data);
+                } else {
+                    alert('Erreur lors de l\'analyse. Veuillez réessayer.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion. Veuillez réessayer.');
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analyser mes symptômes';
+            }
+        }
+
+        function displayResults(data) {
+            const container = document.getElementById('resultsContainer');
+            const urgencyClass = 'urgency-' + (data.urgency_level || 'medium');
+            
+            container.innerHTML = `
+                <div class="result-card ${urgencyClass}">
+                    <h2>Résultats de l'analyse</h2>
+                    
+                    <div style="margin: 20px 0;">
+                        <h3>Niveau d'urgence: ${getUrgencyText(data.urgency_level)}</h3>
+                        <div style="margin-top: 16px;">
+                            <strong>Analyse IA:</strong>
+                            <p style="margin-top: 8px; white-space: pre-line;">${data.ai_analysis || 'Analyse en cours...'}</p>
+                        </div>
+                    </div>
+
+                    <div style="margin: 20px 0;">
+                        <h3>Recommandations</h3>
+                        <p style="margin-top: 8px; white-space: pre-line;">${data.recommendations || 'Consultez un médecin pour évaluation.'}</p>
+                    </div>
+
+                    ${data.possible_conditions && data.possible_conditions.length > 0 ? `
+                        <div style="margin: 20px 0;">
+                            <h3>Informations complémentaires</h3>
+                            <ul style="margin-top: 8px;">
+                                ${data.possible_conditions.map(c => `<li>${c}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <button onclick="window.location.href='/patient/book-appointment/'" 
+                                style="padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; margin-right: 10px;">
+                            Prendre rendez-vous
+                        </button>
+                        <button onclick="selectedSymptoms = []; updateSelectedSymptoms(); container.innerHTML = '';" 
+                                style="padding: 12px 24px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+                            Nouvelle analyse
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function getUrgencyText(level) {
+            const texts = {
+                'emergency': '🚨 URGENCE - Soins immédiats requis',
+                'high': '⚠️ Élevé - Consultez rapidement',
+                'medium': '⚡ Moyen - Consultez dans les prochains jours',
+                'low': '✅ Faible - Surveillance recommandée'
+            };
+            return texts[level] || texts['medium'];
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+
+</html>
+"@

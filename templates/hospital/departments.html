@@ -1,0 +1,335 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Départements - BINTACURA Hospital</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital_departments.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="hospital" page_title="Départements" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_hospital.html" %}
+
+    <div class="main-content">
+        <div class="departments-container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Départements</h3>
+                <p class="stat-value" id="totalDepartments">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Lits</h3>
+                <p class="stat-value" id="totalBeds">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Lits Occupés</h3>
+                <p class="stat-value" id="occupiedBeds">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Personnel Total</h3>
+                <p class="stat-value" id="totalStaff">0</p>
+            </div>
+        </div>
+
+        <div class="departments-table-container">
+            <div id="departmentsList"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="departmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ajouter un Département</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="departmentForm" onsubmit="saveDepartment(event)">
+                    <input type="hidden" id="departmentId">
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="name">Nom du Département <span class="required">*</span></label>
+                            <input type="text" id="name" required>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="description">Description</label>
+                            <textarea id="description" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="total_beds">Total Lits</label>
+                            <input type="number" id="total_beds" min="0" value="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="occupied_beds">Lits Occupés</label>
+                            <input type="number" id="occupied_beds" min="0" value="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone_number">Téléphone</label>
+                            <input type="tel" id="phone_number">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="floor_number">Étage</label>
+                            <input type="text" id="floor_number">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="head_of_department">Chef de Département</label>
+                            <select id="head_of_department">
+                                <option value="">Sélectionner...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="is_active">Statut</label>
+                            <select id="is_active">
+                                <option value="true">Actif</option>
+                                <option value="false">Inactif</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Annuler</button>
+                <button type="submit" form="departmentForm" class="btn-save">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let departments = [];
+        let staff = [];
+
+        async function loadDepartments() {
+            try {
+                const response = await fetch('/api/v1/hospital/departments/with_stats/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erreur lors du chargement des départements');
+
+                departments = await response.json();
+                updateStats();
+                renderDepartments();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du chargement des départements');
+            }
+        }
+
+        async function loadStaff() {
+            try {
+                const response = await fetch('/api/v1/hospital/staff/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Erreur lors du chargement du personnel');
+
+                staff = await response.json();
+                populateStaffDropdown();
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function populateStaffDropdown() {
+            const select = document.getElementById('head_of_department');
+            select.innerHTML = '<option value="">Sélectionner...</option>';
+
+            const administrators = staff.filter(s => s.role === 'administrator' || s.role === 'doctor');
+            administrators.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s.id;
+                option.textContent = `${s.full_name} - ${s.role_display}`;
+                select.appendChild(option);
+            });
+        }
+
+        function updateStats() {
+            const totalDepts = departments.length;
+            const totalBeds = departments.reduce((sum, d) => sum + (d.total_beds || 0), 0);
+            const occupiedBeds = departments.reduce((sum, d) => sum + (d.occupied_beds || 0), 0);
+            const totalStaff = departments.reduce((sum, d) => sum + (d.staff_count || 0), 0);
+
+            document.getElementById('totalDepartments').textContent = totalDepts;
+            document.getElementById('totalBeds').textContent = totalBeds;
+            document.getElementById('occupiedBeds').textContent = occupiedBeds;
+            document.getElementById('totalStaff').textContent = totalStaff;
+        }
+
+        function renderDepartments() {
+            const container = document.getElementById('departmentsList');
+
+            if (departments.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>Aucun département trouvé</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = departments.map(dept => `
+                <div class="department-card">
+                    <div class="department-header">
+                        <div>
+                            <h3>${dept.name}</h3>
+                            ${dept.floor_number ? `<span class="floor-badge">Étage ${dept.floor_number}</span>` : ''}
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn-edit" onclick="editDepartment('${dept.id}')">Modifier</button>
+                            <button class="btn-deactivate" onclick="toggleDepartmentStatus('${dept.id}', ${!dept.is_active})">
+                                ${dept.is_active ? 'Désactiver' : 'Activer'}
+                            </button>
+                        </div>
+                    </div>
+                    ${dept.description ? `<p class="department-description">${dept.description}</p>` : ''}
+                    <div class="department-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Lits</span>
+                            <span class="stat-number">${dept.total_beds || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Lits Occupés</span>
+                            <span class="stat-number">${dept.occupied_beds || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Disponibles</span>
+                            <span class="stat-number">${dept.available_beds || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Personnel</span>
+                            <span class="stat-number">${dept.staff_count || 0}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Admissions</span>
+                            <span class="stat-number">${dept.active_admissions || 0}</span>
+                        </div>
+                    </div>
+                    ${dept.phone_number ? `<div class="department-contact">📞 ${dept.phone_number}</div>` : ''}
+                    ${dept.head_of_department ? `<div class="department-head">👤 Chef: ${dept.head_of_department}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('departmentId').value = '';
+            document.getElementById('modalTitle').textContent = 'Ajouter un Département';
+            document.getElementById('departmentForm').reset();
+            document.getElementById('is_active').value = 'true';
+            document.getElementById('departmentModal').classList.add('active');
+        }
+
+        function editDepartment(id) {
+            const dept = departments.find(d => d.id === id);
+            if (!dept) return;
+
+            document.getElementById('departmentId').value = dept.id;
+            document.getElementById('modalTitle').textContent = 'Modifier le Département';
+            document.getElementById('name').value = dept.name;
+            document.getElementById('description').value = dept.description || '';
+            document.getElementById('total_beds').value = dept.total_beds || 0;
+            document.getElementById('occupied_beds').value = dept.occupied_beds || 0;
+            document.getElementById('phone_number').value = dept.phone_number || '';
+            document.getElementById('floor_number').value = dept.floor_number || '';
+            document.getElementById('head_of_department').value = dept.head_of_department || '';
+            document.getElementById('is_active').value = dept.is_active ? 'true' : 'false';
+            document.getElementById('departmentModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('departmentModal').classList.remove('active');
+        }
+
+        async function saveDepartment(event) {
+            event.preventDefault();
+
+            const departmentId = document.getElementById('departmentId').value;
+            const data = {
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                total_beds: parseInt(document.getElementById('total_beds').value) || 0,
+                occupied_beds: parseInt(document.getElementById('occupied_beds').value) || 0,
+                phone_number: document.getElementById('phone_number').value,
+                floor_number: document.getElementById('floor_number').value,
+                head_of_department: document.getElementById('head_of_department').value || null,
+                is_active: document.getElementById('is_active').value === 'true'
+            };
+
+            try {
+                const url = departmentId
+                    ? `/api/v1/hospital/departments/${departmentId}/`
+                    : '/api/v1/hospital/departments/';
+
+                const method = departmentId ? 'PATCH' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Erreur lors de l\'enregistrement');
+
+                alert(departmentId ? 'Département mis à jour avec succès' : 'Département créé avec succès');
+                closeModal();
+                loadDepartments();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'enregistrement du département');
+            }
+        }
+
+        async function toggleDepartmentStatus(id, newStatus) {
+            if (!confirm(`Êtes-vous sûr de vouloir ${newStatus ? 'activer' : 'désactiver'} ce département ?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/hospital/departments/${id}/`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify({ is_active: newStatus })
+                });
+
+                if (!response.ok) throw new Error('Erreur lors de la mise à jour');
+
+                alert('Statut mis à jour avec succès');
+                loadDepartments();
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la mise à jour du statut');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDepartments();
+            loadStaff();
+        });
+    </script>
+    </div>
+</body>
+</html>
+

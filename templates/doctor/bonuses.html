@@ -1,0 +1,480 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Bonus - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor_bonuses.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/doctor/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Mes Bonus</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/doctor/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="bonuses-container">
+            <div class="stats-grid">
+                <div class="stat-card stat-earned">
+                    <div class="stat-icon">💵</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Total gagné</span>
+                        <span class="stat-value" id="totalEarned">0 FCFA</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-pending">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-info">
+                        <span class="stat-label">En attente</span>
+                        <span class="stat-value" id="totalPending">0 FCFA</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-paid">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Déjà payé</span>
+                        <span class="stat-value" id="totalPaid">0 FCFA</span>
+                    </div>
+                </div>
+                <div class="stat-card stat-referrals">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-info">
+                        <span class="stat-label">Références</span>
+                        <span class="stat-value" id="totalReferrals">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs-navigation">
+                <button class="tab-btn active" onclick="switchTab('summary')">📊 Résumé</button>
+                <button class="tab-btn" onclick="switchTab('referrals')">📋 Références</button>
+                <button class="tab-btn" onclick="switchTab('payments')">💳 Paiements</button>
+            </div>
+
+            <div id="summaryTab" class="tab-content active">
+                <div class="pharmacy-bonuses-section">
+                    <h2 class="section-title">Bonus par Pharmacie</h2>
+
+                    <div id="loadingPharmacies" class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Chargement des pharmacies...</p>
+                    </div>
+
+                    <div id="pharmaciesGrid" class="pharmacies-grid" style="display: none;"></div>
+
+                    <div id="emptyPharmacies" class="empty-state" style="display: none;">
+                        <div class="empty-icon">🏥</div>
+                        <h3>Aucun bonus de pharmacie</h3>
+                        <p>Commencez à référer vos patients aux pharmacies partenaires pour gagner des bonus</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="referralsTab" class="tab-content">
+                <div class="filter-section">
+                    <div class="search-bar">
+                        <input type="text" id="referralSearchInput" placeholder="Rechercher par patient ou pharmacie..." class="search-input">
+                    </div>
+                    <div class="filters">
+                        <select id="pharmacyFilter" class="filter-select" onchange="filterReferrals()">
+                            <option value="">Toutes les pharmacies</option>
+                        </select>
+                        <select id="statusFilter" class="filter-select" onchange="filterReferrals()">
+                            <option value="">Tous les statuts</option>
+                            <option value="fulfilled">Réalisé</option>
+                            <option value="pending">En attente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="loadingReferrals" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Chargement des références...</p>
+                </div>
+
+                <div id="referralsTable" class="referrals-table" style="display: none;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Patient</th>
+                                <th>Pharmacie</th>
+                                <th>Montant</th>
+                                <th>Bonus</th>
+                                <th>Statut</th>
+                                <th>Paiement</th>
+                            </tr>
+                        </thead>
+                        <tbody id="referralsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyReferrals" class="empty-state" style="display: none;">
+                    <div class="empty-icon">📋</div>
+                    <h3>Aucune référence</h3>
+                    <p>Vos références de pharmacie apparaîtront ici</p>
+                </div>
+            </div>
+
+            <div id="paymentsTab" class="tab-content">
+                <div id="loadingPayments" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Chargement des paiements...</p>
+                </div>
+
+                <div id="paymentsTable" class="payments-table" style="display: none;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Pharmacie</th>
+                                <th>Montant</th>
+                                <th>Références</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyPayments" class="empty-state" style="display: none;">
+                    <div class="empty-icon">💳</div>
+                    <h3>Aucun paiement</h3>
+                    <p>L'historique de vos paiements de bonus apparaîtra ici</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="paymentRequestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Demander un paiement</h2>
+                <button class="close-btn" onclick="closePaymentModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="paymentInfo"></div>
+                <p class="modal-note">
+                    La pharmacie sera notifiée de votre demande de paiement et vous contactera pour le règlement.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closePaymentModal()">Annuler</button>
+                <button class="btn-primary" onclick="submitPaymentRequest()">💸 Demander le paiement</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+        let bonusData = null;
+        let referralsData = [];
+        let pharmaciesData = {};
+        let selectedPharmacyId = null;
+
+        loadBonusData();
+
+        async function loadBonusData() {
+            try {
+                const response = await fetch('/api/v1/pharmacy/referrals/my_bonuses/', {
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                const data = await response.json();
+
+                bonusData = data;
+                referralsData = data.referrals || [];
+
+                updateStats(data);
+                groupReferralsByPharmacy(referralsData);
+                renderReferralsTable(referralsData);
+
+                populatePharmacyFilter();
+            } catch (error) {
+                console.error('Error loading bonus data:', error);
+                showEmptyStates();
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('totalEarned').textContent = formatCurrency(data.total_earned || 0);
+            document.getElementById('totalPending').textContent = formatCurrency(data.pending_payment || 0);
+            document.getElementById('totalPaid').textContent = formatCurrency(data.total_paid || 0);
+            document.getElementById('totalReferrals').textContent = (data.referrals || []).length;
+        }
+
+        function groupReferralsByPharmacy(referrals) {
+            pharmaciesData = {};
+
+            referrals.forEach(ref => {
+                const pharmacyId = ref.pharmacy;
+                const pharmacyName = ref.pharmacy_name || 'Pharmacie inconnue';
+
+                if (!pharmaciesData[pharmacyId]) {
+                    pharmaciesData[pharmacyId] = {
+                        id: pharmacyId,
+                        name: pharmacyName,
+                        totalEarned: 0,
+                        totalPending: 0,
+                        totalPaid: 0,
+                        referralsCount: 0
+                    };
+                }
+
+                pharmaciesData[pharmacyId].referralsCount++;
+                pharmaciesData[pharmacyId].totalEarned += ref.bonus_earned || 0;
+
+                if (ref.bonus_paid) {
+                    pharmaciesData[pharmacyId].totalPaid += ref.bonus_earned || 0;
+                } else {
+                    pharmaciesData[pharmacyId].totalPending += ref.bonus_earned || 0;
+                }
+            });
+
+            renderPharmaciesGrid();
+        }
+
+        function renderPharmaciesGrid() {
+            const loading = document.getElementById('loadingPharmacies');
+            const grid = document.getElementById('pharmaciesGrid');
+            const empty = document.getElementById('emptyPharmacies');
+
+            loading.style.display = 'none';
+
+            const pharmacies = Object.values(pharmaciesData);
+
+            if (pharmacies.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            grid.innerHTML = pharmacies.map(pharmacy => `
+                <div class="pharmacy-bonus-card">
+                    <div class="pharmacy-header">
+                        <div class="pharmacy-icon">🏥</div>
+                        <h3>${escapeHtml(pharmacy.name)}</h3>
+                    </div>
+                    <div class="pharmacy-stats">
+                        <div class="pharmacy-stat">
+                            <span class="pharmacy-stat-label">Total gagné</span>
+                            <span class="pharmacy-stat-value">${formatCurrency(pharmacy.totalEarned)}</span>
+                        </div>
+                        <div class="pharmacy-stat">
+                            <span class="pharmacy-stat-label">En attente</span>
+                            <span class="pharmacy-stat-value pending">${formatCurrency(pharmacy.totalPending)}</span>
+                        </div>
+                        <div class="pharmacy-stat">
+                            <span class="pharmacy-stat-label">Références</span>
+                            <span class="pharmacy-stat-value">${pharmacy.referralsCount}</span>
+                        </div>
+                    </div>
+                    ${pharmacy.totalPending > 0 ? `
+                        <button class="btn-request-payment" onclick="openPaymentModal('${pharmacy.id}', '${escapeHtml(pharmacy.name)}', ${pharmacy.totalPending})">
+                            💸 Demander le paiement
+                        </button>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            grid.style.display = 'grid';
+        }
+
+        function renderReferralsTable(referrals) {
+            const loading = document.getElementById('loadingReferrals');
+            const table = document.getElementById('referralsTable');
+            const empty = document.getElementById('emptyReferrals');
+            const tbody = document.getElementById('referralsTableBody');
+
+            loading.style.display = 'none';
+
+            if (referrals.length === 0) {
+                empty.style.display = 'block';
+                return;
+            }
+
+            tbody.innerHTML = referrals.map(ref => `
+                <tr>
+                    <td>${formatDate(ref.referral_date)}</td>
+                    <td>${escapeHtml(ref.patient_name || 'N/A')}</td>
+                    <td>${escapeHtml(ref.pharmacy_name || 'N/A')}</td>
+                    <td>${formatCurrency(ref.total_amount || 0)}</td>
+                    <td class="bonus-amount">${formatCurrency(ref.bonus_earned || 0)}</td>
+                    <td>
+                        <span class="status-badge ${ref.was_fulfilled ? 'status-fulfilled' : 'status-pending'}">
+                            ${ref.was_fulfilled ? 'Réalisé' : 'En attente'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="payment-badge ${ref.bonus_paid ? 'payment-paid' : 'payment-unpaid'}">
+                            ${ref.bonus_paid ? 'Payé' : 'Non payé'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+
+            table.style.display = 'block';
+        }
+
+        function populatePharmacyFilter() {
+            const select = document.getElementById('pharmacyFilter');
+            const pharmacies = Object.values(pharmaciesData);
+
+            pharmacies.forEach(pharmacy => {
+                const option = document.createElement('option');
+                option.value = pharmacy.id;
+                option.textContent = pharmacy.name;
+                select.appendChild(option);
+            });
+        }
+
+        function filterReferrals() {
+            const pharmacyFilter = document.getElementById('pharmacyFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const searchTerm = document.getElementById('referralSearchInput').value.toLowerCase();
+
+            let filtered = referralsData;
+
+            if (pharmacyFilter) {
+                filtered = filtered.filter(r => r.pharmacy === pharmacyFilter);
+            }
+
+            if (statusFilter) {
+                const isFulfilled = statusFilter === 'fulfilled';
+                filtered = filtered.filter(r => r.was_fulfilled === isFulfilled);
+            }
+
+            if (searchTerm) {
+                filtered = filtered.filter(r =>
+                    (r.patient_name || '').toLowerCase().includes(searchTerm) ||
+                    (r.pharmacy_name || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            renderReferralsTable(filtered);
+        }
+
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById(`${tab}Tab`).classList.add('active');
+        }
+
+        function openPaymentModal(pharmacyId, pharmacyName, amount) {
+            selectedPharmacyId = pharmacyId;
+
+            document.getElementById('paymentInfo').innerHTML = `
+                <div class="payment-request-info">
+                    <div class="info-row">
+                        <span class="info-label">Pharmacie:</span>
+                        <span class="info-value">${escapeHtml(pharmacyName)}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Montant à recevoir:</span>
+                        <span class="info-value amount">${formatCurrency(amount)}</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('paymentRequestModal').classList.add('active');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentRequestModal').classList.remove('active');
+            selectedPharmacyId = null;
+        }
+
+        async function submitPaymentRequest() {
+            if (!selectedPharmacyId) return;
+
+            try {
+                const response = await fetch('/api/v1/pharmacy/referrals/request_payment/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ pharmacy_id: selectedPharmacyId })
+                });
+
+                const result = await response.json();
+
+                if (result.success || response.ok) {
+                    alert('Demande de paiement envoyée avec succès! La pharmacie vous contactera bientôt.');
+                    closePaymentModal();
+                } else {
+                    alert('Erreur: ' + (result.message || 'Impossible d\'envoyer la demande'));
+                }
+            } catch (error) {
+                console.error('Error submitting payment request:', error);
+                alert('Une erreur est survenue lors de l\'envoi de la demande');
+            }
+        }
+
+        function formatCurrency(amount) {
+            return amount.toLocaleString('fr-FR') + ' FCFA';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR');
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text ? text.replace(/[&<>"']/g, m => map[m]) : '';
+        }
+
+        function showEmptyStates() {
+            document.getElementById('loadingPharmacies').style.display = 'none';
+            document.getElementById('loadingReferrals').style.display = 'none';
+            document.getElementById('loadingPayments').style.display = 'none';
+            document.getElementById('emptyPharmacies').style.display = 'block';
+            document.getElementById('emptyReferrals').style.display = 'block';
+            document.getElementById('emptyPayments').style.display = 'block';
+        }
+
+        document.getElementById('referralSearchInput').addEventListener('input', filterReferrals);
+    </script>
+</body>
+</html>
+

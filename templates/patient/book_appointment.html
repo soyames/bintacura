@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prendre Rendez-vous - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    
+    <link rel="stylesheet" href="{% static 'css/book_appointment.css' %}?v=2.4">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Rendez-vous</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+    <div class="booking-container">
+        <div class="booking-form">
+            <div class="step-indicator">
+                <div class="step active" id="step1Indicator">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Médecin</div>
+                </div>
+                <div class="step" id="step2Indicator">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Date & Heure</div>
+                </div>
+                <div class="step" id="step3Indicator">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Confirmation</div>
+                </div>
+            </div>
+
+            <form id="bookingForm" onsubmit="event.preventDefault(); appointmentBooking.submitBooking();">
+                {% csrf_token %}
+                <div class="booking-step active" data-step="1" id="step1">
+                    <h2 class="section-title">Choisissez un médecin</h2>
+
+                    <div class="form-group">
+                        <label class="form-label">Spécialité</label>
+                        <select class="form-select" id="specialtySelect" onchange="appointmentBooking.loadDoctors(this.value)">
+                            <option value="">Toutes les spécialités</option>
+                            <option value="general_practice">Médecine Générale</option>
+                            <option value="cardiology">Cardiologie</option>
+                            <option value="dermatology">Dermatologie</option>
+                            <option value="pediatrics">Pédiatrie</option>
+                            <option value="psychiatry">Psychiatrie</option>
+                            <option value="orthopedics">Orthopédie</option>
+                            <option value="neurology">Neurologie</option>
+                            <option value="oncology">Oncologie</option>
+                        </select>
+                    </div>
+
+                    <div class="doctor-grid" id="doctorGrid">
+                        <p class="loading-message">🔄 Chargement des médecins...</p>
+                    </div>
+
+                    <input type="hidden" id="selectedDoctor" name="doctor_id" required>
+
+                    <div class="form-group" id="servicesSection" style="display: none; margin-top: 20px;">
+                        <label class="form-label">Services additionnels (optionnel)</label>
+                        <select class="form-select" id="additionalServices" name="service_id" multiple>
+                            <option value="">Aucun service supplémentaire</option>
+                        </select>
+                        <div class="fee-display" style="margin-top: 10px;">
+                            <p>Frais de consultation: <strong id="consultationFee">-</strong></p>
+                            <p>Total: <strong id="totalAmount">-</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="booking-step" data-step="2" id="step2">
+                    <h2 class="section-title">Choisissez la date et l'heure</h2>
+
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-input" id="appointmentDate" name="appointment_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Heure disponible</label>
+                        <div class="time-slots" id="timeSlots">
+                            <p class="loading-message">Sélectionnez un médecin et une date</p>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="selectedTime" name="appointment_time" required>
+                </div>
+
+                <div class="booking-step" data-step="3" id="step3">
+                    <h2 class="section-title">Détails du rendez-vous</h2>
+
+                    <div class="form-group">
+                        <label class="form-label">Raison de la consultation</label>
+                        <select class="form-select" name="reason" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="consultation">Consultation générale</option>
+                            <option value="follow_up">Suivi médical</option>
+                            <option value="checkup">Bilan de santé</option>
+                            <option value="emergency">Urgence</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes additionnelles (optionnel)</label>
+                        <textarea class="form-input" name="notes" rows="4"
+                            placeholder="Décrivez vos symptômes ou préoccupations..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="prevBtn" onclick="appointmentBooking.prevStep()"
+                        style="display: none;">
+                        Précédent
+                    </button>
+                    <button type="button" class="btn btn-primary btn-next" id="nextBtn" onclick="appointmentBooking.nextStep()" disabled>
+                        Suivant
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+                        Confirmer le rendez-vous
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}?v=2.0"></script>
+    <script src="{% static 'js/appointment_booking.js' %}?v=2.3"></script>
+    <script src="{% static 'js/dashboard.js' %}?v=2.0"></script>
+    <script>
+        console.log('==============================================');
+        console.log('=== APPOINTMENT BOOKING DEBUG STARTED ===');
+        console.log('==============================================');
+        console.log('1. Current URL:', window.location.href);
+        console.log('2. appointmentBooking object exists:', typeof appointmentBooking !== 'undefined');
+        console.log('3. appointmentBooking type:', typeof appointmentBooking);
+        
+        if (typeof appointmentBooking !== 'undefined') {
+            console.log('4. appointmentBooking.currentStep:', appointmentBooking.currentStep);
+            console.log('5. appointmentBooking.init:', typeof appointmentBooking.init);
+        }
+        
+        console.log('6. doctorGrid element:', document.getElementById('doctorGrid'));
+        console.log('7. hospitalGrid element:', document.getElementById('hospitalGrid'));
+        
+        // Force immediate test of API
+        console.log('8. Testing API endpoint directly...');
+        fetch('/api/v1/doctor/data/')
+            .then(response => {
+                console.log('   API response status:', response.status);
+                console.log('   API response ok:', response.ok);
+                return response.json();
+            })
+            .then(data => {
+                console.log('   API data received:', data);
+                console.log('   Doctor count:', data.count);
+                console.log('   Has results:', !!data.results);
+                if (data.results) {
+                    console.log('   Results length:', data.results.length);
+                    if (data.results.length > 0) {
+                        console.log('   First doctor:', data.results[0].participant);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('   API test error:', error);
+            });
+        
+        // Manual trigger if auto-init didn't work
+        setTimeout(() => {
+            console.log('9. Timeout check - appointmentBooking exists:', typeof appointmentBooking !== 'undefined');
+            if (typeof appointmentBooking !== 'undefined') {
+                console.log('   currentStep:', appointmentBooking.currentStep);
+                if (appointmentBooking.currentStep === 1) {
+                    console.log('   ⚠️  Manual init trigger needed!');
+                    appointmentBooking.init();
+                } else {
+                    console.log('   ✅ Already initialized (currentStep !== 1)');
+                }
+            } else {
+                console.error('   ❌ appointmentBooking object not found!');
+            }
+        }, 1000);
+        
+        console.log('=== DEBUG SCRIPT COMPLETE ===');
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,837 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Équipements Médicaux - Hôpital BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital-theme.css' %}">
+    <style>
+        :root {
+            --accent-color: #dc3545;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%);
+        }
+
+        .profile-icon {
+            background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%);
+        }
+
+        .page-header {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .action-bar button {
+            padding: 12px 25px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .action-bar button:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .search-bar {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .equipment-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-top: 4px solid var(--accent-color);
+            transition: all 0.3s ease;
+        }
+
+        .equipment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .equipment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .equipment-card h3 {
+            font-size: 18px;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .equipment-card .equipment-id {
+            color: #718096;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.in-use {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .status-badge.maintenance {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.out-of-order {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .equipment-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .equipment-details p {
+            margin: 8px 0;
+            color: #4a5568;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .equipment-details strong {
+            color: #2d3748;
+        }
+
+        .equipment-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .equipment-actions button {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: #e2e8f0;
+            color: #2d3748;
+        }
+
+        .btn-view:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-edit {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #138496;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+            grid-column: 1 / -1;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .filter-tab.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+    </style>
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="logo-img">
+                
+            </div>
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar" onclick="window.location.href='/hospital/profile/'"
+                    style="cursor: pointer;">🏥</div>
+                <div class="sidebar-user-info">
+                    <h3>Hôpital</h3>
+                    <p>Administrateur</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Navigation</div>
+                <a href="/hospital/dashboard/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">📊</span>
+                    <span class="sidebar-menu-item-text">Tableau de Bord</span>
+                </a>
+                <a href="/hospital/patients/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">👥</span>
+                    <span class="sidebar-menu-item-text">Patients</span>
+                </a>
+                <a href="/hospital/staff/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">👨‍⚕️</span>
+                    <span class="sidebar-menu-item-text">Personnel</span>
+                </a>
+                <a href="/hospital/equipment/" class="sidebar-menu-item active">
+                    <span class="sidebar-menu-item-icon">🔬</span>
+                    <span class="sidebar-menu-item-text">Équipements</span>
+                </a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Compte</div>
+                <a href="/hospital/wallet/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">💰</span>
+                    <span class="sidebar-menu-item-text">Portefeuille</span>
+                </a>
+                <a href="/hospital/profile/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">👤</span>
+                    <span class="sidebar-menu-item-text">Profil</span>
+                </a>
+                <a href="/logout/" class="sidebar-menu-item">
+                    <span class="sidebar-menu-item-icon">🚪</span>
+                    <span class="sidebar-menu-item-text">Déconnexion</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <header class="mobile-header">
+        <div class="menu-icon" id="menuIcon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="logo">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="mobile-logo-img">
+            ÉQUIPEMENTS
+        </div>
+        <div class="profile-icon" onclick="window.location.href='/hospital/profile/'" style="cursor: pointer;">
+            {% include "components/user_avatar.html" with user=request.user %}
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div style="margin-bottom: 20px;">
+            <button onclick="window.location.href='/hospital/dashboard/'"
+                style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">←</span> Retour au Dashboard
+            </button>
+        </div>
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterEquipment('all')">Tous les Équipements</button>
+            <button class="filter-tab" onclick="filterEquipment('available')">Disponibles</button>
+            <button class="filter-tab" onclick="filterEquipment('in_use')">En Utilisation</button>
+            <button class="filter-tab" onclick="filterEquipment('maintenance')">Maintenance</button>
+            <button class="filter-tab" onclick="filterEquipment('out_of_order')">Hors Service</button>
+        </div>
+
+        <div class="action-bar">
+            <input type="text" class="search-bar" id="searchEquipment"
+                placeholder="Rechercher par nom, ID ou emplacement..." onkeyup="searchEquipment()">
+            <button onclick="showAddEquipmentModal()">➕ Ajouter Équipement</button>
+            <button onclick="generateReport()">📊 Générer Rapport</button>
+        </div>
+
+        <div class="equipment-grid" id="equipmentGrid">
+            {% if equipment_list %}
+            {% for equipment in equipment_list %}
+            <div class="equipment-card" data-status="{{ equipment.status }}" data-id="{{ equipment.id }}"
+                data-name="{{ equipment.name }}" data-equipment-id="{{ equipment.equipment_id }}"
+                data-category="{{ equipment.category }}" data-manufacturer="{{ equipment.manufacturer }}"
+                data-model="{{ equipment.model_number }}" data-location="{{ equipment.location }}"
+                data-department="{{ equipment.department }}" data-notes="{{ equipment.notes }}"
+                data-problem="{{ equipment.problem_description }}">
+                <div class="equipment-header">
+                    <div>
+                        <h3>{{ equipment.name }}</h3>
+                        <div class="equipment-id">ID: {{ equipment.equipment_id }}</div>
+                    </div>
+                    {% if equipment.status == 'available' %}
+                    <span
+                        style="padding: 6px 12px; background: #28a74515; color: #28a745; border-radius: 6px; font-size: 13px; font-weight: 600;">Disponible</span>
+                    {% elif equipment.status == 'in_use' %}
+                    <span
+                        style="padding: 6px 12px; background: #17a2b815; color: #17a2b8; border-radius: 6px; font-size: 13px; font-weight: 600;">En
+                        Utilisation</span>
+                    {% elif equipment.status == 'maintenance' %}
+                    <span
+                        style="padding: 6px 12px; background: #ffc10715; color: #ffc107; border-radius: 6px; font-size: 13px; font-weight: 600;">Maintenance</span>
+                    {% elif equipment.status == 'out_of_order' %}
+                    <span
+                        style="padding: 6px 12px; background: #dc354515; color: #dc3545; border-radius: 6px; font-size: 13px; font-weight: 600;">Hors
+                        Service</span>
+                    {% endif %}
+                </div>
+                <div style="color: #718096; margin-bottom: 15px;">
+                    <div style="margin-bottom: 8px;">
+                        📍 Emplacement: {{ equipment.location|default:"Non spécifié" }}
+                        {% if equipment.department %} - {{ equipment.department }}{% endif %}
+                    </div>
+                    {% if equipment.status == 'in_use' and equipment.assigned_to_patient %}
+                    <div style="margin-bottom: 8px;">👤 Patient: {{ equipment.assigned_to_patient.get_full_name }}</div>
+                    <div style="margin-bottom: 8px;">⏰ Utilisé depuis: {{ equipment.assigned_date|date:"d M Y" }}</div>
+                    {% elif equipment.last_maintenance_date %}
+                    <div style="margin-bottom: 8px;">🗓️ Dernier entretien: {{ equipment.last_maintenance_date|date:"d M
+                        Y" }}</div>
+                    {% if equipment.next_maintenance_date %}
+                    <div style="margin-bottom: 8px;">⏰ Prochain entretien: {{ equipment.next_maintenance_date|date:"d M
+                        Y" }}</div>
+                    {% endif %}
+                    {% endif %}
+                    {% if equipment.problem_description %}
+                    <div style="margin-bottom: 8px;">🔧 Problème: {{ equipment.problem_description }}</div>
+                    {% endif %}
+                </div>
+                <div class="equipment-actions" style="display: flex; gap: 10px;">
+                    <button class="btn-view" onclick="viewEquipment('{{ equipment.id }}')">👁️ Détails</button>
+                    <button class="btn-edit" onclick="editEquipment('{{ equipment.id }}')">✏️ Modifier</button>
+                    <button class="btn-delete" onclick="deleteEquipment('{{ equipment.id }}')"
+                        style="background: #dc3545; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">🗑️</button>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #718096;">
+                <p style="font-size: 18px; margin-bottom: 10px;">Aucun équipement enregistré</p>
+                <p>Cliquez sur "Ajouter Équipement" pour commencer</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="addEquipmentModal" class="modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div
+                style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                <h2 style="margin: 0 0 20px 0; color: #dc3545;">➕ Ajouter un Équipement</h2>
+                <form id="addEquipmentForm" onsubmit="submitAddEquipment(event)">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nom de l'équipement
+                            *</label>
+                        <input type="text" name="name" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Catégorie *</label>
+                        <select name="category" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            <option value="diagnostic">Diagnostic</option>
+                            <option value="surgical">Chirurgical</option>
+                            <option value="life_support">Support Vital</option>
+                            <option value="monitoring">Surveillance</option>
+                            <option value="therapeutic">Thérapeutique</option>
+                            <option value="laboratory">Laboratoire</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Fabricant</label>
+                        <input type="text" name="manufacturer"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Numéro de modèle</label>
+                        <input type="text" name="model_number"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Emplacement</label>
+                        <input type="text" name="location"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Département</label>
+                        <input type="text" name="department"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Notes</label>
+                        <textarea name="notes" rows="3"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" onclick="closeAddEquipmentModal()"
+                            style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Annuler</button>
+                        <button type="submit"
+                            style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer;">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="editEquipmentModal" class="modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div
+                style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                <h2 style="margin: 0 0 20px 0; color: #dc3545;">✏️ Modifier l'Équipement</h2>
+                <form id="editEquipmentForm" onsubmit="submitEditEquipment(event)">
+                    <input type="hidden" name="equipment_id" id="editEquipmentId">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nom de l'équipement
+                            *</label>
+                        <input type="text" name="name" id="editEquipmentName" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Catégorie *</label>
+                        <select name="category" id="editEquipmentCategory" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            <option value="diagnostic">Diagnostic</option>
+                            <option value="surgical">Chirurgical</option>
+                            <option value="life_support">Support Vital</option>
+                            <option value="monitoring">Surveillance</option>
+                            <option value="therapeutic">Thérapeutique</option>
+                            <option value="laboratory">Laboratoire</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Emplacement</label>
+                        <input type="text" name="location" id="editEquipmentLocation"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Département</label>
+                        <input type="text" name="department" id="editEquipmentDepartment"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Statut *</label>
+                        <select name="status" id="editEquipmentStatus" required
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            <option value="available">Disponible</option>
+                            <option value="in_use">En Utilisation</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="out_of_order">Hors Service</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Notes</label>
+                        <textarea name="notes" id="editEquipmentNotes" rows="3"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" onclick="closeEditEquipmentModal()"
+                            style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Annuler</button>
+                        <button type="submit"
+                            style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer;">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="viewEquipmentModal" class="modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div
+                style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                <h2 style="margin: 0 0 20px 0; color: #dc3545;">👁️ Détails de l'Équipement</h2>
+                <div id="viewEquipmentContent" style="line-height: 1.8;">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" onclick="closeViewEquipmentModal()"
+                        style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        function filterEquipment(status) {
+            const cards = document.querySelectorAll('.equipment-card');
+            const tabs = document.querySelectorAll('.filter-tab');
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            cards.forEach(card => {
+                if (status === 'all' || card.dataset.status === status) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function searchEquipment() {
+            const searchValue = document.getElementById('searchEquipment').value.toLowerCase();
+            const cards = document.querySelectorAll('.equipment-card');
+
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                if (text.includes(searchValue)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function showAddEquipmentModal() {
+            document.getElementById('addEquipmentModal').style.display = 'flex';
+        }
+
+        function closeAddEquipmentModal() {
+            document.getElementById('addEquipmentModal').style.display = 'none';
+            document.getElementById('addEquipmentForm').reset();
+        }
+
+        function submitAddEquipment(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = {
+                action: 'create',
+                name: formData.get('name'),
+                category: formData.get('category'),
+                manufacturer: formData.get('manufacturer') || '',
+                model_number: formData.get('model_number') || '',
+                location: formData.get('location') || '',
+                department: formData.get('department') || '',
+                notes: formData.get('notes') || '',
+                status: 'available'
+            };
+
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('Équipement ajouté avec succès!');
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de l\'ajout de l\'équipement');
+                });
+        }
+
+        function generateReport() {
+            const cards = document.querySelectorAll('.equipment-card');
+            if (cards.length === 0) {
+                alert('Aucun équipement à exporter');
+                return;
+            }
+
+            const statusLabels = {
+                'available': 'Disponible',
+                'in_use': 'En Utilisation',
+                'maintenance': 'Maintenance',
+                'out_of_order': 'Hors Service'
+            };
+
+            const categoryLabels = {
+                'diagnostic': 'Diagnostic',
+                'surgical': 'Chirurgical',
+                'life_support': 'Support Vital',
+                'monitoring': 'Surveillance',
+                'therapeutic': 'Thérapeutique',
+                'laboratory': 'Laboratoire',
+                'other': 'Autre'
+            };
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID Équipement,Nom,Catégorie,Statut,Fabricant,Modèle,Emplacement,Département,Notes\n";
+
+            cards.forEach(card => {
+                const row = [
+                    card.dataset.equipmentId || '',
+                    card.dataset.name || '',
+                    categoryLabels[card.dataset.category] || '',
+                    statusLabels[card.dataset.status] || '',
+                    card.dataset.manufacturer || '',
+                    card.dataset.model || '',
+                    card.dataset.location || '',
+                    card.dataset.department || '',
+                    (card.dataset.notes || '').replace(/,/g, ';')
+                ].map(field => `"${field}"`).join(',');
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            const date = new Date().toISOString().split('T')[0];
+            link.setAttribute("download", `rapport_equipements_${date}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function viewEquipment(id) {
+            const card = document.querySelector(`.equipment-card[data-id="${id}"]`);
+            if (!card) return;
+
+            const statusLabels = {
+                'available': 'Disponible',
+                'in_use': 'En Utilisation',
+                'maintenance': 'Maintenance',
+                'out_of_order': 'Hors Service'
+            };
+
+            const categoryLabels = {
+                'diagnostic': 'Diagnostic',
+                'surgical': 'Chirurgical',
+                'life_support': 'Support Vital',
+                'monitoring': 'Surveillance',
+                'therapeutic': 'Thérapeutique',
+                'laboratory': 'Laboratoire',
+                'other': 'Autre'
+            };
+
+            const content = `
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">ID Équipement:</strong> ${card.dataset.equipmentId || 'N/A'}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Nom:</strong> ${card.dataset.name || 'N/A'}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Catégorie:</strong> ${categoryLabels[card.dataset.category] || 'N/A'}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Statut:</strong> ${statusLabels[card.dataset.status] || 'N/A'}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Fabricant:</strong> ${card.dataset.manufacturer || 'Non spécifié'}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Modèle:</strong> ${card.dataset.model || 'Non spécifié'}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Emplacement:</strong> ${card.dataset.location || 'Non spécifié'}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Département:</strong> ${card.dataset.department || 'Non spécifié'}
+                </div>
+                ${card.dataset.notes ? `<div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Notes:</strong> ${card.dataset.notes}
+                </div>` : ''}
+                ${card.dataset.problem ? `<div style="margin-bottom: 15px;">
+                    <strong style="color: #dc3545;">Problème:</strong> ${card.dataset.problem}
+                </div>` : ''}
+            `;
+
+            document.getElementById('viewEquipmentContent').innerHTML = content;
+            document.getElementById('viewEquipmentModal').style.display = 'flex';
+        }
+
+        function closeViewEquipmentModal() {
+            document.getElementById('viewEquipmentModal').style.display = 'none';
+        }
+
+        function editEquipment(id) {
+            const card = document.querySelector(`.equipment-card[data-id="${id}"]`);
+            if (!card) return;
+
+            document.getElementById('editEquipmentId').value = id;
+            document.getElementById('editEquipmentName').value = card.dataset.name || '';
+            document.getElementById('editEquipmentCategory').value = card.dataset.category || 'other';
+            document.getElementById('editEquipmentLocation').value = card.dataset.location || '';
+            document.getElementById('editEquipmentDepartment').value = card.dataset.department || '';
+            document.getElementById('editEquipmentStatus').value = card.dataset.status || 'available';
+            document.getElementById('editEquipmentNotes').value = card.dataset.notes || '';
+
+            document.getElementById('editEquipmentModal').style.display = 'flex';
+        }
+
+        function closeEditEquipmentModal() {
+            document.getElementById('editEquipmentModal').style.display = 'none';
+            document.getElementById('editEquipmentForm').reset();
+        }
+
+        function submitEditEquipment(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = {
+                action: 'update',
+                equipment_id: formData.get('equipment_id'),
+                name: formData.get('name'),
+                category: formData.get('category'),
+                location: formData.get('location') || '',
+                department: formData.get('department') || '',
+                status: formData.get('status'),
+                notes: formData.get('notes') || ''
+            };
+
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('Équipement mis à jour avec succès!');
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de la mise à jour');
+                });
+        }
+
+        function deleteEquipment(id) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cet équipement?')) return;
+
+            const data = {
+                action: 'delete',
+                equipment_id: id
+            };
+
+            fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('Équipement supprimé avec succès!');
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Erreur lors de la suppression');
+                });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

@@ -1,0 +1,318 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prestataires - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    
+    <link rel="stylesheet" href="{% static 'css/providers.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" onclick="window.location.href='/patient/dashboard/'" title="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Prestataires</span>
+        </div>
+        <div class="nav-right">
+            <button class="nav-next-btn" onclick="window.location.href='/patient/book-appointment/'">→</button>
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('doctors')">Médecins</button>
+            <button class="tab" onclick="switchTab('hospitals')">Hôpitaux</button>
+            <button class="tab" onclick="switchTab('pharmacies')">Pharmacies</button>
+        </div>
+
+        <div id="doctors" class="tab-content active">
+            <div class="search-box">
+                <input type="text" id="doctorSearch" placeholder="Rechercher un médecin...">
+                <select id="specialtyFilter">
+                    <option value="">Toutes les spécialités</option>
+                    <option value="general">Médecine Générale</option>
+                    <option value="cardiology">Cardiologie</option>
+                    <option value="dermatology">Dermatologie</option>
+                    <option value="pediatrics">Pédiatrie</option>
+                    <option value="psychiatry">Psychiatrie</option>
+                    <option value="orthopedics">Orthopédie</option>
+                </select>
+            </div>
+
+            <div class="providers-grid" id="doctorsGrid">
+                <div class="empty-state">
+                    <h3>Chargement des médecins...</h3>
+                </div>
+            </div>
+        </div>
+
+        <div id="hospitals" class="tab-content">
+            <div class="search-box">
+                <input type="text" id="hospitalSearch" placeholder="Rechercher un hôpital...">
+                <select id="cityFilter">
+                    <option value="">Toutes les villes</option>
+                    <option value="cotonou">Cotonou</option>
+                    <option value="porto-novo">Porto-Novo</option>
+                    <option value="parakou">Parakou</option>
+                </select>
+            </div>
+
+            <div class="providers-grid" id="hospitalsGrid">
+                <div class="empty-state">
+                    <h3>Chargement des hôpitaux...</h3>
+                </div>
+            </div>
+        </div>
+
+        <div id="pharmacies" class="tab-content">
+            <div class="search-box">
+                <input type="text" id="pharmacySearch" placeholder="Rechercher une pharmacie...">
+            </div>
+
+            <div class="providers-grid" id="pharmaciesGrid">
+                <div class="empty-state">
+                    <h3>Chargement des pharmacies...</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        async function loadDoctors() {
+            try {
+                const response = await fetchApi('providers/doctors/');
+                const data = await response.json();
+                const grid = document.getElementById('doctorsGrid');
+
+                const doctors = data.results || data;
+                if (doctors && doctors.length > 0) {
+                    grid.innerHTML = doctors.map(doctor => {
+                        const servicesHtml = doctor.services && doctor.services.length > 0
+                            ? `<div class="services-section">
+                                <div class="services-label">Services disponibles:</div>
+                                <div class="service-badges">
+                                    ${doctor.services.slice(0, 3).map(service =>
+                                `<span class="service-badge ${service.category}">${service.name}</span>`
+                            ).join('')}
+                                    ${doctor.services.length > 3 ? `<span class="service-badge">+${doctor.services.length - 3}</span>` : ''}
+                                </div>
+                            </div>`
+                            : '<div class="services-section"><span class="no-services">Aucun service disponible</span></div>';
+
+                        return `
+                            <div class="provider-card">
+                                <div class="provider-header">
+                                    <div class="provider-avatar">${doctor.name ? doctor.name.slice(0, 2).toUpperCase() : 'DR'}</div>
+                                    <div class="provider-info">
+                                        <h3>Dr. ${doctor.name || 'Nom non disponible'}</h3>
+                                        <div class="specialty">${doctor.specialty || 'Médecin'}</div>
+                                    </div>
+                                </div>
+                                <div class="provider-details">
+                                    <div class="detail-row">📞 ${doctor.phone || 'N/A'}</div>
+                                    <div class="detail-row">✉️ ${doctor.email || 'N/A'}</div>
+                                    <div class="detail-row">💰 <span class="convert-currency" data-amount-cents="${doctor.consultation_fee || 0}">${(doctor.consultation_fee || 0) / 100} USD</span></div>
+                                </div>
+                                ${servicesHtml}
+                                <div class="rating">
+                                    ${(() => {
+                                        const rating = parseFloat(doctor.rating) || 0;
+                                        const totalReviews = parseInt(doctor.total_reviews) || 0;
+                                        if (totalReviews > 0) {
+                                            return `<span class="stars">${'⭐'.repeat(Math.round(rating))}</span><span>${rating.toFixed(1)}/5 · ${totalReviews} avis</span>`;
+                                        } else {
+                                            return '<span style="color: #7f8c8d; font-size: 0.9em;">Nouveau médecin</span>';
+                                        }
+                                    })()}
+                                </div>
+                                <button class="book-btn" onclick="window.location.href='/patient/book-appointment/?doctor_id=${doctor.id}'">Prendre RDV</button>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    grid.innerHTML = '<div class="empty-state"><h3>Aucun médecin trouvé</h3></div>';
+                }
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+                document.getElementById('doctorsGrid').innerHTML = '<div class="empty-state"><h3>Erreur de chargement</h3></div>';
+            }
+        }
+
+        async function loadHospitals() {
+            try {
+                const response = await fetchApi('providers/providers/?type=hospital');
+                const data = await response.json();
+                const grid = document.getElementById('hospitalsGrid');
+
+                const hospitals = data.results || data;
+                if (hospitals && hospitals.length > 0) {
+                    grid.innerHTML = hospitals.map(hospital => {
+                        const servicesHtml = hospital.services && hospital.services.length > 0
+                            ? `<div class="services-section">
+                                <div class="services-label">Services disponibles:</div>
+                                <div class="service-badges">
+                                    ${hospital.services.slice(0, 3).map(service =>
+                                `<span class="service-badge ${service.category}">${service.name}</span>`
+                            ).join('')}
+                                    ${hospital.services.length > 3 ? `<span class="service-badge">+${hospital.services.length - 3}</span>` : ''}
+                                </div>
+                            </div>`
+                            : '<div class="services-section"><span class="no-services">Aucun service disponible</span></div>';
+
+                        return `
+                            <div class="provider-card">
+                                <div class="provider-header">
+                                    <div class="provider-avatar">🏥</div>
+                                    <div class="provider-info">
+                                        <h3>${hospital.provider_name || 'Hôpital'}</h3>
+                                        <div class="specialty">Hôpital</div>
+                                    </div>
+                                </div>
+                                <div class="provider-details">
+                                    <div class="detail-row">📍 ${hospital.address || 'Adresse non renseignée'}</div>
+                                    <div class="detail-row">📞 ${hospital.phone_number || 'N/A'}</div>
+                                    <div class="detail-row">🛏️ ${hospital.bed_capacity || 'N/A'} lits</div>
+                                </div>
+                                ${servicesHtml}
+                                <div class="rating">
+                                    ${(() => {
+                                        const rating = parseFloat(hospital.rating) || 0;
+                                        const totalReviews = parseInt(hospital.total_reviews) || 0;
+                                        if (totalReviews > 0) {
+                                            return `<span class="stars">${'⭐'.repeat(Math.round(rating))}</span><span>${rating.toFixed(1)}/5 · ${totalReviews} avis</span>`;
+                                        } else {
+                                            return '<span style="color: #7f8c8d; font-size: 0.9em;">Nouvel hôpital</span>';
+                                        }
+                                    })()}
+                                </div>
+                                <button class="book-btn" onclick="window.location.href='/patient/hospitals/?hospital_id=${hospital.participant_id}'">Consulter</button>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    grid.innerHTML = '<div class="empty-state"><h3>Aucun hôpital trouvé</h3></div>';
+                }
+            } catch (error) {
+                console.error('Error loading hospitals:', error);
+                document.getElementById('hospitalsGrid').innerHTML = '<div class="empty-state"><h3>Erreur de chargement</h3></div>';
+            }
+        }
+
+        async function loadPharmacies() {
+            try {
+                const response = await fetchApi('providers/providers/?type=pharmacy');
+                const data = await response.json();
+                const grid = document.getElementById('pharmaciesGrid');
+
+                const pharmacies = data.results || data;
+                if (pharmacies && pharmacies.length > 0) {
+                    grid.innerHTML = pharmacies.map(pharmacy => {
+                        const servicesHtml = pharmacy.services && pharmacy.services.length > 0
+                            ? `<div class="services-section">
+                                <div class="services-label">Services disponibles:</div>
+                                <div class="service-badges">
+                                    ${pharmacy.services.slice(0, 3).map(service =>
+                                `<span class="service-badge ${service.category}">${service.name}</span>`
+                            ).join('')}
+                                    ${pharmacy.services.length > 3 ? `<span class="service-badge">+${pharmacy.services.length - 3}</span>` : ''}
+                                </div>
+                            </div>`
+                            : '<div class="services-section"><span class="no-services">Aucun service disponible</span></div>';
+
+                        return `
+                            <div class="provider-card">
+                                <div class="provider-header">
+                                    <div class="provider-avatar">💊</div>
+                                    <div class="provider-info">
+                                        <h3>${pharmacy.provider_name || 'Pharmacie'}</h3>
+                                        <div class="specialty">Pharmacie</div>
+                                    </div>
+                                </div>
+                                <div class="provider-details">
+                                    <div class="detail-row">📍 ${pharmacy.address || 'Adresse non renseignée'}</div>
+                                    <div class="detail-row">📞 ${pharmacy.phone_number || 'N/A'}</div>
+                                    <div class="detail-row">🕐 ${pharmacy.operating_hours || 'Horaires non renseignés'}</div>
+                                </div>
+                                ${servicesHtml}
+                                <div class="rating">
+                                    ${(() => {
+                                        const rating = parseFloat(pharmacy.rating) || 0;
+                                        const totalReviews = parseInt(pharmacy.total_reviews) || 0;
+                                        if (totalReviews > 0) {
+                                            return `<span class="stars">${'⭐'.repeat(Math.round(rating))}</span><span>${rating.toFixed(1)}/5 · ${totalReviews} avis</span>`;
+                                        } else {
+                                            return '<span style="color: #7f8c8d; font-size: 0.9em;">Nouvelle pharmacie</span>';
+                                        }
+                                    })()}
+                                </div>
+                                <button class="book-btn" onclick="window.location.href='/patient/pharmacies/?pharmacy_id=${pharmacy.participant_id}'">Commander</button>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    grid.innerHTML = '<div class="empty-state"><h3>Aucune pharmacie trouvée</h3></div>';
+                }
+            } catch (error) {
+                console.error('Error loading pharmacies:', error);
+                document.getElementById('pharmaciesGrid').innerHTML = '<div class="empty-state"><h3>Erreur de chargement</h3></div>';
+            }
+        }
+
+        loadDoctors();
+        loadHospitals();
+        loadPharmacies();
+
+        document.getElementById('doctorSearch').addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            document.querySelectorAll('#doctorsGrid .provider-card').forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(search) ? 'block' : 'none';
+            });
+        });
+
+        document.getElementById('hospitalSearch').addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            document.querySelectorAll('#hospitalsGrid .provider-card').forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(search) ? 'block' : 'none';
+            });
+        });
+
+        document.getElementById('pharmacySearch').addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            document.querySelectorAll('#pharmaciesGrid .provider-card').forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(search) ? 'block' : 'none';
+            });
+        });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

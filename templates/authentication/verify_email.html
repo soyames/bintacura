@@ -1,0 +1,173 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vérification Email - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body>
+    <style>
+        .verify-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 36px;
+            font-weight: 700;
+            color: #2196F3;
+        }
+
+        .verify-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .verify-subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background: #1976D2;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            color: #999;
+        }
+
+        .resend-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .resend-link a {
+            color: #2196F3;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+
+    <div class="verify-container">
+        <div class="logo-container">
+            <div class="logo">
+                {% load static %}
+                <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="auth-logo">
+            </div>
+        </div>
+
+        <h1 class="verify-title">Vérification de l'email</h1>
+        <p class="verify-subtitle">Entrez le code d'activation que vous avez reçu par email</p>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="{% if message.tags == 'error' %}error-message{% else %}success-message{% endif %} message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" action="{% url 'authentication:verify_email_code' %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" class="form-input" placeholder="votre@email.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Code d'activation</label>
+                <input type="text" name="code" class="form-input" placeholder="123456" maxlength="6" required>
+            </div>
+
+            <button type="submit" class="submit-btn">Vérifier</button>
+        </form>
+
+        <div class="divider">OU</div>
+
+        <div class="resend-link">
+            <form method="POST" action="{% url 'authentication:resend_verification' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="email" name="email" class="form-input" placeholder="Votre email">
+                </div>
+                <button type="submit" class="submit-btn" style="background: #666;">Renvoyer le code</button>
+            </form>
+        </div>
+
+        <div class="resend-link" style="margin-top: 30px;">
+            <a href="{% url 'authentication:login' %}">← Retour à la connexion</a>
+        </div>
+    </div>
+</body>
+</html>
+

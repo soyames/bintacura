@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^20.0.2"
+  }
+}

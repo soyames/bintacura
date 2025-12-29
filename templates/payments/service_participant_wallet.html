@@ -1,0 +1,213 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portefeuille - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/payments/participant_wallet.css' %}">
+    {% if portal == 'doctor' %}
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% elif portal == 'pharmacy' %}
+    <link rel="stylesheet" href="{% static 'css/pharmacy-theme.css' %}">
+    {% elif portal == 'hospital' %}
+    <link rel="stylesheet" href="{% static 'css/hospital-theme.css' %}">
+    {% elif portal == 'insurance' %}
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% endif %}
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type=portal page_title="Portefeuille" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% if portal == 'doctor' %}
+    {% include "layout/_sidebar_doctor.html" %}
+    {% elif portal == 'pharmacy' %}
+    {% include "layout/_sidebar_pharmacy.html" %}
+    {% elif portal == 'hospital' %}
+    {% include "layout/_sidebar_hospital.html" %}
+    {% elif portal == 'insurance' %}
+    {% include "layout/_sidebar_insurance.html" %}
+    {% endif %}
+
+    <div class="main-content">
+        <div class="provider-wallet-container">
+    <div class="wallet-stats">
+        <div class="stat-card stat-gross">
+            <div class="stat-icon"><i class="fas fa-coins"></i></div>
+            <div class="stat-content">
+                <div class="stat-label">Total Brut</div>
+                <div class="stat-number">{{ total_gross|floatformat:2 }} {{ currency }}</div>
+            </div>
+        </div>
+        <div class="stat-card stat-net">
+            <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+            <div class="stat-content">
+                <div class="stat-label">Total Net</div>
+                <div class="stat-number">{{ total_net|floatformat:2 }} {{ currency }}</div>
+            </div>
+        </div>
+        <div class="stat-card stat-fees">
+            <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+            <div class="stat-content">
+                <div class="stat-label">Frais Totaux</div>
+                <div class="stat-number">{{ total_fees|floatformat:2 }} {{ currency }}</div>
+            </div>
+        </div>
+        <div class="stat-card stat-pending">
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="stat-content">
+                <div class="stat-label">En Attente</div>
+                <div class="stat-number">{{ pending_amount|floatformat:2 }} {{ currency }}</div>
+                <div class="stat-badge">{{ pending_count }} transaction(s)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="wallet-content">
+        <div class="main-content">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>Transactions Récentes</h2>
+                    <a href="{% url portal|add:':invoices' %}" class="btn btn-link">Voir toutes les factures</a>
+                </div>
+                <div class="transactions-list">
+                    {% for txn in transactions %}
+                    <div class="transaction-item">
+                        <div class="transaction-icon">
+                            <i class="fas fa-arrow-right"></i>
+                        </div>
+                        <div class="transaction-details">
+                            <div class="transaction-name">{{ txn.service_description }}</div>
+                            <div class="transaction-info">
+                                {{ txn.patient.full_name }} • {{ txn.created_at|date:"d/m/Y H:i" }}
+                            </div>
+                        </div>
+                        <div class="transaction-amount">
+                            <div class="amount">+{{ txn.amount|floatformat:2 }} {{ txn.currency }}</div>
+                            {% if txn.fee_details %}
+                            <div class="fee">Frais: -{{ txn.fee_details.total_fee_amount|floatformat:2 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="transaction-status">
+                            <span class="status-badge status-{{ txn.status }}">
+                                {% if txn.status == 'completed' %}Complété
+                                {% elif txn.status == 'pending' %}En attente
+                                {% elif txn.status == 'processing' %}Traitement
+                                {% else %}{{ txn.status }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="no-data">
+                        <i class="fas fa-inbox"></i>
+                        <p>Aucune transaction</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h2>Virements Programmés</h2>
+                </div>
+                <div class="payouts-list">
+                    {% for payout in pending_payouts %}
+                    <div class="payout-item">
+                        <div class="payout-details">
+                            <div class="payout-date">{{ payout.scheduled_for|date:"d/m/Y" }}</div>
+                            <div class="payout-period">{{ payout.period_start|date:"d/m" }} - {{ payout.period_end|date:"d/m/Y" }}</div>
+                        </div>
+                        <div class="payout-amount">
+                            <div class="amount">{{ payout.total_net_amount|floatformat:2 }} {{ currency }}</div>
+                            <div class="count">{{ payout.total_transactions_count }} transaction(s)</div>
+                        </div>
+                        <div class="payout-status">
+                            <span class="status-badge status-{{ payout.payout_status }}">
+                                {{ payout.get_payout_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="no-data-sm">
+                        <p>Aucun virement programmé</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Comptes de Paiement</h3>
+                </div>
+                <div class="gateway-accounts-list">
+                    {% for account in gateway_accounts %}
+                    <div class="gateway-account-item {% if account.is_default %}default{% endif %}">
+                        <div class="account-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div class="account-details">
+                            <div class="account-name">{{ account.get_gateway_provider_display }}</div>
+                            <div class="account-number">{{ account.gateway_account_number }}</div>
+                        </div>
+                        {% if account.is_default %}
+                        <span class="default-badge">Par défaut</span>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="no-data-sm">
+                        <p>Aucun compte configuré</p>
+                        <a href="{% url 'payments:gatewayaccount-setup' %}" class="btn btn-sm btn-primary">Ajouter un compte</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-header">
+                    <h3>Virements Récents</h3>
+                </div>
+                <div class="completed-payouts-list">
+                    {% for payout in completed_payouts %}
+                    <div class="completed-payout-item">
+                        <div class="payout-date">{{ payout.processed_at|date:"d/m/Y" }}</div>
+                        <div class="payout-amount">{{ payout.total_net_amount|floatformat:2 }} {{ currency }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="no-data-sm">
+                        <p>Aucun virement complété</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <h3>Actions Rapides</h3>
+                <a href="{% url portal|add:':invoices' %}" class="action-btn">
+                    <i class="fas fa-file-invoice"></i>
+                    Mes Factures
+                </a>
+                <a href="{% url portal|add:':transactions' %}" class="action-btn">
+                    <i class="fas fa-list"></i>
+                    Historique
+                </a>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/payments/participant_wallet.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+

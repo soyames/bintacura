@@ -1,0 +1,225 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conditions d'utilisation - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="{% static 'css/terms.css' %}">
+
+</head>
+
+<body>
+    <div class="terms-modal">
+        <div class="terms-container">
+            <div class="terms-header">
+                <h1><img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="terms-header-logo"> Conditions d'utilisation</h1>
+                <p class="terms-subtitle">Veuillez lire attentivement avant de continuer</p>
+                <div class="user-info">
+                    <strong>{{ full_name }}</strong> ({{ email }}) - Rôle: <strong>{{ role|title }}</strong>
+                </div>
+            </div>
+
+            <div class="scroll-indicator" id="scrollIndicator">
+                ⬇️ Faites défiler pour lire toutes les conditions
+            </div>
+
+            <div class="terms-content" id="termsContent">
+                <h2>1. Acceptation des Conditions</h2>
+                <p>
+                    En utilisant la plateforme BINTACURA, vous acceptez d'être lié par ces conditions d'utilisation.
+                    Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser notre service.
+                </p>
+
+                <h2>2. Description du Service</h2>
+                <p>
+                    BINTACURA est une plateforme de santé numérique qui facilite:
+                </p>
+                <ul>
+                    <li>La prise de rendez-vous médicaux en ligne</li>
+                    <li>La gestion des dossiers médicaux électroniques</li>
+                    <li>La téléconsultation avec des professionnels de santé</li>
+                    <li>La gestion des prescriptions et ordonnances</li>
+                    <li>Le suivi des assurances santé</li>
+                    <li>Les paiements sécurisés des services médicaux</li>
+                </ul>
+
+                <h2>3. Protection des Données Personnelles</h2>
+                <h3>3.1 Collecte de Données</h3>
+                <p>
+                    Nous collectons les informations que vous nous fournissez lors de l'inscription et de l'utilisation
+                    de nos services, notamment:
+                </p>
+                <ul>
+                    <li>Informations d'identification (nom, prénom, email, téléphone)</li>
+                    <li>Informations médicales (historique médical, diagnostics, traitements)</li>
+                    <li>Informations d'assurance</li>
+                    <li>Données de paiement (traitées de manière sécurisée)</li>
+                </ul>
+
+                <h3>3.2 Utilisation des Données</h3>
+                <p>
+                    Vos données sont utilisées exclusivement pour:
+                </p>
+                <ul>
+                    <li>Fournir et améliorer nos services</li>
+                    <li>Faciliter la communication entre vous et les professionnels de santé</li>
+                    <li>Gérer vos rendez-vous et prescriptions</li>
+                    <li>Traiter vos paiements de manière sécurisée</li>
+                    <li>Respecter nos obligations légales</li>
+                </ul>
+
+                <div class="highlight">
+                    <strong>⚠️ Important:</strong> Nous ne vendons jamais vos données personnelles ou médicales à des
+                    tiers.
+                    Vos informations de santé sont strictement confidentielles et protégées conformément au RGPD et aux
+                    réglementations locales sur la protection des données de santé.
+                </div>
+
+                <h2>4. Confidentialité Médicale</h2>
+                <p>
+                    Nous nous engageons à respecter le secret médical. Les professionnels de santé utilisant notre
+                    plateforme
+                    sont tenus par les mêmes obligations de confidentialité que dans un cadre médical traditionnel.
+                </p>
+
+                <h2>5. Responsabilités de l'Utilisateur</h2>
+                <p>En utilisant BINTACURA, vous vous engagez à:</p>
+                <ul>
+                    <li>Fournir des informations exactes et complètes</li>
+                    <li>Maintenir la confidentialité de vos identifiants de connexion</li>
+                    <li>Utiliser la plateforme de manière responsable et légale</li>
+                    <li>Ne pas partager vos accès avec des tiers</li>
+                    <li>Informer immédiatement BINTACURA de toute utilisation non autorisée de votre compte</li>
+                </ul>
+
+                <h2>6. Services Médicaux</h2>
+                <p>
+                    BINTACURA est une plateforme technologique qui facilite la communication entre patients et
+                    professionnels
+                    de santé. Nous ne fournissons pas directement de services médicaux. Les consultations, diagnostics
+                    et
+                    traitements sont effectués par des professionnels de santé qualifiés et licenciés.
+                </p>
+
+                <h2>7. Paiements et Remboursements</h2>
+                <h3>7.1 Paiements</h3>
+                <p>
+                    Tous les paiements sont traités de manière sécurisée via notre système de paiement intégré.
+                    Nous acceptons les cartes de crédit, les cartes de débit et autres méthodes de paiement locales.
+                </p>
+
+                <h3>7.2 Politique d'Annulation</h3>
+                <ul>
+                    <li>Annulation 72h avant le rendez-vous: remboursement partiel</li>
+                    <li>Annulation moins de 24h avant: frais de 1000 FCFA</li>
+                    <li>Absence sans annulation: aucun remboursement</li>
+                </ul>
+
+                <h2>8. Propriété Intellectuelle</h2>
+                <p>
+                    Tous les contenus de la plateforme BINTACURA (textes, images, logos, logiciels) sont protégés par
+                    les droits de propriété intellectuelle. Toute reproduction sans autorisation est interdite.
+                </p>
+
+                <h2>9. Limitation de Responsabilité</h2>
+                <p>
+                    BINTACURA s'efforce de fournir un service fiable et sécurisé. Cependant, nous ne pouvons garantir:
+                </p>
+                <ul>
+                    <li>Une disponibilité ininterrompue du service</li>
+                    <li>L'absence totale d'erreurs techniques</li>
+                    <li>La qualité des soins fournis par les professionnels de santé (qui restent responsables de leurs
+                        actes)</li>
+                </ul>
+
+                <h2>10. Modification des Conditions</h2>
+                <p>
+                    Nous nous réservons le droit de modifier ces conditions d'utilisation à tout moment.
+                    Les modifications importantes vous seront notifiées par email ou via la plateforme.
+                </p>
+
+                <h2>11. Résiliation</h2>
+                <p>
+                    Vous pouvez résilier votre compte à tout moment en nous contactant. Nous pouvons également résilier
+                    votre compte en cas de violation de ces conditions d'utilisation.
+                </p>
+
+                <h2>12. Droit Applicable</h2>
+                <p>
+                    Ces conditions sont régies par les lois en vigueur dans votre juridiction. Tout litige sera soumis
+                    aux tribunaux compétents.
+                </p>
+
+                <h2>13. Contact</h2>
+                <p>
+                    Pour toute question concernant ces conditions d'utilisation, veuillez nous contacter à:
+                </p>
+                <ul>
+                    <li>Email: contacts@bintacura.org</li>
+                    <li>Téléphone: +229 01 66 12 48 38</li>
+                    <li>Abomey-Calavi, Bénin</li>
+                </ul>
+
+                <div class="highlight">
+                    <strong>📅 Dernière mise à jour:</strong> {{ "now"|date:"d F Y" }}
+                </div>
+            </div>
+
+            <div class="checkbox-container">
+                <input type="checkbox" id="termsCheckbox" onchange="toggleAcceptButton()">
+                <label for="termsCheckbox">
+                    J'ai lu et j'accepte les conditions d'utilisation de BINTACURA
+                </label>
+            </div>
+
+            <div class="terms-footer">
+                <form method="POST" action="{% url 'authentication:decline_terms' %}" style="flex: 1;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-decline">
+                        ❌ Refuser
+                    </button>
+                </form>
+                <form method="POST" action="{% url 'authentication:accept_terms' %}" style="flex: 1;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-accept" id="acceptButton" disabled>
+                        ✅ Accepter et Continuer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const termsContent = document.getElementById('termsContent');
+        const scrollIndicator = document.getElementById('scrollIndicator');
+        const termsCheckbox = document.getElementById('termsCheckbox');
+        const acceptButton = document.getElementById('acceptButton');
+
+        termsContent.addEventListener('scroll', function () {
+            const scrollPercentage = (termsContent.scrollTop / (termsContent.scrollHeight - termsContent.clientHeight)) * 100;
+
+            if (scrollPercentage > 80) {
+                scrollIndicator.style.display = 'none';
+            } else {
+                scrollIndicator.style.display = 'block';
+            }
+        });
+
+        function toggleAcceptButton() {
+            acceptButton.disabled = !termsCheckbox.checked;
+        }
+
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function (e) {
+                const button = form.querySelector('button[type="submit"]');
+                button.disabled = true;
+                button.textContent = button.classList.contains('btn-accept') ? '⏳ Activation...' : '⏳ Annulation...';
+            });
+        });
+    </script>
+</body>
+
+</html>

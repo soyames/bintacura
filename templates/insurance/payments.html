@@ -1,0 +1,446 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiements - Assurance Santé BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/claims.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Paiements" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="content-section">
+            <div class="stats-grid">
+                <div class="stat-card pending">
+                    <div class="stat-label">Paiements Dus</div>
+                    <div class="stat-value" id="duePaymentsCount">-</div>
+                    <div class="stat-sublabel" id="dueAmount">0 FCFA</div>
+                </div>
+                <div class="stat-card rejected">
+                    <div class="stat-label">En Retard</div>
+                    <div class="stat-value" id="overdueCount">-</div>
+                    <div class="stat-sublabel" id="overdueAmount">0 FCFA</div>
+                </div>
+                <div class="stat-card approved">
+                    <div class="stat-label">Payés ce Mois</div>
+                    <div class="stat-value" id="paidThisMonthCount">-</div>
+                    <div class="stat-sublabel" id="paidThisMonthAmount">0 FCFA</div>
+                </div>
+                <div class="stat-card review">
+                    <div class="stat-label">Revenus Totaux</div>
+                    <div class="stat-value" id="totalRevenueAmount">0 FCFA</div>
+                </div>
+            </div>
+
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterPayments('all')">Tous</button>
+                <button class="filter-btn" onclick="filterPayments('due')">À Payer</button>
+                <button class="filter-btn" onclick="filterPayments('overdue')">En Retard</button>
+                <button class="filter-btn" onclick="filterPayments('paid')">Payés</button>
+            </div>
+
+            <div id="paymentsList" class="claims-list">
+                <div class="empty-state">
+                    <div class="empty-icon">⏳</div>
+                    <p>Chargement des paiements...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Detail Modal -->
+    <div id="paymentDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalPaymentTitle">Détails du Paiement</h3>
+                <button class="close-btn" onclick="closePaymentModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="paymentDetailBody">
+            </div>
+            <div class="modal-footer" id="paymentModalActions">
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        let allSubscriptions = [];
+        let currentFilter = 'all';
+
+        async function loadPayments() {
+            try {
+                // Load all subscriptions to check payment status
+                const response = await fetchApi('insurance/subscriptions/');
+                const data = await response.json();
+                allSubscriptions = data.results || data;
+
+                // Calculate payment information for each subscription
+                allSubscriptions = allSubscriptions.map(sub => {
+                    const nextPaymentDate = sub.next_payment_date ? new Date(sub.next_payment_date) : null;
+                    const today = new Date();
+                    const isOverdue = nextPaymentDate && nextPaymentDate < today && sub.status === 'active';
+                    const isDue = nextPaymentDate && nextPaymentDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000) && sub.status === 'active';
+
+                    return {
+                        ...sub,
+                        is_overdue: isOverdue,
+                        is_due: isDue,
+                        days_overdue: isOverdue ? Math.floor((today - nextPaymentDate) / (1000 * 60 * 60 * 24)) : 0
+                    };
+                });
+
+                updateStats();
+                renderPayments();
+            } catch (error) {
+                console.error('Error loading payments:', error);
+                document.getElementById('paymentsList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <p>Erreur de chargement des paiements</p>
+                    </div>
+                `;
+            }
+        }
+
+        function updateStats() {
+            const today = new Date();
+            const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            const duePayments = allSubscriptions.filter(s => s.is_due && s.status === 'active');
+            const overduePayments = allSubscriptions.filter(s => s.is_overdue);
+            const paidThisMonth = allSubscriptions.filter(s => {
+                if (s.last_payment_date) {
+                    const lastPayment = new Date(s.last_payment_date);
+                    return lastPayment >= thisMonthStart;
+                }
+                return false;
+            });
+
+            const dueAmount = duePayments.reduce((sum, s) => sum + (s.premium_amount || 0), 0);
+            const overdueAmount = overduePayments.reduce((sum, s) => sum + (s.premium_amount || 0), 0);
+            const paidAmount = paidThisMonth.reduce((sum, s) => sum + (s.premium_amount || 0), 0);
+            const totalRevenue = allSubscriptions.reduce((sum, s) => sum + (s.total_paid || 0), 0);
+
+            document.getElementById('duePaymentsCount').textContent = duePayments.length;
+            document.getElementById('dueAmount').textContent = dueAmount.toLocaleString() + ' FCFA';
+            document.getElementById('overdueCount').textContent = overduePayments.length;
+            document.getElementById('overdueAmount').textContent = overdueAmount.toLocaleString() + ' FCFA';
+            document.getElementById('paidThisMonthCount').textContent = paidThisMonth.length;
+            document.getElementById('paidThisMonthAmount').textContent = paidAmount.toLocaleString() + ' FCFA';
+            document.getElementById('totalRevenueAmount').textContent = totalRevenue.toLocaleString() + ' FCFA';
+        }
+
+        function filterPayments(filter) {
+            currentFilter = filter;
+
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            let filtered = allSubscriptions;
+            if (filter === 'due') {
+                filtered = allSubscriptions.filter(s => s.is_due && s.status === 'active');
+            } else if (filter === 'overdue') {
+                filtered = allSubscriptions.filter(s => s.is_overdue);
+            } else if (filter === 'paid') {
+                const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+                filtered = allSubscriptions.filter(s => {
+                    if (s.last_payment_date) {
+                        return new Date(s.last_payment_date) >= thisMonthStart;
+                    }
+                    return false;
+                });
+            }
+
+            renderPayments(filtered);
+        }
+
+        function renderPayments(subscriptions = allSubscriptions) {
+            const list = document.getElementById('paymentsList');
+
+            if (!subscriptions || subscriptions.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <h3>Aucun paiement trouvé</h3>
+                        <p>Il n'y a aucun paiement ${currentFilter !== 'all' ? 'dans cette catégorie' : 'pour le moment'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = subscriptions.map(subscription => {
+                const statusClass = subscription.is_overdue ? 'rejected' :
+                                  subscription.is_due ? 'pending' : 'approved';
+
+                const nextPaymentDate = subscription.next_payment_date ?
+                    new Date(subscription.next_payment_date).toLocaleDateString('fr-FR') : 'N/A';
+
+                const lastPaymentDate = subscription.last_payment_date ?
+                    new Date(subscription.last_payment_date).toLocaleDateString('fr-FR') : 'Aucun paiement';
+
+                const frequencyLabels = {
+                    'monthly': 'Mensuel',
+                    'quarterly': 'Trimestriel',
+                    'semi_annual': 'Semestriel',
+                    'annual': 'Annuel'
+                };
+
+                return `
+                    <div class="claim-card" onclick="viewPaymentDetails('${subscription.id}')">
+                        <div class="claim-header">
+                            <div>
+                                <div class="claim-number">Abonnement #${subscription.id.substring(0, 8).toUpperCase()}</div>
+                                <div class="claim-patient-info">
+                                    ${subscription.patient_name || 'Patient'} • ${subscription.insurance_package_name || 'Package'}
+                                </div>
+                            </div>
+                            <div class="claim-status-badge ${statusClass}">
+                                ${subscription.is_overdue ? `En Retard (${subscription.days_overdue}j)` :
+                                  subscription.is_due ? 'Paiement Dû' : 'À Jour'}
+                            </div>
+                        </div>
+
+                        <div class="claim-details-grid">
+                            <div>
+                                <div class="claim-detail-label">Prime</div>
+                                <div class="claim-detail-value">${(subscription.premium_amount || 0).toLocaleString()} FCFA</div>
+                            </div>
+                            <div>
+                                <div class="claim-detail-label">Fréquence</div>
+                                <div class="claim-detail-value">${frequencyLabels[subscription.payment_frequency] || subscription.payment_frequency}</div>
+                            </div>
+                            <div>
+                                <div class="claim-detail-label">Prochain Paiement</div>
+                                <div class="claim-detail-value" style="color: ${subscription.is_overdue ? '#dc2626' : '#2d3748'}">${nextPaymentDate}</div>
+                            </div>
+                            <div>
+                                <div class="claim-detail-label">Dernier Paiement</div>
+                                <div class="claim-detail-value">${lastPaymentDate}</div>
+                            </div>
+                        </div>
+
+                        <div class="claim-details-grid">
+                            <div>
+                                <div class="claim-detail-label">Total Payé</div>
+                                <div class="claim-detail-value">${(subscription.total_paid || 0).toLocaleString()} FCFA</div>
+                            </div>
+                            <div>
+                                <div class="claim-detail-label">Nombre de Paiements</div>
+                                <div class="claim-detail-value">${subscription.payment_count || 0}</div>
+                            </div>
+                            <div>
+                                <div class="claim-detail-label">Méthode</div>
+                                <div class="claim-detail-value">${subscription.payment_method || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <div class="claim-detail-label">Statut</div>
+                                <div class="claim-detail-value">${subscription.status === 'active' ? 'Actif' : subscription.status}</div>
+                            </div>
+                        </div>
+
+                        ${subscription.is_overdue ? `
+                            <div class="claim-rejection-box">
+                                <div class="claim-detail-label">⚠️ Paiement en retard de ${subscription.days_overdue} jour(s)</div>
+                                <div class="claim-detail-value">Rappel de paiement requis</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function viewPaymentDetails(subscriptionId) {
+            const subscription = allSubscriptions.find(s => s.id === subscriptionId);
+            if (!subscription) return;
+
+            const modal = document.getElementById('paymentDetailModal');
+            const modalTitle = document.getElementById('modalPaymentTitle');
+            const modalBody = document.getElementById('paymentDetailBody');
+            const modalActions = document.getElementById('paymentModalActions');
+
+            modalTitle.textContent = `Paiement - Abonnement #${subscription.id.substring(0, 8).toUpperCase()}`;
+
+            const nextPaymentDate = subscription.next_payment_date ?
+                new Date(subscription.next_payment_date).toLocaleDateString('fr-FR') : 'N/A';
+            const lastPaymentDate = subscription.last_payment_date ?
+                new Date(subscription.last_payment_date).toLocaleDateString('fr-FR') : 'Aucun paiement';
+            const startDate = new Date(subscription.start_date).toLocaleDateString('fr-FR');
+
+            const frequencyLabels = {
+                'monthly': 'Mensuel',
+                'quarterly': 'Trimestriel',
+                'semi_annual': 'Semestriel',
+                'annual': 'Annuel'
+            };
+
+            modalBody.innerHTML = `
+                <div class="detail-section">
+                    <h4>👤 Informations du Patient</h4>
+                    <div class="detail-row">
+                        <span class="label">Nom du patient:</span>
+                        <span class="value">${subscription.patient_name || 'N/A'}</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>📦 Abonnement</h4>
+                    <div class="detail-row">
+                        <span class="label">Package:</span>
+                        <span class="value">${subscription.insurance_package_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Compagnie:</span>
+                        <span class="value">${subscription.company_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Date de début:</span>
+                        <span class="value">${startDate}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Statut:</span>
+                        <span class="value">${subscription.status === 'active' ? 'Actif' : subscription.status}</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>💰 Informations de Paiement</h4>
+                    <div class="detail-row">
+                        <span class="label">Prime:</span>
+                        <span class="value">${(subscription.premium_amount || 0).toLocaleString()} FCFA</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Fréquence:</span>
+                        <span class="value">${frequencyLabels[subscription.payment_frequency] || subscription.payment_frequency}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Méthode de paiement:</span>
+                        <span class="value">${subscription.payment_method || 'N/A'}</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h4>📅 Calendrier de Paiement</h4>
+                    <div class="detail-row">
+                        <span class="label">Dernier paiement:</span>
+                        <span class="value">${lastPaymentDate}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Prochain paiement:</span>
+                        <span class="value" style="color: ${subscription.is_overdue ? '#dc2626' : '#2d3748'}">${nextPaymentDate}</span>
+                    </div>
+                    ${subscription.is_overdue ? `
+                    <div class="detail-row">
+                        <span class="label">Jours de retard:</span>
+                        <span class="value" style="color: #dc2626">${subscription.days_overdue} jour(s)</span>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="detail-section">
+                    <h4>📊 Historique</h4>
+                    <div class="detail-row">
+                        <span class="label">Total payé:</span>
+                        <span class="value">${(subscription.total_paid || 0).toLocaleString()} FCFA</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Nombre de paiements:</span>
+                        <span class="value">${subscription.payment_count || 0}</span>
+                    </div>
+                </div>
+
+                ${subscription.is_overdue ? `
+                <div class="detail-section">
+                    <h4>⚠️ Alerte</h4>
+                    <div class="claim-rejection-box">
+                        <p>Ce paiement est en retard de ${subscription.days_overdue} jour(s). Veuillez envoyer un rappel au patient.</p>
+                    </div>
+                </div>
+                ` : ''}
+            `;
+
+            let actions = '';
+            if (subscription.is_overdue || subscription.is_due) {
+                actions = `
+                    <button class="btn-action btn-approve" onclick="sendPaymentReminder('${subscription.id}')">📧 Envoyer Rappel de Paiement</button>
+                `;
+            }
+
+            modalActions.innerHTML = actions;
+            modal.classList.add('active');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentDetailModal').classList.remove('active');
+        }
+
+        async function sendPaymentReminder(subscriptionId) {
+            const subscription = allSubscriptions.find(s => s.id === subscriptionId);
+            if (!subscription) return;
+
+            if (!confirm(`Envoyer un rappel de paiement à ${subscription.patient_name}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetchApi(`insurance/subscriptions/${subscriptionId}/send_payment_reminder/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Rappel de paiement envoyé avec succès au patient!');
+                    closePaymentModal();
+                } else {
+                    alert('Erreur: ' + (data.detail || data.error || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('paymentDetailModal');
+            if (event.target === modal) {
+                closePaymentModal();
+            }
+        }
+
+        loadPayments();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
+

@@ -1,0 +1,185 @@
+{% extends "layout/dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Patient Dashboard - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/BINTACURA-common.css' %}">
+<link rel="stylesheet" href="{% static 'css/patient.css' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard-common.css' %}">
+<link rel="stylesheet" href="{% static 'css/patient-dashboard.css' %}">
+{% endblock %}
+
+{% block sidebar %}
+{% include "layout/_sidebar_patient.html" %}
+{% endblock %}
+
+{% block mobile_header %}
+{% include "layout/_mobile_header.html" with role_label="PATIENT" %}
+{% endblock %}
+
+{% block content %}
+<div class="carousel-container">
+    <div class="carousel" id="carousel">
+        {% if carousel_ads %}
+            {% for ad in carousel_ads %}
+        <div class="carousel-slide" data-ad-id="{{ ad.id }}">
+            {% if ad.media_type == 'image' and ad.image %}
+                <img src="{{ ad.image.url }}" alt="{{ ad.heading }}" class="carousel-slide-bg">
+            {% elif ad.media_type == 'video' and ad.video %}
+                <video class="carousel-slide-bg video" autoplay muted loop playsinline>
+                    <source src="{{ ad.video.url }}" type="video/mp4">
+                </video>
+            {% endif %}
+            <div class="carousel-slide-overlay"></div>
+            <div class="carousel-slide-content">
+                <h3>{{ ad.heading }}</h3>
+                {% if ad.subheading %}
+                <h3>{{ ad.subheading }}</h3>
+                {% endif %}
+                <a href="{{ ad.button_link }}" class="carousel-btn" {% if ad.button_opens_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %} onclick="trackAdClick({{ ad.id }})">
+                    {{ ad.button_text }}
+                </a>
+            </div>
+        </div>
+            {% endfor %}
+        {% else %}
+            {# Default slides if no ads are active #}
+        <div class="carousel-slide">
+            <div class="carousel-slide-content">
+                <h3>Informez-vous sur les bonnes pratiques sanitaires</h3>
+                <h3>Rejoignez un forum de discussion</h3>
+                <button class="carousel-btn" onclick="window.location.href='/patient/forum/'">Suscire</button>
+            </div>
+        </div>
+        <div class="carousel-slide">
+            <div class="carousel-slide-content">
+                <h3>Consultez vos résultats médicaux</h3>
+                <h3>Accédez à votre dossier de santé</h3>
+                <button class="carousel-btn" onclick="window.location.href='/patient/health-records/'">Voir Plus</button>
+            </div>
+        </div>
+        <div class="carousel-slide">
+            <div class="carousel-slide-content">
+                <h3>Gérez vos prescriptions</h3>
+                <h3>Renouvelez vos ordonnances</h3>
+                <button class="carousel-btn" onclick="window.location.href='/patient/prescriptions/'">Commencer</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <button class="carousel-nav prev" onclick="moveCarousel(-1)">‹</button>
+    <button class="carousel-nav next" onclick="moveCarousel(1)">›</button>
+</div>
+
+<div class="section-title">
+    VOS SERVICES
+    <div class="help-badge" onclick="window.location.href='/patient/ai-assistant/'">
+        <span>💬</span>
+        Besoin d'Assistance
+    </div>
+</div>
+
+<div class="services-grid">
+    <a href="/patient/health-records/" class="service-card">
+        <div class="service-icon">📋</div>
+        <h3 class="service-title">Carnet De Santé</h3>
+    </a>
+
+    <a href="/patient/hospitals/" class="service-card">
+        <div class="service-icon">🏥</div>
+        <h3 class="service-title">Hôpitaux</h3>
+    </a>
+
+    <a href="/patient/pharmacies/" class="service-card">
+        <div class="service-icon">💊</div>
+        <h3 class="service-title">Pharmacies</h3>
+    </a>
+
+    <a href="/patient/prescriptions/" class="service-card">
+        <div class="service-icon">📋</div>
+        <h3 class="service-title">Prescriptions</h3>
+    </a>
+
+    <a href="/patient/telemedicine/" class="service-card">
+        <div class="service-icon">👨‍⚕️</div>
+        <h3 class="service-title">Télémédication</h3>
+    </a>
+
+    <a href="/patient/forum/" class="service-card">
+        <div class="service-icon">💬</div>
+        <h3 class="service-title">Forum</h3>
+    </a>
+
+    <a href="/patient/beneficiaries/" class="service-card">
+        <div class="service-icon">👨‍👩‍👧</div>
+        <h3 class="service-title">Liste Bénéficiares</h3>
+    </a>
+
+    <a href="/patient/insurance-subscription/" class="service-card">
+        <div class="service-icon">🛡️</div>
+        <h3 class="service-title">Assurance Santé</h3>
+    </a>
+
+    <a href="/patient/invoices/" class="service-card">
+        <div class="service-icon">🧾</div>
+        <h3 class="service-title">Mes Factures</h3>
+    </a>
+
+    <a href="/patient/transport-request/" class="service-card">
+        <div class="service-icon">🚑</div>
+        <h3 class="service-title">Transport Médical</h3>
+    </a>
+
+    <a href="/patient/my-appointments/" class="service-card">
+        <div class="service-icon">📅</div>
+        <h3 class="service-title">Mes Rendez-vous</h3>
+    </a>
+
+    <a href="/patient/transactions/" class="service-card">
+        <div class="service-icon">💳</div>
+        <h3 class="service-title">Mes Paiements</h3>
+    </a>
+</div>
+
+<button class="appointment-btn" onclick="window.location.href='/patient/book-appointment/'">
+    PRENDRE RENDEZ-VOUS
+</button>
+
+<script>
+function trackAdClick(adId) {
+    fetch(`/api/v1/ads/${adId}/click/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    });
+}
+
+// Track ad views when carousel slide becomes visible
+const carousel = document.getElementById('carousel');
+if (carousel) {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const adId = entry.target.dataset.adId;
+                if (adId && !entry.target.dataset.viewed) {
+                    entry.target.dataset.viewed = 'true';
+                    fetch(`/api/v1/ads/${adId}/view/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    });
+                }
+            }
+        });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.carousel-slide[data-ad-id]').forEach(slide => {
+        observer.observe(slide);
+    });
+}
+</script>
+{% endblock %}
+

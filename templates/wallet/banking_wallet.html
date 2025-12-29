@@ -1,0 +1,808 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique des Paiements - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root[data-theme="light"] {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-color: #dee2e6;
+    --shadow: rgba(0, 0, 0, 0.08);
+    --accent-color: #007bff;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+}
+
+:root[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --border-color: #404040;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --accent-color: #0d6efd;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding-top: 70px;
+    padding-bottom: 20px;
+}
+
+.wallet-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.wallet-header {
+    background: var(--bg-secondary);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px var(--shadow);
+    margin-bottom: 30px;
+}
+
+.wallet-header h1 {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.currency-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--bg-secondary);
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.stat-icon.paid {
+    background: #fee;
+    color: var(--danger-color);
+}
+
+.stat-icon.earned {
+    background: #efe;
+    color: var(--success-color);
+}
+
+.stat-icon.pending {
+    background: #fff3cd;
+    color: var(--warning-color);
+}
+
+.stat-details h3 {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.stat-details h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.tabs-container {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px var(--shadow);
+    overflow: hidden;
+}
+
+.tabs-header {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.tab-btn {
+    flex: 1;
+    min-width: 150px;
+    padding: 16px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.tab-btn:hover {
+    background: var(--bg-primary);
+}
+
+.tab-btn.active {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+}
+
+.tab-content {
+    display: none;
+    padding: 24px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.transaction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+
+.transaction-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.transaction-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.transaction-icon.credit {
+    background: #efe;
+    color: var(--success-color);
+}
+
+.transaction-icon.debit {
+    background: #fee;
+    color: var(--danger-color);
+}
+
+.transaction-icon.transfer {
+    background: #eef;
+    color: var(--accent-color);
+}
+
+.transaction-info {
+    flex: 1;
+}
+
+.transaction-info h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.transaction-info p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.transaction-amount {
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.transaction-amount.positive {
+    color: var(--success-color);
+}
+
+.transaction-amount.negative {
+    color: var(--danger-color);
+}
+
+.transaction-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.transaction-status.completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.transaction-status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.transaction-status.failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.transaction-status.processing {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: var(--accent-color);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--bg-primary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+}
+
+.empty-state p {
+    font-size: 16px;
+}
+
+.request-card, .vendor-card, .chat-card {
+    background: var(--bg-primary);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.request-from {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.request-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.request-user h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.request-user p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.request-amount {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.request-description {
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.request-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-success, .btn-danger, .btn-primary {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger-color);
+    color: white;
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: white;
+}
+
+.btn-success:hover, .btn-danger:hover, .btn-primary:hover {
+    opacity: 0.9;
+}
+
+.vendor-card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.vendor-card-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.vendor-default-badge {
+    background: var(--success-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    margin-left: 8px;
+}
+
+.vendor-card-number {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.vendor-verified {
+    color: var(--success-color);
+}
+
+.vendor-unverified {
+    color: var(--warning-color);
+}
+
+.chat-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 8px;
+}
+
+.chat-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.chat-card-date {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .wallet-container {
+        padding: 12px;
+    }
+
+    .stat-card {
+        padding: 16px;
+    }
+
+    .transaction-item {
+        flex-wrap: wrap;
+    }
+
+    .transaction-amount {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+    </style>
+</head>
+
+<body>
+    {% include "components/top_nav.html" %}
+
+    <div class="wallet-container">
+        <div class="wallet-header">
+            <h1>💳 Historique des Paiements</h1>
+            <div class="currency-info">
+                <span>📍</span>
+                <span>Devise: <strong id="currencyCode">{{ display_currency }}</strong></span>
+                <span>(Auto-détecté)</span>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon paid">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="stat-details">
+                    <h3>Total Payé</h3>
+                    <h2>{{ currency }} {{ total_paid|default:"0.00" }}</h2>
+                </div>
+            </div>
+            {% if request.user.role in 'doctor,hospital,pharmacy,insurance_company' %}
+            <div class="stat-card">
+                <div class="stat-icon earned">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="stat-details">
+                    <h3>Total Gagné</h3>
+                    <h2>{{ currency }} {{ total_earned|default:"0.00" }}</h2>
+                </div>
+            </div>
+            {% endif %}
+            <div class="stat-card">
+                <div class="stat-icon pending">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-details">
+                    <h3>En Attente</h3>
+                    <h2>{{ pending_count|default:"0" }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchTab('transactions')">
+                    <i class="fas fa-list"></i> Transactions
+                </button>
+                <button class="tab-btn" onclick="switchTab('requests')">
+                    <i class="fas fa-paper-plane"></i> Demandes
+                </button>
+                <button class="tab-btn" onclick="switchTab('gateways')">
+                    <i class="fas fa-credit-card"></i> Comptes Paiement
+                </button>
+                <button class="tab-btn" onclick="switchTab('chat')">
+                    <i class="fas fa-comments"></i> Support Financier
+                </button>
+            </div>
+
+            <div id="transactionsTab" class="tab-content active">
+                <div class="section-header">
+                    <h3>Historique des Transactions</h3>
+                </div>
+                <div class="transaction-list">
+                    {% if transactions %}
+                    {% for txn in transactions %}
+                    <div class="transaction-item">
+                        <div class="transaction-icon {% if txn.is_incoming %}credit{% else %}debit{% endif %}">
+                            {% if txn.service_type == 'consultation' or txn.service_type == 'appointment' %}
+                            <i class="fas fa-stethoscope"></i>
+                            {% elif txn.service_type == 'pharmacy_purchase' or txn.service_type == 'prescription' %}
+                            <i class="fas fa-pills"></i>
+                            {% elif txn.service_type == 'lab_test' %}
+                            <i class="fas fa-flask"></i>
+                            {% elif txn.service_type == 'insurance_claim' %}
+                            <i class="fas fa-shield-alt"></i>
+                            {% else %}
+                            <i class="fas fa-credit-card"></i>
+                            {% endif %}
+                        </div>
+                        <div class="transaction-info">
+                            <h4>{{ txn.service_description|truncatewords:10 }}</h4>
+                            <p>
+                                {% if txn.is_incoming %}
+                                De: {{ txn.patient.full_name|default:txn.patient.email }}
+                                {% else %}
+                                À: {{ txn.service_provider.full_name|default:txn.service_provider.email }}
+                                {% endif %}
+                                • {{ txn.created_at|date:"d M Y, H:i" }}
+                            </p>
+                        </div>
+                        <div class="transaction-amount {% if txn.is_incoming %}positive{% else %}negative{% endif %}">
+                            {% if txn.is_incoming %}+{% else %}-{% endif %}
+                            <span>{{ txn.display_currency }}</span>
+                            <span>{{ txn.display_amount|floatformat:2 }}</span>
+                        </div>
+                        <span class="transaction-status {% if txn.status == 'completed' %}completed{% elif txn.status == 'pending' %}pending{% elif txn.status == 'failed' %}failed{% else %}processing{% endif %}">
+                            {% if txn.status == 'completed' %}Complété
+                            {% elif txn.status == 'pending' %}En Attente
+                            {% elif txn.status == 'failed' %}Échoué
+                            {% else %}En Cours{% endif %}
+                        </span>
+                        {% if txn.status == 'completed' %}
+                        <a href="/api/v1/payments/service-transactions/{{ txn.id }}/receipt/" class="btn-icon" title="Télécharger le reçu">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Aucune transaction pour le moment</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div id="requestsTab" class="tab-content">
+                <div class="section-header">
+                    <h3>Demandes de Paiement Reçues</h3>
+                </div>
+                {% if payment_requests_received %}
+                {% for request in payment_requests_received %}
+                <div class="request-card">
+                    <div class="request-header">
+                        <div class="request-from">
+                            <div class="request-avatar">{{ request.from_participant.full_name.0|upper }}{{ request.from_participant.full_name.1|upper }}</div>
+                            <div class="request-user">
+                                <h4>{{ request.from_participant.full_name|default:request.from_participant.email }}</h4>
+                                <p>Demande de paiement</p>
+                            </div>
+                        </div>
+                        <div class="request-amount">{{ request.currency }} {{ request.amount }}</div>
+                    </div>
+                    <div class="request-description">
+                        {{ request.description }}
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn-success" onclick="approveRequest('{{ request.id }}')">
+                            <i class="fas fa-check"></i> Approuver
+                        </button>
+                        <button class="btn-danger" onclick="rejectRequest('{{ request.id }}')">
+                            <i class="fas fa-times"></i> Rejeter
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>Aucune demande de paiement</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div id="gatewaysTab" class="tab-content">
+                <div class="section-header">
+                    <h3>Comptes Paiement</h3>
+                    <a href="/api/v1/payments/gateway-accounts/" class="btn-primary">
+                        <i class="fas fa-plus"></i> Ajouter un Compte
+                    </a>
+                </div>
+                {% if gateway_accounts %}
+                {% for account in gateway_accounts %}
+                <div class="vendor-card">
+                    <div class="vendor-card-content">
+                        <div>
+                            <h4 class="vendor-card-name">
+                                {{ account.gateway_provider|upper }}
+                                {% if account.is_default %}
+                                <span class="vendor-default-badge">DÉFAUT</span>
+                                {% endif %}
+                            </h4>
+                            <p class="vendor-card-number">{{ account.gateway_account_number }}</p>
+                        </div>
+                        <div>
+                            {% if account.account_verified %}
+                            <span class="vendor-verified"><i class="fas fa-check-circle"></i> Vérifié</span>
+                            {% else %}
+                            <span class="vendor-unverified"><i class="fas fa-exclamation-circle"></i> Non Vérifié</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-credit-card"></i>
+                    <p>Aucun compte paiement lié</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div id="chatTab" class="tab-content">
+                <div class="section-header">
+                    <h3>Support Financier</h3>
+                    <button class="btn-primary" onclick="openNewChat()">
+                        <i class="fas fa-plus"></i> Nouveau Chat
+                    </button>
+                </div>
+                {% if financial_chats %}
+                {% for chat in financial_chats %}
+                <div class="chat-card">
+                    <div class="chat-card-header">
+                        <div>
+                            <h4 class="chat-card-title">{{ chat.subject }}</h4>
+                            <p class="chat-card-date">{{ chat.created_at|date:"d M Y, H:i" }}</p>
+                        </div>
+                        <span class="transaction-status {{ chat.status }}">{{ chat.get_status_display }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <p>Aucun chat de support</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% include "components/bottom_nav.html" %}
+
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.closest('.tab-btn').classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        async function approveRequest(requestId) {
+            if (!confirm('Approuver cette demande de paiement?')) return;
+
+            try {
+                const response = await fetch(`/api/v1/payments/payment-requests/${requestId}/approve/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                if (response.ok) {
+                    alert('Demande approuvée!');
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function rejectRequest(requestId) {
+            const reason = prompt('Raison du rejet:');
+            if (!reason) return;
+
+            try {
+                const response = await fetch(`/api/v1/payments/payment-requests/${requestId}/reject/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ reason })
+                });
+
+                if (response.ok) {
+                    alert('Demande rejetée!');
+                    location.reload();
+                } else {
+                    const data = await response.json();
+                    alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        function openNewChat() {
+            window.location.href = '/api/v1/payments/financial-chats/';
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+

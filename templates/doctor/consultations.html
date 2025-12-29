@@ -1,0 +1,455 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultations - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/consultations.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Consultations" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="filter-tabs">
+            <div class="filter-tab active" data-filter="waiting" onclick="filterConsultations('waiting')">
+                <span>⏳ En Attente</span>
+                <span class="tab-count" id="waitingCount">0</span>
+            </div>
+            <div class="filter-tab" data-filter="scheduled" onclick="filterConsultations('scheduled')">
+                <span>📅 Programmées</span>
+                <span class="tab-count" id="scheduledCount">0</span>
+            </div>
+            <div class="filter-tab" data-filter="in-progress" onclick="filterConsultations('in-progress')">
+                <span>🔄 En Cours</span>
+                <span class="tab-count" id="inProgressCount">0</span>
+            </div>
+            <div class="filter-tab" data-filter="completed" onclick="filterConsultations('completed')">
+                <span>✅ Terminées</span>
+                <span class="tab-count" id="completedCount">0</span>
+            </div>
+        </div>
+
+        <div class="consultation-list" id="consultationList">
+            <!-- Consultations will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        let allConsultations = [];
+        let currentFilter = 'waiting';
+
+        async function loadConsultations() {
+            try {
+                const response = await fetch('/doctor/api/consultations/');
+                if (!response.ok) throw new Error('Failed to fetch consultations');
+                
+                const data = await response.json();
+                allConsultations = data.consultations || [];
+                
+                updateCounts(data.counts);
+                filterConsultations(currentFilter);
+            } catch (error) {
+                console.error('Error loading consultations:', error);
+                showEmptyState('Erreur de chargement des consultations');
+            }
+        }
+
+        function updateCounts(counts) {
+            document.getElementById('waitingCount').textContent = counts?.waiting || 0;
+            document.getElementById('scheduledCount').textContent = counts?.scheduled || 0;
+            document.getElementById('inProgressCount').textContent = counts?.in_progress || 0;
+            document.getElementById('completedCount').textContent = counts?.completed || 0;
+        }
+
+        function filterConsultations(filter) {
+            currentFilter = filter;
+            
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+            
+            // Filter consultations
+            const filtered = allConsultations.filter(c => c.status === filter);
+            renderConsultations(filtered, filter);
+        }
+
+        function renderConsultations(consultations, filter) {
+            const container = document.getElementById('consultationList');
+            
+            if (!consultations || consultations.length === 0) {
+                showEmptyState(getEmptyMessage(filter));
+                return;
+            }
+
+            container.innerHTML = consultations.map((consultation, index) => `
+                <div class="consultation-item ${consultation.status}" data-id="${consultation.id}">
+                    ${filter === 'waiting' ? `
+                    <div class="waiting-indicator">
+                        <span class="pulse"></span>
+                        <span>Patient en attente - Position ${index + 1}</span>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="consultation-header">
+                        <div class="patient-info-main">
+                            <div class="patient-name-large">
+                                ${filter === 'waiting' ? `<span class="queue-position">${index + 1}</span>` : ''}
+                                ${consultation.patient_name}
+                            </div>
+                            <div class="consultation-details">
+                                <div class="consultation-detail">
+                                    <span>📅</span>
+                                    <span>${consultation.date}</span>
+                                </div>
+                                <div class="consultation-detail">
+                                    <span>🕐</span>
+                                    <span>${consultation.time}</span>
+                                </div>
+                                <div class="consultation-detail">
+                                    <span>⏱️</span>
+                                    <span>${consultation.duration} min</span>
+                                </div>
+                                ${consultation.type ? `
+                                <div class="consultation-detail">
+                                    <span>🏷️</span>
+                                    <span>${consultation.type}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                            ${consultation.reason ? `
+                            <div style="margin-top: 10px; color: #555; font-size: 14px;">
+                                <strong>Motif:</strong> ${consultation.reason}
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="status-badge ${consultation.status}">
+                            ${getStatusIcon(consultation.status)} ${getStatusText(consultation.status)}
+                        </div>
+                    </div>
+                    
+                    <div class="consultation-actions">
+                        ${filter === 'waiting' || filter === 'scheduled' ? `
+                        <button class="btn btn-call" onclick="callPatient('${consultation.id}', '${consultation.patient_uid}')">
+                            📞 Appeler
+                        </button>
+                        ` : ''}
+                        <a href="/doctor/medical-record/${consultation.patient_uid}/" class="btn btn-dossier">
+                            📋 Dossier Médical
+                        </a>
+                        ${filter === 'in-progress' ? `
+                        <button class="btn btn-complete" onclick="completeConsultation('${consultation.id}')">
+                            ✅ Terminer
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                'waiting': '⏳',
+                'scheduled': '📅',
+                'in-progress': '🔄',
+                'completed': '✅'
+            };
+            return icons[status] || '📋';
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'waiting': 'En attente',
+                'scheduled': 'Programmée',
+                'in-progress': 'En cours',
+                'completed': 'Terminée'
+            };
+            return texts[status] || status;
+        }
+
+        function getEmptyMessage(filter) {
+            const messages = {
+                'waiting': 'Aucun patient en attente',
+                'scheduled': 'Aucune consultation programmée',
+                'in-progress': 'Aucune consultation en cours',
+                'completed': 'Aucune consultation terminée'
+            };
+            return messages[filter] || 'Aucune consultation';
+        }
+
+        function showEmptyState(message) {
+            const container = document.getElementById('consultationList');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div style="font-size: 18px; font-weight: 600; margin-bottom: 10px;">${message}</div>
+                    <p>Les consultations apparaîtront ici selon leur statut.</p>
+                </div>
+            `;
+        }
+
+        async function callPatient(consultationId, patientUid) {
+            try {
+                const response = await fetch('/doctor/api/consultations/call/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ consultation_id: consultationId })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Notification sent to patient
+                    alert('Notification envoyée au patient');
+                    
+                    // Open medical record
+                    window.location.href = `/doctor/medical-record/${patientUid}/`;
+                } else {
+                    alert('Erreur: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error calling patient:', error);
+                alert('Erreur lors de l\'appel du patient');
+            }
+        }
+
+        async function completeConsultation(consultationId) {
+            if (!confirm('Marquer cette consultation comme terminée ?')) return;
+            
+            try {
+                const response = await fetch('/doctor/api/consultations/complete/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ consultation_id: consultationId })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Consultation terminée');
+                    loadConsultations(); // Reload
+                } else {
+                    alert('Erreur: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error completing consultation:', error);
+                alert('Erreur lors de la finalisation');
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Load consultations on page load
+        loadConsultations();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadConsultations, 30000);
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
+                            <button onclick="endConsultation('{{ session.id }}')"
+                                style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                Terminer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #999; padding: 30px;">Aucune consultation en cours</p>
+            {% endif %}
+        </div>
+
+        <div class="content-section">
+            <h3 style="color: #2d3748; margin-bottom: 15px;">Terminées ({{ completed_sessions.count }})</h3>
+            {% if completed_sessions %}
+            <div style="display: grid; gap: 15px;">
+                {% for session in completed_sessions %}
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 4px solid #6c757d;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 15px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 5px;">{{
+                                session.appointment.patient.full_name }}</div>
+                            <div style="color: #666; font-size: 14px; margin-bottom: 3px;">📅 {{
+                                session.scheduled_time|date:"d/m/Y à H:i" }}</div>
+                            <div style="color: #666; font-size: 14px;">Durée: {{
+                                session.actual_duration|default:session.duration }} min</div>
+                            {% if session.notes %}<div style="margin-top: 8px; font-size: 13px; color: #555;">Notes
+                                disponibles</div>{% endif %}
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <a href="/doctor/medical-record/{{ session.appointment.patient.uid }}/"
+                                style="background: #28a745; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 14px;">
+                                Dossier
+                            </a>
+                            <button onclick="viewSessionDetails('{{ session.id }}')"
+                                style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                Détails
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #999; padding: 30px;">Aucune consultation terminée</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function startConsultation(sessionId) {
+            try {
+                const response = await fetch(`/api/communication/telemedicine/${sessionId}/start/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    if (data.meeting_url) {
+                        window.open(data.meeting_url, '_blank');
+                    }
+                    alert('Consultation démarrée');
+                    window.location.reload();
+                } else {
+                    alert('Erreur: ' + (data.message || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function endConsultation(sessionId) {
+            const notes = prompt('Notes de consultation (optionnel):');
+
+            try {
+                const response = await fetch(`/api/communication/telemedicine/${sessionId}/end/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ notes: notes || '' })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Consultation terminée');
+                    window.location.reload();
+                } else {
+                    alert('Erreur: ' + (data.message || 'Une erreur est survenue'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+
+        async function viewSessionDetails(sessionId) {
+            try {
+                const response = await fetch(`/api/communication/telemedicine/${sessionId}/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    let details = `Patient: ${data.appointment?.patient?.full_name || 'N/A'}\n`;
+                    details += `Date: ${data.scheduled_time || 'N/A'}\n`;
+                    details += `Durée: ${data.actual_duration || data.duration || 'N/A'} min\n`;
+                    if (data.notes) details += `\nNotes:\n${data.notes}`;
+                    alert(details);
+                } else {
+                    alert('Impossible de charger les détails');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur de connexion');
+            }
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

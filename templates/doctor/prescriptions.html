@@ -1,0 +1,205 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prescriptions - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/prescriptions.css %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    <script src="{% static 'js/api.js' %}"></script>
+
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Ordonnances" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="stat-card">
+                    <h3>Actives</h3>
+                    <div class="value">{{ active_count|default:0 }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>En Attente</h3>
+                    <div class="value">{{ pending_count|default:0 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-header">
+                <h2>Liste des Prescriptions</h2>
+                <a href="/doctor/new-prescription/" class="btn btn-primary">
+                    ➕ Nouvelle Prescription
+                </a>
+            </div>
+
+            <div class="search-filter-bar">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Rechercher par nom du patient...">
+                </div>
+                <select class="filter-select" id="statusFilter">
+                    <option value="">Tous les statuts</option>
+                    <option value="active">Active</option>
+                    <option value="expired">Expirée</option>
+                    <option value="pendingRenewal">En Attente</option>
+                    <option value="cancelled">Annulée</option>
+                </select>
+                <select class="filter-select" id="typeFilter">
+                    <option value="">Tous les types</option>
+                    <option value="regular">Régulière</option>
+                    <option value="controlled">Contrôlée</option>
+                    <option value="emergency">Urgence</option>
+                    <option value="chronic">Chronique</option>
+                </select>
+            </div>
+
+            {% if prescriptions %}
+            <table class="prescriptions-table">
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Date d'Émission</th>
+                        <th>Valide Jusqu'à</th>
+                        <th>Médicaments</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="prescriptionsTableBody">
+                    {% for prescription in prescriptions %}
+                    <tr data-status="{{ prescription.status }}" data-type="{{ prescription.type }}"
+                        data-patient="{{ prescription.patient.full_name|lower }}">
+                        <td>
+                            <div class="patient-info">
+                                <div class="patient-avatar">
+                                    {{ prescription.patient.full_name|slice:":2"|upper }}
+                                </div>
+                                <div class="patient-details">
+                                    <div class="patient-name">{{ prescription.patient.full_name }}</div>
+                                    <div class="patient-id">ID: {{ prescription.patient.uid|slice:":8" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ prescription.issue_date }}</td>
+                        <td>{{ prescription.valid_until }}</td>
+                        <td>
+                            <div class="medications-list">
+                                {% for item in prescription.items.all|slice:":3" %}
+                                <div class="medication-item">
+                                    {{ item.medication_name }} - {{ item.dosage }}
+                                </div>
+                                {% endfor %}
+                                {% if prescription.items.count > 3 %}
+                                <div class="medication-item">+{{ prescription.items.count|add:"-3" }} autres...</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ prescription.status }}">
+                                {% if prescription.status == 'active' %}Active
+                                {% elif prescription.status == 'expired' %}Expirée
+                                {% elif prescription.status == 'pendingRenewal' %}En Attente
+                                {% elif prescription.status == 'cancelled' %}Annulée
+                                {% else %}{{ prescription.get_status_display }}
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn btn-view"
+                                    onclick="viewPrescription('{{ prescription.id }}')">👁️ Voir</button>
+                                <button class="action-btn btn-print"
+                                    onclick="printPrescription('{{ prescription.id }}')">🖨️ Imprimer</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <h3>Aucune Prescription</h3>
+                <p>Vous n'avez pas encore créé de prescription.</p>
+                <a href="/doctor/new-prescription/" class="btn btn-primary">Créer une Prescription</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const tableBody = document.getElementById('prescriptionsTableBody');
+
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const statusValue = statusFilter.value;
+            const typeValue = typeFilter.value;
+            const rows = tableBody.getElementsByTagName('tr');
+
+            Array.from(rows).forEach(row => {
+                const patientName = row.dataset.patient || '';
+                const status = row.dataset.status || '';
+                const type = row.dataset.type || '';
+
+                const matchesSearch = patientName.includes(searchTerm);
+                const matchesStatus = !statusValue || status === statusValue;
+                const matchesType = !typeValue || type === typeValue;
+
+                row.style.display = matchesSearch && matchesStatus && matchesType ? '' : 'none';
+            });
+        }
+
+        if (searchInput) searchInput.addEventListener('input', filterTable);
+        if (statusFilter) statusFilter.addEventListener('change', filterTable);
+        if (typeFilter) typeFilter.addEventListener('change', filterTable);
+
+        function viewPrescription(id) {
+            fetchApi(`/prescriptions/${id}/`)
+                .then(data => {
+                    alert('Détails de la prescription:\n' + JSON.stringify(data, null, 2));
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Impossible de charger les détails');
+                });
+        }
+
+        function printPrescription(id) {
+            window.open(`/api/v1/prescriptions/${id}/print/`, '_blank');
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

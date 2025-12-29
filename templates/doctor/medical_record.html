@@ -1,0 +1,412 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dossier Médical - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/medical-record.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Dossier Médical" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="form-container">
+                <form id="medicalRecordForm">
+                    {% csrf_token %}
+                    <div class="form-section">
+                        <h3>Informations du Patient</h3>
+                        {% if patient %}
+                        <input type="hidden" id="patientId" value="{{ patient.uid }}">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nom du Patient</label>
+                                <input type="text" value="{{ patient.full_name }}" readonly class="readonly-input">
+                            </div>
+                            <div class="form-group">
+                                <label>ID Patient</label>
+                                <input type="text" value="{{ patient.uid }}" readonly class="readonly-input">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="text" value="{{ patient.email }}" readonly class="readonly-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Téléphone</label>
+                                <input type="text" value="{{ patient.phone_number|default:'-' }}" readonly class="readonly-input">
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="form-group">
+                            <label for="patientSelect">Sélectionner un Patient *</label>
+                            <select id="patientSelect" required onchange="loadPatientRecords(this.value)">
+                                <option value="">Choisir un patient...</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-section {% if not patient %}hidden{% endif %}" id="existingRecordsSection">
+                        <h3>Dossiers Médicaux Existants</h3>
+                        <div id="existingRecords">
+                            {% if medical_records %}
+                            <div class="records-list">
+                                {% for record in medical_records %}
+                                <div class="record-item" onclick="editRecord('{{ record.id }}')">
+                                    <div class="record-header">
+                                        <span class="record-type">{{ record.get_type_display }}</span>
+                                        <span class="record-date">{{ record.date_of_record|date:"d/m/Y" }}</span>
+                                    </div>
+                                    <div class="record-title">{{ record.title }}</div>
+                                    {% if record.diagnosis %}
+                                    <div class="record-diagnosis">Diagnostic: {{ record.diagnosis|truncatewords:10 }}</div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <p class="empty-records">Aucun dossier médical existant</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Détails de la Consultation</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="recordDate">Date *</label>
+                                <input type="date" id="recordDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="recordType">Type de Dossier *</label>
+                                <select id="recordType" required>
+                                    <option value="">Sélectionner le type...</option>
+                                    <option value="visit_summary">Résumé de Visite</option>
+                                    <option value="diagnosis">Diagnostic</option>
+                                    <option value="prescription">Prescription</option>
+                                    <option value="lab_result">Résultat de Laboratoire</option>
+                                    <option value="imaging">Imagerie</option>
+                                    <option value="vaccination">Vaccination</option>
+                                    <option value="allergy">Allergie</option>
+                                    <option value="surgery">Chirurgie</option>
+                                    <option value="referral">Référence</option>
+                                    <option value="discharge_summary">Résumé de Sortie</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="recordTitle">Titre *</label>
+                            <input type="text" id="recordTitle" placeholder="Ex: Consultation de suivi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="symptoms">Symptômes</label>
+                            <textarea id="symptoms" placeholder="Décrire les symptômes du patient..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Signes Vitaux</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bloodPressure">Tension Artérielle</label>
+                                <input type="text" id="bloodPressure" placeholder="Ex: 120/80 mmHg">
+                            </div>
+                            <div class="form-group">
+                                <label for="heartRate">Fréquence Cardiaque</label>
+                                <input type="text" id="heartRate" placeholder="Ex: 72 bpm">
+                            </div>
+                            <div class="form-group">
+                                <label for="temperature">Température</label>
+                                <input type="text" id="temperature" placeholder="Ex: 37°C">
+                            </div>
+                            <div class="form-group">
+                                <label for="weight">Poids</label>
+                                <input type="text" id="weight" placeholder="Ex: 70 kg">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Examen & Évaluation</h3>
+                        <div class="form-group">
+                            <label for="diagnosis">Diagnostic *</label>
+                            <textarea id="diagnosis" placeholder="Entrer le diagnostic..." required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="treatment">Traitement</label>
+                            <textarea id="treatment" placeholder="Plan de traitement et recommandations..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="medications">Médicaments</label>
+                            <textarea id="medications" placeholder="Liste des médicaments prescrits..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Notes Additionnelles</h3>
+                        <div class="form-group">
+                            <label for="notes">Notes Cliniques</label>
+                            <textarea id="notes" placeholder="Toute observation clinique supplémentaire..."></textarea>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="recordId" value="">
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="window.history.back()">Annuler</button>
+                        <button type="submit" class="btn-save">Enregistrer le Dossier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    <script>
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        document.getElementById('recordDate').valueAsDate = new Date();
+
+        {% if not patient %}
+        async function loadPatients() {
+            try {
+                console.log('Fetching patients from /api/v1/doctor/patients/...');
+                const response = await fetch('/api/v1/doctor/patients/', { credentials: 'same-origin' });
+                console.log('Response status:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    console.error('API request failed:', response.status, response.statusText);
+                    const text = await response.text();
+                    console.error('Response body:', text);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Patients API Response:', data);
+                console.log('Data.success:', data.success);
+                console.log('Data.patients:', data.patients);
+                console.log('Patients length:', data.patients ? data.patients.length : 0);
+
+                if (data.success && data.patients && data.patients.length > 0) {
+                    const select = document.getElementById('patientSelect');
+                    data.patients.forEach(patient => {
+                        const option = document.createElement('option');
+                        option.value = patient.uid;
+                        option.textContent = `${patient.full_name} - ${patient.email}`;
+                        select.appendChild(option);
+                    });
+                    console.log(`✓ Successfully loaded ${data.patients.length} patients`);
+                } else {
+                    console.warn('⚠ No patients found. This doctor may not have any appointments yet.');
+                    console.warn('API Response:', data);
+                }
+            } catch (error) {
+                console.error('❌ Error loading patients:', error);
+            }
+        }
+        loadPatients();
+        {% endif %}
+
+        async function loadPatientRecords(patientId) {
+            if (!patientId) {
+                document.getElementById('existingRecordsSection').classList.add('hidden');
+                return;
+            }
+            try {
+                console.log('Loading records for patient:', patientId);
+                const response = await fetch(`/api/v1/health-records/records/?assigned_to=${patientId}`, { credentials: 'same-origin' });
+                console.log('Response status:', response.status, response.statusText);
+
+                const data = await response.json();
+                console.log('Records data:', data);
+                console.log('Data type:', typeof data, 'Is array:', Array.isArray(data));
+
+                const container = document.getElementById('existingRecords');
+                const section = document.getElementById('existingRecordsSection');
+
+                section.classList.remove('hidden');
+
+                const records = data.results || data;
+                console.log('Records array:', records, 'Length:', records.length);
+
+                if (records.length > 0) {
+                    let html = '<div class="records-list">';
+                    records.forEach(record => {
+                        const createdByBadge = record.created_by_name ? `<span class="created-by-badge">Par: ${record.created_by_name}</span>` : '';
+                        const diagnosisPreview = record.diagnosis ? `<div class="record-diagnosis">Diagnostic: ${record.diagnosis.substring(0, 50)}...</div>` : '';
+                        html += `<div class="record-item" onclick="editRecord('${record.id}')">
+                            <div class="record-header">
+                                <span class="record-type">${record.type}</span>
+                                <span class="record-date">${new Date(record.date_of_record).toLocaleDateString('fr-FR')}</span>
+                            </div>
+                            <div class="record-title">${record.title}</div>
+                            ${diagnosisPreview}
+                            ${createdByBadge}
+                        </div>`;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p class="empty-records">Aucun dossier médical existant</p>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function editRecord(recordId) {
+            try {
+                const response = await fetch(`/api/v1/health-records/records/${recordId}/`, { credentials: 'same-origin' });
+                const record = await response.json();
+
+                if (record.can_view_details === false) {
+                    // Show professional modal for restricted records
+                    const contact = record.created_by_contact;
+                    const contactInfo = contact ? `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <strong>Contact du médecin:</strong><br>
+                            📧 ${contact.email}<br>
+                            📞 ${contact.phone || 'Non disponible'}
+                        </div>
+                    ` : '';
+
+                    const modal = document.createElement('div');
+                    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+                    modal.innerHTML = `
+                        <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                            <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                                <span style="font-size: 48px; margin-right: 15px;">🔒</span>
+                                <div>
+                                    <h3 style="margin: 0; color: #2d3748;">Dossier Restreint</h3>
+                                    <p style="margin: 5px 0 0 0; color: #718096;">Créé par ${record.created_by_name}</p>
+                                </div>
+                            </div>
+                            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                                <strong>Informations visibles:</strong>
+                                <div style="margin-top: 10px;">
+                                    📋 Type: ${record.type}<br>
+                                    📝 Titre: ${record.title}<br>
+                                    📅 Date: ${new Date(record.date_of_record).toLocaleDateString('fr-FR')}
+                                </div>
+                            </div>
+                            <p style="color: #718096; margin-bottom: 15px;">${record.message}</p>
+                            ${contactInfo}
+                            <button onclick="this.closest('div[style*=fixed]').remove()" style="width: 100%; margin-top: 20px; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                Compris
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                    return;
+                }
+
+                // Can edit - load into form
+                document.getElementById('recordId').value = record.id;
+                document.getElementById('recordDate').value = record.date_of_record;
+                document.getElementById('recordType').value = record.type;
+                document.getElementById('recordTitle').value = record.title;
+                document.getElementById('symptoms').value = record.symptoms || '';
+                document.getElementById('diagnosis').value = record.diagnosis || '';
+                document.getElementById('treatment').value = record.treatment || '';
+                document.getElementById('medications').value = record.medications || '';
+                document.getElementById('notes').value = record.notes || '';
+                document.getElementById('medicalRecordForm').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Erreur lors du chargement du dossier');
+            }
+        }
+
+        document.getElementById('medicalRecordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const patientId = {% if patient %}'{{ patient.uid }}'{% else %}document.getElementById('patientSelect').value{% endif %};
+            if (!patientId) {
+                alert('Veuillez sélectionner un patient');
+                return;
+            }
+            const vitalSigns = [];
+            const bp = document.getElementById('bloodPressure').value;
+            const hr = document.getElementById('heartRate').value;
+            const temp = document.getElementById('temperature').value;
+            const weight = document.getElementById('weight').value;
+            if (bp) vitalSigns.push(`Tension: ${bp}`);
+            if (hr) vitalSigns.push(`FC: ${hr}`);
+            if (temp) vitalSigns.push(`Temp: ${temp}`);
+            if (weight) vitalSigns.push(`Poids: ${weight}`);
+            const vitalSignsText = vitalSigns.length > 0 ? `Signes Vitaux: ${vitalSigns.join(', ')}\n\n` : '';
+            const notes = vitalSignsText + (document.getElementById('notes').value || '');
+            const formData = {
+                assigned_to: patientId,
+                type: document.getElementById('recordType').value,
+                title: document.getElementById('recordTitle').value,
+                date_of_record: document.getElementById('recordDate').value,
+                symptoms: document.getElementById('symptoms').value,
+                diagnosis: document.getElementById('diagnosis').value,
+                treatment: document.getElementById('treatment').value,
+                medications: document.getElementById('medications').value,
+                notes: notes,
+                participants: [patientId]
+            };
+
+            console.log('Submitting medical record:', formData);
+
+            const recordId = document.getElementById('recordId').value;
+            const url = recordId ? `/api/v1/health-records/records/${recordId}/` : '/api/v1/health-records/records/';
+            const method = recordId ? 'PUT' : 'POST';
+
+            console.log(`Making ${method} request to ${url}`);
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(formData)
+                });
+
+                console.log('Response status:', response.status, response.statusText);
+
+                if (response.ok) {
+                    const successMessage = recordId ? 'Dossier mis à jour avec succès!' : 'Dossier médical créé avec succès!';
+
+                    // Show success message
+                    const notification = document.createElement('div');
+                    notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000; font-weight: 600;';
+                    notification.textContent = successMessage;
+                    document.body.appendChild(notification);
+
+                    // Redirect to queue after 1 second
+                    setTimeout(() => {
+                        window.location.href = '/doctor/queue/';
+                    }, 1000);
+                } else {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const error = await response.json();
+                        console.error('API Error:', error);
+                        alert('Erreur lors de l\'enregistrement: ' + JSON.stringify(error));
+                    } else {
+                        const text = await response.text();
+                        console.error('Non-JSON response:', text);
+                        alert('Erreur lors de l\'enregistrement: ' + response.status + ' ' + response.statusText);
+                    }
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                console.error('Error details:', error.message, error.stack);
+                alert('Erreur de connexion: ' + error.message);
+            }
+        });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

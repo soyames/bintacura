@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Refund Management - BINTACURA Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block sidebar %}
+{% include 'admin/sidebar.html' %}
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Refund Management</h2>
+
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <h6>Pending Refunds</h6>
+                            <h3>{{ pending_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <h6>Approved Refunds</h6>
+                            <h3>{{ approved_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-danger">
+                        <div class="card-body">
+                            <h6>Rejected Refunds</h6>
+                            <h3>{{ rejected_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <select name="status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>
+                                    Pending</option>
+                                <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>
+                                    Approved</option>
+                                <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>
+                                    Rejected</option>
+                                <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>
+                                    Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="request_type" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="overpayment" {% if request.GET.request_type == 'overpayment' %}selected{% endif %}>Overpayment</option>
+                                <option value="cancelled_service" {% if request.GET.request_type == 'cancelled_service' %}selected{% endif %}>Cancelled Service</option>
+                                <option value="billing_error" {% if request.GET.request_type == 'billing_error' %}selected{% endif %}>Billing Error</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="search" class="form-control" placeholder="Search provider..."
+                                value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                            <a href="{% url 'superadmin:refund_management' %}" class="btn btn-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Provider</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Requested</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for refund in refunds %}
+                                <tr>
+                                    <td>{{ refund.id|truncatechars:8 }}</td>
+                                    <td>{{ refund.provider.full_name }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ refund.get_request_type_display }}</span>
+                                    </td>
+                                    <td>{{ refund.amount }} {{ refund.currency }}</td>
+                                    <td>
+                                        {% if refund.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% elif refund.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                        {% elif refund.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% elif refund.status == 'completed' %}
+                                        <span class="badge bg-info">Completed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ refund.requested_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'superadmin:refund_detail' refund.id %}"
+                                            class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center">No refund requests found</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if is_paginated %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages
+                                    }}</span>
+                            </li>
+
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+{% endblock %}

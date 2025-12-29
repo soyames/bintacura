@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}BINTACURA Survey{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/analytics/survey.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="survey-container">
+    <div class="survey-header">
+        <h1>🎯 Help Us Improve BINTACURA</h1>
+        <p>Your feedback is invaluable in shaping the future of healthcare</p>
+    </div>
+
+    <form id="surveyForm" method="post" class="survey-form">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h2>📧 Contact Information</h2>
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" required placeholder="your.email@example.com">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>📍 Location</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="country">Country *</label>
+                    <input type="text" id="country" name="country" required placeholder="e.g., Benin">
+                </div>
+                <div class="form-group">
+                    <label for="city">City *</label>
+                    <input type="text" id="city" name="city" required placeholder="e.g., Cotonou">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>👤 Demographics</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="profession">Profession *</label>
+                    <input type="text" id="profession" name="profession" required placeholder="e.g., Software Engineer">
+                </div>
+                <div class="form-group">
+                    <label for="sex">Gender *</label>
+                    <select id="sex" name="sex" required>
+                        <option value="">Select...</option>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                        <option value="O">Other</option>
+                        <option value="PND">Prefer Not to Disclose</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>💰 Pricing Feedback</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="suggested_price">Suggested Consultation Price</label>
+                    <input type="number" id="suggested_price" name="suggested_price" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="currency">Currency *</label>
+                    <select id="currency" name="currency" required>
+                        <option value="XOF">XOF (West African CFA franc)</option>
+                        <option value="EUR">EUR (Euro)</option>
+                        <option value="USD">USD (US Dollar)</option>
+                        <option value="GBP">GBP (British Pound)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>💡 Your Suggestions</h2>
+            <div class="form-group">
+                <label for="feature_suggestion">Feature Suggestions</label>
+                <textarea id="feature_suggestion" name="feature_suggestion" rows="4" placeholder="What features would you like to see on BINTACURA?"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="other_suggestion">Other Comments</label>
+                <textarea id="other_suggestion" name="other_suggestion" rows="4" placeholder="Any other feedback or suggestions?"></textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="submit-btn">Submit Survey</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/analytics/survey.js' %}"></script>
+{% endblock %}
+

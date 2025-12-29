@@ -1,0 +1,116 @@
+# -*- coding: utf-8 -*-
+
+# Core Django Framework
+django
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+django-filter
+
+# Database
+psycopg2-binary
+dj-database-url
+
+# Configuration
+python-decouple
+django-environ
+
+# Task Queue / Cache (Used in settings.py and task files)
+celery
+redis
+django-redis
+
+# HTTP Requests
+requests
+
+# Date/Time
+python-dateutil
+
+# Authentication & Security
+PyJWT
+pycryptodome
+django-hcaptcha-field  # Bot protection for login and registration
+
+# Production Server
+gunicorn
+whitenoise
+
+# Data Visualization for Survey Analytics
+#pandas
+#numpy
+#matplotlib
+#seaborn
+
+# AI & Machine Learning (NOT CURRENTLY USED - Very large packages)
+# transformers
+# torch
+
+# Biometric Authentication (NOT CURRENTLY USED - Requires CMake, very large)
+# face-recognition
+# opencv-python
+# dlib
+
+# Geolocation & Maps
+geopy
+django-location-field
+#googlemaps
+
+# Video Calls & Real-time Communication
+channels
+channels-redis
+daphne
+qrcode
+# SMS & Notifications (NOT CURRENTLY USED)
+# firebase-admin
+# python-firebase
+
+# Payment Processing
+stripe
+fedapay
+
+# PDF Generation & Reports (Used in payments/receipt_service.py and core/pdf_service.py)
+reportlab
+weasyprint
+pypdf
+openpyxl
+
+# Email
+django-ses
+
+# Monitoring
+sentry-sdk
+
+# API Documentation
+drf-spectacular
+drf-yasg
+
+# Additional Utilities (NOT CURRENTLY USED - Can add back if needed)
+# python-magic
+# django-storages
+# boto3
+
+# Testing & CLI Tools
+colorama
+
+# Development & Testing Tools (NOT NEEDED IN PRODUCTION)
+# pytest
+# pytest-django
+# pytest-cov
+# factory-boy
+# faker
+# flake8
+# black
+# isort
+# pylint
+# mypy
+# bandit
+# safety
+# django-stubs
+
+# AI & Health Analytics (Optional - Large packages, install only if needed)
+# pyhealth  # Uncomment for predictive health models (EHR analysis, risk prediction)
+# scikit-learn  # Uncomment for ML models
+# torch  # Uncomment for deep learning models (very large!)
+
+#pyhealth
+scikit-learn

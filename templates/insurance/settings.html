@@ -1,0 +1,248 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="{{ preferences.theme|default:'light' }}">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - Assurance Santé BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/settings.css' %}">
+    <link rel="stylesheet" href="{% static 'css/insurance-theme.css' %}">
+    {% include "components/translation_script.html" %}
+    <style>
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e0;
+            border-radius: 26px;
+            transition: .4s;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .4s;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #10b981;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+    </style>
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="insurance" page_title="Paramètres" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div style="display: grid; gap: 20px;">
+            <div class="content-section">
+                <h2 style="margin: 0 0 25px 0;">🌐 Préférences de Langue</h2>
+                <p>Choisissez votre langue préférée</p>
+                <div style="margin-top: 20px;">
+                    {% include "components/language_switcher.html" %}
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h2 style="margin: 0 0 25px 0;">🔔 Notifications</h2>
+                <div style="display: grid; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div>
+                            <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">Notifications Push</div>
+                            <div style="font-size: 14px; color: #718096;">Recevoir des alertes pour les événements importants</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="pushNotifications" {% if preferences.enable_push_notifications %}checked{% endif %} onchange="togglePushNotifications()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div>
+                            <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">Notifications par Email</div>
+                            <div style="font-size: 14px; color: #718096;">Recevoir les notifications par email</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="emailNotifications" {% if preferences.enable_email_notifications %}checked{% endif %} onchange="toggleEmailNotifications()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div>
+                            <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">Notifications SMS</div>
+                            <div style="font-size: 14px; color: #718096;">Recevoir des rappels par SMS</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="smsNotifications" {% if preferences.enable_sms_notifications %}checked{% endif %} onchange="toggleSmsNotifications()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div>
+                            <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">Paiements</div>
+                            <div style="font-size: 14px; color: #718096;">Notifications pour les paiements et factures</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="paymentNotifications" {% if preferences.notify_payment_received %}checked{% endif %} onchange="togglePaymentNotifications()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h2 style="margin: 0 0 25px 0;">🔒 Sécurité</h2>
+                <div style="display: grid; gap: 15px;">
+                    <div style="padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div style="font-weight: 600; color: #2d3748; margin-bottom: 12px;">Changer le mot de passe
+                        </div>
+                        <button onclick="changePassword()"
+                            style="padding: 10px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Modifier
+                            le mot de passe</button>
+                    </div>
+                    <div style="padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">Authentification à deux
+                            facteurs</div>
+                        <div style="font-size: 14px; color: #718096; margin-bottom: 12px;">Améliorez la sécurité de
+                            votre compte</div>
+                        <button onclick="enableTwoFactor()"
+                            style="padding: 10px 20px; background: white; color: #6366f1; border: 2px solid #6366f1; border-radius: 8px; cursor: pointer; font-weight: 600;">Activer</button>
+                    </div>
+                    <div style="padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">Sessions actives</div>
+                        <div style="font-size: 14px; color: #718096; margin-bottom: 12px;">Gérez les appareils connectés
+                            à votre compte</div>
+                        <button onclick="viewSessions()"
+                            style="padding: 10px 20px; background: white; color: #6366f1; border: 2px solid #6366f1; border-radius: 8px; cursor: pointer; font-weight: 600;">Voir
+                            les sessions</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h2 style="margin: 0 0 25px 0;">🎨 Préférences</h2>
+                <div style="display: grid; gap: 15px;">
+                    <div style="padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div style="font-weight: 600; color: #2d3748; margin-bottom: 12px;">Langue</div>
+                        <select
+                            style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+                            <option selected>Français</option>
+                            <option>English</option>
+                        </select>
+                    </div>
+                    <div style="padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div style="font-weight: 600; color: #2d3748; margin-bottom: 12px;">Fuseau horaire</div>
+                        <select
+                            style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+                            <option selected>UTC+0 (Dakar)</option>
+                            <option>UTC+1 (Paris)</option>
+                            <option>UTC+2 (Le Caire)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                        <div>
+                            <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">Mode sombre</div>
+                            <div style="font-size: 14px; color: #718096;">Activer le thème sombre</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="darkModeToggle" {% if preferences.theme == 'dark' %}checked{% endif %} onchange="toggleDarkMode()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h2 style="margin: 0 0 25px 0;">⚠️ Zone de Danger</h2>
+                <div style="padding: 20px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
+                    <div style="font-weight: 600; color: #dc2626; margin-bottom: 8px;">Désactiver le compte</div>
+                    <div style="font-size: 14px; color: #991b1b; margin-bottom: 15px;">Cette action est irréversible.
+                        Toutes vos données seront supprimées.</div>
+                    <button onclick="deactivateAccount()"
+                        style="padding: 10px 20px; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Désactiver
+                        le compte</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/settings.js' %}"></script>
+    <script>
+        // Additional functions for this page
+        function togglePushNotifications() {
+            const checked = document.getElementById('pushNotifications').checked;
+            updatePreferences({ enable_push_notifications: checked });
+        }
+
+        function toggleEmailNotifications() {
+            const checked = document.getElementById('emailNotifications').checked;
+            updatePreferences({ enable_email_notifications: checked });
+        }
+
+        function toggleSmsNotifications() {
+            const checked = document.getElementById('smsNotifications').checked;
+            updatePreferences({ enable_sms_notifications: checked });
+        }
+
+        function togglePaymentNotifications() {
+            const checked = document.getElementById('paymentNotifications').checked;
+            updatePreferences({ notify_payment_received: checked, notify_payment_due: checked });
+        }
+
+        function changePassword() {
+            window.location.href = '/auth/change-password/';
+        }
+
+        function enableTwoFactor() {
+            if (confirm('Activer l\'authentification à deux facteurs pour plus de sécurité?')) {
+                updatePreferences({ enable_two_factor_auth: true });
+            }
+        }
+
+        function viewSessions() {
+            window.location.href = '/account/sessions/';
+        }
+
+        function deactivateAccount() {
+            if (confirm('Êtes-vous sûr de vouloir désactiver votre compte ? Cette action est irréversible.')) {
+                if (prompt('Tapez "DÉSACTIVER" pour confirmer') === 'DÉSACTIVER') {
+                    window.location.href = '/account/deactivate/';
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

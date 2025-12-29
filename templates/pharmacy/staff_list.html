@@ -1,0 +1,166 @@
+{% extends 'pharmacy/base.html' %}
+{% load static %}
+
+{% block title %}Staff Management - {{ pharmacy.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pharmacy/staff_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="staff-management-container">
+    <div class="page-header">
+        <h1><i class="fas fa-users"></i> Staff Management</h1>
+        <button class="btn btn-primary" id="addStaffBtn">
+            <i class="fas fa-plus"></i> Add New Staff
+        </button>
+    </div>
+
+    <!-- Staff List -->
+    <div class="staff-grid">
+        {% for staff in staff_list %}
+        <div class="staff-card" data-staff-id="{{ staff.id }}">
+            <div class="staff-header">
+                <div class="staff-avatar">
+                    {% if staff.participant.profile_picture %}
+                    <img src="{{ staff.participant.profile_picture.url }}" alt="{{ staff.participant.get_full_name }}">
+                    {% else %}
+                    <i class="fas fa-user-circle"></i>
+                    {% endif %}
+                </div>
+                <div class="staff-info">
+                    <h3>{{ staff.participant.get_full_name }}</h3>
+                    <span class="staff-role">{{ staff.get_role_display }}</span>
+                </div>
+                <div class="staff-status {% if staff.is_active %}active{% else %}inactive{% endif %}">
+                    {{ staff.is_active|yesno:"Active,Inactive" }}
+                </div>
+            </div>
+            
+            <div class="staff-details">
+                <div class="detail-row">
+                    <i class="fas fa-phone"></i>
+                    <span>{{ staff.participant.phone_number }}</span>
+                </div>
+                <div class="detail-row">
+                    <i class="fas fa-envelope"></i>
+                    <span>{{ staff.participant.email|default:"N/A" }}</span>
+                </div>
+                {% if staff.counter %}
+                <div class="detail-row">
+                    <i class="fas fa-desktop"></i>
+                    <span>Counter {{ staff.counter.counter_number }}</span>
+                </div>
+                {% endif %}
+                <div class="detail-row">
+                    <i class="fas fa-calendar"></i>
+                    <span>Joined {{ staff.created_at|date:"M d, Y" }}</span>
+                </div>
+            </div>
+
+            <div class="staff-actions">
+                <button class="btn btn-sm btn-secondary edit-staff" data-id="{{ staff.id }}">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-danger toggle-status" data-id="{{ staff.id }}" data-active="{{ staff.is_active }}">
+                    <i class="fas fa-{% if staff.is_active %}ban{% else %}check{% endif %}"></i>
+                    {% if staff.is_active %}Deactivate{% else %}Activate{% endif %}
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-users-slash"></i>
+            <h3>No Staff Members Yet</h3>
+            <p>Add your first staff member to get started</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add/Edit Staff Modal -->
+<div id="staffModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add New Staff</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="staffForm">
+            {% csrf_token %}
+            <input type="hidden" id="staffId" name="staff_id">
+            
+            <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" id="firstName" name="first_name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" id="lastName" name="last_name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number *</label>
+                <input type="tel" id="phoneNumber" name="phone_number" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="role">Role *</label>
+                <select id="role" name="role" required>
+                    <option value="">Select Role</option>
+                    <option value="pharmacist">Pharmacist</option>
+                    <option value="technician">Pharmacy Technician</option>
+                    <option value="cashier">Cashier</option>
+                    <option value="manager">Manager</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="counterNumber">Assign Counter</label>
+                <select id="counterNumber" name="counter_id">
+                    <option value="">No Counter (Optional)</option>
+                    {% for counter in counters %}
+                    <option value="{{ counter.id }}">Counter {{ counter.counter_number }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="permissions">Permissions</label>
+                <div class="permissions-grid">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="can_process_orders" checked>
+                        <span>Process Orders</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="can_manage_inventory">
+                        <span>Manage Inventory</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="can_view_reports">
+                        <span>View Reports</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="can_manage_staff">
+                        <span>Manage Staff</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Staff</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pharmacy/staff_management.js' %}"></script>
+{% endblock %}

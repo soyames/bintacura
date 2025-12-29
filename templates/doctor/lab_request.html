@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Request - Doctor BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/lab_request.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Demande de Laboratoire" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+        <div class="form-container">
+                <form id="labRequestForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="patient">Select Patient *</label>
+                        <select id="patient" required>
+                            <option value="">Choose a patient...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="laboratory">Laboratory *</label>
+                        <select id="laboratory" required>
+                            <option value="">Choose a laboratory...</option>
+                            <option value="central">Central Laboratory</option>
+                            <option value="external">External Laboratory</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Test Categories</label>
+                        <div class="test-categories">
+                            <div class="test-category">
+                                <h4>Blood Tests</h4>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" name="test" value="cbc"> Complete Blood Count
+                                        (CBC)</label>
+                                    <label><input type="checkbox" name="test" value="glucose"> Blood Glucose</label>
+                                    <label><input type="checkbox" name="test" value="lipid"> Lipid Profile</label>
+                                    <label><input type="checkbox" name="test" value="liver"> Liver Function</label>
+                                    <label><input type="checkbox" name="test" value="kidney"> Kidney Function</label>
+                                </div>
+                            </div>
+                            <div class="test-category">
+                                <h4>Urine Tests</h4>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" name="test" value="urinalysis"> Urinalysis</label>
+                                    <label><input type="checkbox" name="test" value="culture"> Urine Culture</label>
+                                    <label><input type="checkbox" name="test" value="protein"> Protein Test</label>
+                                </div>
+                            </div>
+                            <div class="test-category">
+                                <h4>Other Tests</h4>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" name="test" value="thyroid"> Thyroid Function</label>
+                                    <label><input type="checkbox" name="test" value="hba1c"> HbA1c</label>
+                                    <label><input type="checkbox" name="test" value="vitamin"> Vitamin Levels</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Priority Level *</label>
+                        <div class="urgency-selector">
+                            <div class="urgency-option">
+                                <input type="radio" name="urgency" value="routine" id="routine" checked>
+                                <label for="routine">Routine</label>
+                            </div>
+                            <div class="urgency-option">
+                                <input type="radio" name="urgency" value="urgent" id="urgent">
+                                <label for="urgent">Urgent</label>
+                            </div>
+                            <div class="urgency-option">
+                                <input type="radio" name="urgency" value="stat" id="stat">
+                                <label for="stat">STAT</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clinicalInfo">Clinical Information</label>
+                        <textarea id="clinicalInfo"
+                            placeholder="Relevant clinical information for the laboratory..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="specialInstructions">Special Instructions</label>
+                        <textarea id="specialInstructions"
+                            placeholder="Any special handling or processing instructions..."></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="window.history.back()">Cancel</button>
+                        <button type="submit" class="btn-save">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    <script>
+        async function loadPatients() {
+            try {
+                const response = await fetch('/api/v1/doctor/patients/', { credentials: 'same-origin' });
+                const data = await response.json();
+                if (data.success) {
+                    const select = document.getElementById('patient');
+                    select.innerHTML = '<option value="">Choose a patient...</option>';
+                    data.patients.forEach(patient => {
+                        const option = document.createElement('option');
+                        option.value = patient.uid;
+                        option.textContent = `${patient.full_name} - ${patient.email}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading patients:', error);
+            }
+        }
+        loadPatients();
+
+        document.getElementById('labRequestForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const selectedTests = document.querySelectorAll('input[name="test"]:checked');
+            if (selectedTests.length === 0) {
+                alert('Please select at least one test');
+                return;
+            }
+            alert('Laboratory request submitted successfully!');
+        });
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

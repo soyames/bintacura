@@ -1,0 +1,130 @@
+# =============================================================================
+# RENDER.COM DEPLOYMENT CONFIGURATION FOR BINTACURA
+# =============================================================================
+# This file defines all services needed to deploy BINTACURA to Render.com
+# 
+# RENDER FREE TIER INCLUDES:
+# ✓ 750 hours/month of web service runtime (enough for 1 always-on service)
+# ✓ PostgreSQL database with 90-day expiration (free tier)
+# ✓ Redis cache with 90-day expiration (free tier)
+# ✓ Automatic SSL certificates
+# ✓ CDN included
+# ✓ GitHub auto-deploy
+# ✓ Custom domain support
+#
+# DEPLOYMENT STEPS:
+# 1. Push this file to your GitHub repository
+# 2. Go to https://render.com and sign up/login
+# 3. Click "New +" → "Blueprint" → Connect your GitHub repo
+# 4. Render will automatically read this file and create all services
+# 5. Set environment variables in Render dashboard
+# 6. Deploy!
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # WEB SERVICE - Django Application
+  # ===========================================================================
+  - type: web
+    name: BINTACURA-web
+    env: python
+    region: frankfurt  # EU region (closest to Stockholm)
+    plan: free  # Free tier
+    branch: main  # or master, depending on your default branch
+    buildCommand: "./scripts/render_build.sh"
+    startCommand: "gunicorn BINTACURA_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
+    
+    healthCheckPath: /health/
+    
+    envVars:
+      # Django Settings
+      - key: PYTHON_VERSION
+        value: 3.11
+      
+      - key: SECRET_KEY
+        generateValue: true  # Render auto-generates a secure key
+      
+      - key: DEBUG
+        value: False
+      
+      - key: DJANGO_SETTINGS_MODULE
+        value: BINTACURA_backend.settings
+      
+      # Database (Auto-connected from database service below)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: BINTACURA-db
+          property: connectionString
+      
+      # Redis Cache (Auto-connected from redis service below)
+      - key: REDIS_URL
+        fromDatabase:
+          name: BINTACURA-redis
+          property: connectionString
+      
+      # Security Settings
+      - key: SECURITY_STRICT_MODE
+        value: True
+      
+      - key: ENABLE_ADVANCED_SECURITY_MIDDLEWARE
+        value: True
+      
+      - key: SECURE_SSL_REDIRECT
+        value: True
+      
+      - key: SESSION_COOKIE_SECURE
+        value: True
+      
+      - key: CSRF_COOKIE_SECURE
+        value: True
+      
+      # Email Configuration - AWS SES
+      # Add these in Render Dashboard (keep them secret!)
+      # - AWS_ACCESS_KEY_ID
+      # - AWS_SECRET_ACCESS_KEY
+      # - AWS_SES_REGION_NAME
+      # - DEFAULT_FROM_EMAIL
+      
+      - key: USE_SES
+        value: True
+      
+      - key: AWS_SES_REGION_NAME
+        value: eu-north-1
+      
+      - key: AWS_SES_REGION_ENDPOINT
+        value: email.eu-north-1.amazonaws.com
+      
+      # Deployment Region
+      - key: DEPLOYMENT_REGION
+        value: eu-north-1
+      
+      # Security Profile
+      - key: SECURITY_PROFILE
+        value: strict
+      
+      # Environment
+      - key: ENVIRONMENT
+        value: production
+      
+      - key: RELEASE_VERSION
+        value: 1.0.0
+
+databases:
+  # ===========================================================================
+  # POSTGRESQL DATABASE
+  # ===========================================================================
+  - name: BINTACURA-db
+    plan: free  # Free tier - 90 day expiration, then renew
+    databaseName: BINTACURA
+    user: BINTACURA
+    region: frankfurt
+    ipAllowList: []  # Empty = allow from anywhere (Render services)
+
+  # ===========================================================================
+  # REDIS CACHE
+  # ===========================================================================
+  - name: BINTACURA-redis
+    plan: free  # Free tier - 90 day expiration
+    region: frankfurt
+    ipAllowList: []
+

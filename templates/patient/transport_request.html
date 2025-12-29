@@ -1,0 +1,209 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demande de Transport - BINTACURA</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+          integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- BINTACURA Styles -->
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/transport_modern.css' %}">
+    
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Transport</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+    <div class="transport-container">
+        <div class="modern-transport-layout">
+
+            <!-- Left Panel - Booking Form -->
+            <div class="booking-panel">
+                <div class="booking-header">
+                    <h1>Réserver un transport</h1>
+                    <p>Service médical d'urgence 24/7</p>
+                </div>
+
+                <form id="transportForm" class="booking-form" onsubmit="submitTransportRequest(event)">
+                    {% csrf_token %}
+
+                    <!-- Emergency Alert -->
+                    <div class="emergency-alert">
+                        <div class="icon">⚡</div>
+                        <div class="text">
+                            <strong>Transport d'urgence</strong>
+                            <p>Votre demande sera traitée immédiatement</p>
+                        </div>
+                    </div>
+
+                    <!-- Transport Type -->
+                    <div class="form-group">
+                        <label class="form-label">Type de transport <span class="required">*</span></label>
+                        <div class="transport-types">
+                            <div class="transport-type" onclick="selectTransportType('ambulance')" data-type="ambulance">
+                                <div class="type-icon">🚑</div>
+                                <div class="type-name">Ambulance</div>
+                                <div class="type-desc">Urgence médicale</div>
+                            </div>
+                            <div class="transport-type" onclick="selectTransportType('medical_taxi')" data-type="medical_taxi">
+                                <div class="type-icon">🚕</div>
+                                <div class="type-name">Taxi Médical</div>
+                                <div class="type-desc">Transport non urgent</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="transportType" name="transport_type" required>
+                    </div>
+
+                    <!-- Urgency Level -->
+                    <div class="form-group">
+                        <label class="form-label">Niveau d'urgence <span class="required">*</span></label>
+                        <div class="urgency-options">
+                            <div class="urgency-option" onclick="selectUrgency('low')" data-urgency="low">
+                                <div class="urgency-icon">🟢</div>
+                                <div class="urgency-label">Faible</div>
+                            </div>
+                            <div class="urgency-option" onclick="selectUrgency('medium')" data-urgency="medium">
+                                <div class="urgency-icon">🟡</div>
+                                <div class="urgency-label">Moyen</div>
+                            </div>
+                            <div class="urgency-option" onclick="selectUrgency('high')" data-urgency="high">
+                                <div class="urgency-icon">🔴</div>
+                                <div class="urgency-label">Élevé</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="urgencyLevel" name="urgency" required>
+                    </div>
+
+                    <!-- Pickup Location -->
+                    <div class="form-group">
+                        <label class="form-label">Point de départ <span class="required">*</span></label>
+                        <div class="location-input-group">
+                            <div class="location-icon">📍</div>
+                            <input type="text"
+                                   class="form-input"
+                                   id="pickupAddress"
+                                   name="pickup_address"
+                                   placeholder="Entrez votre adresse de départ..."
+                                   autocomplete="off"
+                                   required>
+                            <button type="button" class="current-location-btn" id="pickMyLocationBtn">
+                                <span class="btn-text">Ma position</span>
+                            </button>
+                            <div class="autocomplete-dropdown" id="pickupAutocomplete"></div>
+                        </div>
+                    </div>
+
+                    <!-- Dropoff Location -->
+                    <div class="form-group">
+                        <label class="form-label">Destination <span class="required">*</span></label>
+                        <div class="location-input-group">
+                            <div class="location-icon">🏁</div>
+                            <input type="text"
+                                   class="form-input"
+                                   id="dropoffAddress"
+                                   name="dropoff_address"
+                                   placeholder="Où souhaitez-vous aller..."
+                                   autocomplete="off"
+                                   required>
+                            <div class="autocomplete-dropdown" id="dropoffAutocomplete"></div>
+                        </div>
+                    </div>
+
+                    <!-- Passengers -->
+                    <div class="form-group">
+                        <label class="form-label">Nombre de passagers</label>
+                        <select class="form-input" id="passengers" name="companion_count">
+                            <option value="0" selected>1 passager (vous uniquement)</option>
+                            <option value="1">2 passagers (vous + 1 accompagnant)</option>
+                            <option value="2">3 passagers (vous + 2 accompagnants)</option>
+                            <option value="3">4 passagers (vous + 3 accompagnants)</option>
+                            <option value="4">5+ passagers</option>
+                        </select>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div class="form-group">
+                        <label class="form-label">Informations complémentaires</label>
+                        <textarea class="form-input"
+                                  id="notes"
+                                  name="patient_notes"
+                                  rows="3"
+                                  placeholder="Décrivez votre situation, besoins spéciaux, équipement médical..."></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        Demander un transport
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right Panel - Map -->
+            <div class="map-panel">
+                <div id="mainMap"></div>
+
+                <!-- Map Overlay Info -->
+                <div class="map-overlay">
+                    <div class="route-info-card" id="routeInfoCard">
+                        <div class="route-stats">
+                            <div class="route-stat">
+                                <div class="route-stat-label">Distance</div>
+                                <div class="route-stat-value" id="routeDistance">-</div>
+                            </div>
+                            <div class="route-stat">
+                                <div class="route-stat-label">Durée</div>
+                                <div class="route-stat-value" id="routeDuration">-</div>
+                            </div>
+                            <div class="route-stat">
+                                <div class="route-stat-label">Coût estimé</div>
+                                <div class="route-stat-value" id="estimatedCost">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Recherche de chauffeurs disponibles...</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+            integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{% static 'js/api.js' %}"></script>
+    <script src="{% static 'js/transport_modern.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

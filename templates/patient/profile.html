@@ -1,0 +1,333 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Profil - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Mon Profil</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_patient.html" %}
+
+    <div class="profile-container">
+        <div class="profile-hero">
+            <div class="profile-hero-content">
+                <div class="profile-avatar-large">
+                    {% if request.user.profile_picture_url %}
+                    <img src="{{ request.user.profile_picture_url }}" alt="{{ request.user.full_name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                    {% else %}
+                    {{ request.user.get_initials }}
+                    {% endif %}
+                </div>
+                <div class="profile-hero-info">
+                    <h1>{{ request.user.full_name|default:"Patient" }}</h1>
+                    <p>📧 {{ request.user.email }}</p>
+                    {% if request.user.phone_number %}
+                    <p>📞 {{ request.user.phone_number }}</p>
+                    {% endif %}
+                    <span class="role-badge">👤 Patient</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="messageContainer"></div>
+
+        <form id="profileForm" method="post">
+            {% csrf_token %}
+
+            <div class="profile-section">
+                <div class="profile-section-header">
+                    <h2 class="profile-section-title">
+                        <span class="icon">📸</span>
+                        Photo de Profil
+                    </h2>
+                </div>
+
+                <div class="file-upload-section">
+                    <div class="file-preview-container">
+                        {% if request.user.profile_picture_url %}
+                        <img id="profilePreview" src="{{ request.user.profile_picture_url }}" alt="Profile">
+                        {% else %}
+                        <div id="profilePreview" style="font-size: 2.5rem; font-weight: 700; color: #667eea;">
+                            {{ request.user.get_initials }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="file-upload-info">
+                        <input type="file" id="profile_picture" name="profile_picture" accept="image/*" onchange="previewImage(event)">
+                        <label for="profile_picture">
+                            📤 Choisir une Photo
+                        </label>
+                        <p>Format accepté: JPG, PNG. Taille max: 2MB</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-header">
+                    <h2 class="profile-section-title">
+                        <span class="icon">📋</span>
+                        Informations Personnelles
+                    </h2>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="first_name">Prénom <span class="required">*</span></label>
+                        <input type="text" id="first_name" name="first_name" value="{{ first_name }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="last_name">Nom <span class="required">*</span></label>
+                        <input type="text" id="last_name" name="last_name" value="{{ last_name }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" value="{{ user.email }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone_number">Téléphone</label>
+                        <input type="tel" id="phone_number" name="phone_number" value="{{ user.phone_number|default:'' }}" placeholder="Ex: +229 97000000">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date_of_birth">Date de Naissance</label>
+                        <input type="date" id="date_of_birth" name="date_of_birth" value="{{ user.date_of_birth|date:'Y-m-d' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">Genre</label>
+                        <select id="gender" name="gender">
+                            <option value="">Sélectionner</option>
+                            <option value="male" {% if user.gender == 'male' %}selected{% endif %}>Homme</option>
+                            <option value="female" {% if user.gender == 'female' %}selected{% endif %}>Femme</option>
+                            <option value="other" {% if user.gender == 'other' %}selected{% endif %}>Autre</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-header">
+                    <h2 class="profile-section-title">
+                        <span class="icon">🏥</span>
+                        Informations Médicales
+                    </h2>
+                </div>
+
+                <div class="section-content">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="blood_type">Groupe Sanguin</label>
+                            <select id="blood_type" name="blood_type">
+                                <option value="">Sélectionner</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="profession">Profession</label>
+                            <input type="text" id="profession" name="profession" placeholder="Ex: Enseignant, Ingénieur, etc.">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="marital_status">Statut Marital</label>
+                            <select id="marital_status" name="marital_status">
+                                <option value="">Sélectionner</option>
+                                <option value="single">Célibataire</option>
+                                <option value="married">Marié(e)</option>
+                                <option value="divorced">Divorcé(e)</option>
+                                <option value="widowed">Veuf/Veuve</option>
+                                <option value="other">Autre</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="number_of_children">Nombre d'Enfants</label>
+                            <input type="number" id="number_of_children" name="number_of_children" min="0" value="0">
+                        </div>
+
+                        <div class="form-group form-group-full">
+                            <label for="allergies">Allergies</label>
+                            <textarea id="allergies" name="allergies" placeholder="Listez vos allergies (une par ligne)..."></textarea>
+                        </div>
+
+                        <div class="form-group form-group-full">
+                            <label for="medical_conditions">Conditions Médicales Chroniques</label>
+                            <textarea id="medical_conditions" name="medical_conditions" placeholder="Listez vos conditions médicales chroniques (une par ligne)..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="form-actions">
+                    <button type="submit" class="btn-profile btn-profile-primary">
+                        💾 Enregistrer les Modifications
+                    </button>
+                    <button type="button" class="btn-profile btn-profile-secondary" onclick="window.location.href='{% url 'patient:dashboard' %}'">
+                        ← Retour au Tableau de Bord
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script>
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('La taille du fichier ne doit pas dépasser 2MB');
+                    event.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('profilePreview');
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        const bloodType = "{{ patient_data.blood_type|default:'' }}";
+        if (bloodType) {
+            document.getElementById('blood_type').value = bloodType;
+        }
+
+        const allergies = {{ patient_data.allergies|safe }};
+        if (allergies && Array.isArray(allergies) && allergies.length > 0) {
+            document.getElementById('allergies').value = allergies.join('\n');
+        }
+
+        const conditions = {{ patient_data.chronic_conditions|safe }};
+        if (conditions && Array.isArray(conditions) && conditions.length > 0) {
+            document.getElementById('medical_conditions').value = conditions.join('\n');
+        }
+
+        const profession = "{{ patient_data.profession|default:'' }}";
+        if (profession) {
+            document.getElementById('profession').value = profession;
+        }
+
+        const maritalStatus = "{{ patient_data.marital_status|default:'' }}";
+        if (maritalStatus) {
+            document.getElementById('marital_status').value = maritalStatus;
+        }
+
+        const numberOfChildren = "{{ patient_data.number_of_children|default:'0' }}";
+        if (numberOfChildren) {
+            document.getElementById('number_of_children').value = numberOfChildren;
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const messageContainer = document.getElementById('messageContainer');
+            const submitBtn = this.querySelector('button[type="submit"]');
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '⏳ Enregistrement en cours...';
+
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    messageContainer.innerHTML = `
+                        <div class="alert-profile success">
+                            <span class="icon">✅</span>
+                            <span>${data.message}</span>
+                        </div>
+                    `;
+                    
+                    if (data.profile_picture_url) {
+                        document.querySelectorAll('.nav-user-avatar, .profile-avatar-large, .sidebar-user-avatar').forEach(avatar => {
+                            avatar.innerHTML = `<img src="${data.profile_picture_url}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                        });
+                    } else if (data.initials) {
+                        document.querySelectorAll('.nav-user-avatar, .sidebar-user-avatar').forEach(avatar => {
+                            if (!avatar.querySelector('img')) {
+                                avatar.textContent = data.initials;
+                            }
+                        });
+                    }
+                } else {
+                    messageContainer.innerHTML = `
+                        <div class="alert-profile error">
+                            <span class="icon">❌</span>
+                            <span>${data.message}</span>
+                        </div>
+                    `;
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '💾 Enregistrer les Modifications';
+
+                setTimeout(() => {
+                    messageContainer.innerHTML = '';
+                }, 5000);
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            })
+            .catch(error => {
+                messageContainer.innerHTML = `
+                    <div class="alert-profile error">
+                        <span class="icon">❌</span>
+                        <span>Erreur lors de la mise à jour du profil</span>
+                    </div>
+                `;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '💾 Enregistrer les Modifications';
+            });
+        });
+    </script>
+</body>
+</html>
+
