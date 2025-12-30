@@ -461,5 +461,5 @@ def setup_ai_logging(log_file='logs/ai.log', log_level=logging.INFO):
     console_handler.setFormatter(formatter)
     ai_logger.addHandler(console_handler)
 
-    ai_logger.info("AI logging initialized")
+    # Logging system ready (internal monitoring only - no data scraping)
 
