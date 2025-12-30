@@ -18,7 +18,6 @@ django-environ
 # Task Queue / Cache (Used in settings.py and task files)
 celery
 redis
-redis6
 django-redis
 
 # HTTP Requests
