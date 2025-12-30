@@ -74,9 +74,9 @@ if [ ! -f .env ]; then
 SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(50))")
 DEBUG=False
 DJANGO_SETTINGS_MODULE=backend.settings
-ALLOWED_HOSTS=13.53.194.95,ec2-13-53-194-95.eu-north-1.compute.amazonaws.com,bintacura.org,www.bintacura.org
+ALLOWED_HOSTS=16.171.180.104,*.compute.amazonaws.com,bintacura.org,www.bintacura.org,localhost,127.0.0.1
 
-# AWS RDS Database
+# AWS RDS Database (PostgreSQL 17.6)
 DB_ENGINE=django.db.backends.postgresql
 DB_NAME=initialdbbintacura
 DB_USER=soyames_
@@ -84,10 +84,21 @@ DB_PASSWORD=DE7!S8gVDZqDU!N
 DB_HOST=bintacura-db-gb.c9uwsww6o8ky.eu-north-1.rds.amazonaws.com
 DB_PORT=5432
 
+# Currency Settings (Base: XOF)
+DEFAULT_CURRENCY=XOF
+SUPPORTED_CURRENCIES=XOF,USD,EUR,GNF,NGN,GHS,ZAR,XAF,MAD,TND
+
 # Environment
 ENVIRONMENT=production
 DEPLOYMENT_REGION=eu-north-1
 INSTANCE_TYPE=CLOUD
+INSTANCE_ID=i-074ee5b498fde1faa
+
+# Render Configuration (Keep active)
+RENDER_SERVICE_ID=srv-d4qoujp5pdvs738ru6q0
+RENDER_EXTERNAL_URL=https://bintacura.onrender.com
+SYNC_CLOUD_PUSH_URL=https://bintacura.onrender.com/api/v1/sync/push/
+SYNC_CLOUD_PULL_URL=https://bintacura.onrender.com/api/v1/sync/pull/
 
 # Security
 SECURITY_STRICT_MODE=True
@@ -164,7 +175,7 @@ echo "🌐 Configuring Nginx..."
 sudo tee /etc/nginx/conf.d/bintacura.conf > /dev/null << 'NGINXEOF'
 server {
     listen 80;
-    server_name 13.53.194.95 ec2-13-53-194-95.eu-north-1.compute.amazonaws.com bintacura.org www.bintacura.org;
+    server_name 16.171.180.104 *.compute.amazonaws.com bintacura.org www.bintacura.org;
 
     client_max_body_size 20M;
 
@@ -217,7 +228,7 @@ echo "║  ✅ SETUP COMPLETE!                                              ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "🌐 Your application is now running at:"
-echo "   • http://13.53.194.95"
+echo "   • http://16.171.180.104 (Elastic IP - PERMANENT)"
 echo "   • http://ec2-13-53-194-95.eu-north-1.compute.amazonaws.com"
 echo ""
 echo "⏳ After DNS propagates (1-4 hours):"

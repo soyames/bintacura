@@ -93,12 +93,40 @@ class RegionalDatabaseRouter:
         # For regional apps, use default database
         # Both databases have same schema due to migrations
         return 'default'
+        
+        Args:
+            model: The model being queried
+            **hints: Additional routing hints (e.g., instance)
+        
+        Returns:
+            str: Database alias to use, or None for default routing
+        """
+        app_label = model._meta.app_label
+        
+        # Always use central database for admin apps
+        if app_label in self.CENTRAL_APPS:
+            return 'default'
+        
+        # Check if model explicitly specifies a database
+        if hasattr(model, '_database_override'):
+            return model._database_override
+        
+        # Check hints for explicit database
+        if 'database' in hints:
+            return hints['database']
+        
+        # Route regional apps to appropriate database
+        if app_label in self.REGIONAL_APPS:
+            region = self.get_region_from_request()
+            return self.regional_databases.get(region, {}).get('alias', 'default')
+        
+        return 'default'
     
     def db_for_write(self, model, **hints):
         """
         Route write operations to appropriate database.
         
-        Always use default database for writes.
+        Same logic as db_for_read to ensure consistency.
         """
         return self.db_for_read(model, **hints)
     
@@ -161,7 +189,7 @@ class ReadReplicaRouter:
     def db_for_read(self, model, **hints):
         """Route reads to replica if available."""
         if hasattr(settings, 'READ_REPLICA_DB'):
-            # Do not use replica for write-sensitive models
+            # Don't use replica for write-sensitive models
             if hasattr(model, '_no_read_replica') and model._no_read_replica:
                 return None
             return settings.READ_REPLICA_DB
@@ -176,7 +204,5 @@ class ReadReplicaRouter:
         return None
     
     def allow_migrate(self, db, app_label, model_name=None, **hints):
-        """Do not migrate on read replicas."""
-        if hasattr(settings, 'READ_REPLICA_DB') and db == settings.READ_REPLICA_DB:
-            return False
-        return None
+        """Don't migrate on read replicas."""
+        if hasattr(settings, 'R

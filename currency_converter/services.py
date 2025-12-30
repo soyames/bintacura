@@ -56,32 +56,53 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
     
     @classmethod
     def get_rate(cls, from_currency: str, to_currency: str) -> Decimal:
+        """
+        Get exchange rate between two currencies.
+        IMPORTANT: Uses cached rates from database (last 7 days).
+        NEVER calls API on-demand to avoid rate limits.
+        
+        Lookup order:
+        1. Memory cache (instant) - 1 hour TTL
+        2. Database cache (last 7 days) - primary source
+        3. Static fallback rates (if database empty)
+        
+        API is ONLY called via scheduled task at 1 AM UTC daily.
+        """
         if from_currency == to_currency:
             return Decimal('1.00')
         
+        # Check memory cache first (1 hour TTL)
         cache_key = f'exchange_rate_{from_currency}_{to_currency}'
         cached_rate = cache.get(cache_key)
         if cached_rate:
+            logger.debug(f"Rate from memory cache: {from_currency}/{to_currency} = {cached_rate}")
             return Decimal(str(cached_rate))
         
+        # Get from database (last 7 days) - this is our primary source
         try:
             from .models import ExchangeRate
-            db_rate = ExchangeRate.get_latest_rate(from_currency, to_currency)
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            db_rate = ExchangeRate.objects.filter(
+                base_code=from_currency,
+                target_code=to_currency,
+                is_active=True,
+                fetched_at__gte=timezone.now() - timedelta(days=7)
+            ).first()
+            
             if db_rate:
-                cache.set(cache_key, str(db_rate.rate), timeout=3600)
-                return db_rate.rate
+                # Cache in memory for 1 hour
+                cache.set(cache_key, str(db_rate.conversion_rate), timeout=3600)
+                logger.debug(f"Rate from database: {from_currency}/{to_currency} = {db_rate.conversion_rate} (fetched: {db_rate.fetched_at})")
+                return db_rate.conversion_rate
+            else:
+                logger.warning(f"No recent rate in database for {from_currency}/{to_currency}, using static fallback")
         except Exception as e:
-            logger.warning(f"Database rate fetch failed: {e}")
+            logger.error(f"Database rate fetch failed: {e}, using static fallback")
         
-        try:
-            rate = cls._fetch_rate_from_api(from_currency, to_currency)
-            if rate:
-                cache.set(cache_key, str(rate), timeout=3600)
-                cls._save_rate_to_db(from_currency, to_currency, rate, 'API')
-                return rate
-        except Exception as e:
-            logger.warning(f"API fetch failed: {e}, using static rates")
-        
+        # Fallback to static rates (NO API CALL HERE)
+        logger.info(f"Using static fallback rate for {from_currency}/{to_currency}")
         return cls._calculate_static_rate(from_currency, to_currency)
     
     @classmethod
@@ -97,22 +118,54 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
     
     @classmethod
     def _fetch_rate_from_api(cls, from_currency: str, to_currency: str):
+        """
+        Fetch exchange rate from API.
+        SECURITY: API key is stored in environment variables, never exposed to frontend.
+        Uses latest rates endpoint to get all rates at once to minimize API calls.
+        """
         api_key = getattr(settings, 'EXCHANGE_RATE_API_KEY', None)
         if not api_key:
+            logger.warning("EXCHANGE_RATE_API_KEY not configured, using static rates")
             return None
         
-        url = f"https://v6.exchangerate-api.com/v6/{api_key}/pair/{from_currency}/{to_currency}"
-        response = requests.get(url, timeout=5)
+        # Use latest rates endpoint to get all rates at once (more efficient)
+        cache_key = f'exchange_rates_full_{from_currency}'
+        cached_data = cache.get(cache_key)
         
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('result') == 'success':
-                return Decimal(str(data['conversion_rate']))
+        if cached_data:
+            # Get rate from cached full data
+            rate = cached_data.get(to_currency)
+            if rate:
+                return Decimal(str(rate))
+        
+        try:
+            url = f"https://v6.exchangerate-api.com/v6/{api_key}/latest/{from_currency}"
+            response = requests.get(url, timeout=5)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('result') == 'success':
+                    conversion_rates = data.get('conversion_rates', {})
+                    
+                    # Cache all rates for 24 hours
+                    cache.set(cache_key, conversion_rates, timeout=86400)
+                    
+                    # Save all rates to database for 7-day retention
+                    cls._save_bulk_rates_to_db(from_currency, conversion_rates)
+                    
+                    rate = conversion_rates.get(to_currency)
+                    if rate:
+                        return Decimal(str(rate))
+            else:
+                logger.warning(f"API request failed with status {response.status_code}")
+        except Exception as e:
+            logger.error(f"API fetch error: {e}")
         
         return None
     
     @classmethod
     def _save_rate_to_db(cls, from_currency: str, to_currency: str, rate: Decimal, source: str):
+        """Save single rate to database with 7-day retention policy"""
         try:
             from .models import ExchangeRate
             ExchangeRate.objects.create(
@@ -121,8 +174,60 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
                 rate=rate,
                 source=source
             )
+            
+            # Clean up old rates (keep last 7 days)
+            cls._cleanup_old_rates()
         except Exception as e:
             logger.error(f"Failed to save rate to database: {e}")
+    
+    @classmethod
+    def _save_bulk_rates_to_db(cls, from_currency: str, conversion_rates: dict):
+        """
+        Save multiple rates to database efficiently.
+        Stores rates for 7-day retention to minimize API calls.
+        """
+        try:
+            from .models import ExchangeRate
+            from django.utils import timezone
+            
+            rates_to_create = []
+            for to_currency, rate in conversion_rates.items():
+                rates_to_create.append(
+                    ExchangeRate(
+                        from_currency=from_currency,
+                        to_currency=to_currency,
+                        rate=Decimal(str(rate)),
+                        source='API',
+                        fetched_at=timezone.now()
+                    )
+                )
+            
+            # Bulk create for efficiency
+            ExchangeRate.objects.bulk_create(rates_to_create, ignore_conflicts=True)
+            logger.info(f"Saved {len(rates_to_create)} exchange rates to database")
+            
+            # Clean up old rates
+            cls._cleanup_old_rates()
+        except Exception as e:
+            logger.error(f"Failed to save bulk rates to database: {e}")
+    
+    @classmethod
+    def _cleanup_old_rates(cls):
+        """Delete exchange rates older than 7 days to save storage"""
+        try:
+            from .models import ExchangeRate
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            cutoff_date = timezone.now() - timedelta(days=7)
+            deleted_count = ExchangeRate.objects.filter(
+                fetched_at__lt=cutoff_date
+            ).delete()[0]
+            
+            if deleted_count > 0:
+                logger.info(f"Cleaned up {deleted_count} old exchange rates")
+        except Exception as e:
+            logger.error(f"Failed to cleanup old rates: {e}")
     
     @classmethod
     def convert(cls, amount, from_currency: str, to_currency: str):

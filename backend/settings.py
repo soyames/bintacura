@@ -48,8 +48,10 @@ else:
     CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
 # Multi-Region Database Configuration
-DEPLOYMENT_REGION = config('DEPLOYMENT_REGION', default='default')
+DEPLOYMENT_REGION = config('DEPLOYMENT_REGION', default='eu-north-1')
+ENABLE_MULTI_REGION = config('ENABLE_MULTI_REGION', default=False, cast=bool)
 
+# Primary Database (AWS RDS Stockholm or Render Frankfurt depending on deployment)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -57,27 +59,32 @@ DATABASES = {
         'USER': env('DB_USER'),
         'PASSWORD': env('DB_PASSWORD'),
         'HOST': env('DB_HOST'),
-        'PORT': env('DB_PORT'),
+        'PORT': env('DB_PORT', default=5432),
         'OPTIONS': {
             'sslmode': 'require',
         },
     }
 }
 
-# Regional database configuration (add as needed)
-# Example for Mali region:
-# if DEPLOYMENT_REGION == 'mali' or config('ENABLE_MULTI_REGION', default=False, cast=bool):
-#     DATABASES['mali'] = {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': env('DB_MALI_NAME', default='BINTACURA_mali'),
-#         'USER': env('DB_MALI_USER', default=env('DB_USER')),
-#         'PASSWORD': env('DB_MALI_PASSWORD', default=env('DB_PASSWORD')),
-#         'HOST': env('DB_MALI_HOST', default=env('DB_HOST')),
-#         'PORT': env('DB_MALI_PORT', default=env('DB_PORT')),
-#     }
+# Add Frankfurt (Render) database if multi-region is enabled
+# This allows simultaneous connections to both AWS and Render databases
+if ENABLE_MULTI_REGION:
+    DATABASES['frankfurt'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_FRANKFURT_NAME', default='vitacare_global_db'),
+        'USER': env('DB_FRANKFURT_USER', default=env('DB_USER')),
+        'PASSWORD': env('DB_FRANKFURT_PASSWORD', default=env('DB_PASSWORD')),
+        'HOST': env('DB_FRANKFURT_HOST'),
+        'PORT': env('DB_FRANKFURT_PORT', default=5432),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    }
 
-# Database router configuration (uncomment when regional databases are configured)
-# DATABASE_ROUTERS = ['core.db_router.RegionalDatabaseRouter']
+# Database router configuration (enable when using multi-region)
+# Routes database operations to appropriate regional database
+if ENABLE_MULTI_REGION:
+    DATABASE_ROUTERS = ['core.db_router.RegionalDatabaseRouter']
 SECURITY_STRICT_MODE = config("SECURITY_STRICT_MODE", default=False, cast=bool)
 
 ENABLE_ADVANCED_SECURITY_MIDDLEWARE = config(
@@ -88,13 +95,13 @@ ENABLE_ADVANCED_SECURITY_MIDDLEWARE = config(
 
 PAYMENT_CONFIGURATION = {
     'RESCHEDULE_FEE': 1000,
-    'DEFAULT_CONSULTATION_FEE_USD': 5.00,
+    'DEFAULT_CONSULTATION_FEE_XOF': 3500,
     'PLATFORM_FEE_RATE': 0.01,
     'PLATFORM_TAX_RATE': 0.18,
 }
 
 RESCHEDULE_FEE = PAYMENT_CONFIGURATION['RESCHEDULE_FEE']
-DEFAULT_CONSULTATION_FEE_USD = PAYMENT_CONFIGURATION['DEFAULT_CONSULTATION_FEE_USD']
+DEFAULT_CONSULTATION_FEE_XOF = PAYMENT_CONFIGURATION['DEFAULT_CONSULTATION_FEE_XOF']
 PLATFORM_FEE_RATE = PAYMENT_CONFIGURATION['PLATFORM_FEE_RATE']
 PLATFORM_TAX_RATE = PAYMENT_CONFIGURATION['PLATFORM_TAX_RATE']
 
@@ -104,7 +111,7 @@ FEDAPAY_ENVIRONMENT = env('FEDAPAY_ENVIRONMENT', default='sandbox')  # 'sandbox'
 FEDAPAY_WEBHOOK_SECRET = env('FEDAPAY_WEBHOOK_SECRET', default='')
 
 # Currency Configuration
-DEFAULT_CURRENCY = 'USD'
+DEFAULT_CURRENCY = 'XOF'
 SUPPORTED_CURRENCIES = ['USD', 'EUR', 'XOF', 'XAF', 'GNF','NGN', 'GHS', 'ZAR']
 
 # Exchange Rate API (for real-time currency conversion)
@@ -484,8 +491,11 @@ STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
 #     },
 # }
 
-# Google Maps removed - Using Leaflet with OpenStreetMap instead
-# GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY", default="")
+# Leaflet with OpenStreetMap Configuration
+# BintaCura uses Leaflet.js and OpenStreetMap for all mapping features
+# No Google Maps API key needed - open-source mapping solution
+# Leaflet CDN: https://unpkg.com/leaflet@1.9.4/dist/leaflet.css
+# OpenStreetMap tiles: https://tile.openstreetmap.org/{z}/{x}/{y}.png
 
 HUGGINGFACE_API_KEY = config("HUGGINGFACE_API_KEY", default="")
 
@@ -646,6 +656,16 @@ CELERY_BEAT_SCHEDULE.update({
         'task': 'sync.tasks.cleanup_synced_events',
         'schedule': crontab(hour=3, minute=0),  # Daily at 3 AM
         'kwargs': {'days_to_keep': 7}
+    },
+    # Fetch exchange rates daily
+    'fetch-exchange-rates': {
+        'task': 'currency_converter.tasks.fetch_exchange_rates',
+        'schedule': crontab(hour=1, minute=0),  # Daily at 1 AM
+    },
+    # Cleanup old exchange rates
+    'cleanup-old-exchange-rates': {
+        'task': 'currency_converter.tasks.cleanup_old_exchange_rates',
+        'schedule': crontab(hour=4, minute=0),  # Daily at 4 AM
     },
 })
 
