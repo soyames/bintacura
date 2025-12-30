@@ -214,10 +214,10 @@ class InsuranceSubscription(SyncMixin):
     next_payment_date = models.DateField()
     last_payment_date = models.DateField(null=True, blank=True)
 
-    # Payment details (in USD cents)
-    premium_amount = models.IntegerField(help_text="Premium amount in USD cents")
+    # Payment details (in XOF cents)
+    premium_amount = models.IntegerField(help_text="Premium amount in XOF cents")
     payment_frequency = models.CharField(max_length=20)
-    total_paid = models.IntegerField(default=0, help_text="Total paid in USD cents")
+    total_paid = models.IntegerField(default=0, help_text="Total paid in XOF cents")
     payment_count = models.IntegerField(default=0)
 
     # Auto-renewal
@@ -282,7 +282,7 @@ class InsuranceInvoice(SyncMixin):
     )
 
     # Invoice details
-    amount = models.IntegerField(help_text="Amount in USD cents")
+    amount = models.IntegerField(help_text="Amount in XOF cents")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
 
     # Dates
@@ -463,7 +463,7 @@ class InsuranceCoverageEnquiry(SyncMixin):  # Handles patient inquiries about in
     service_type = models.CharField(max_length=50, choices=SERVICE_TYPE_CHOICES)
     service_name = models.CharField(max_length=255)
     service_description = models.TextField()
-    estimated_cost = models.IntegerField(help_text="Estimated cost in USD cents")
+    estimated_cost = models.IntegerField(help_text="Estimated cost in XOF cents")
 
     healthcare_provider = models.ForeignKey(
         Participant,
@@ -481,8 +481,8 @@ class InsuranceCoverageEnquiry(SyncMixin):  # Handles patient inquiries about in
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
 
     insurance_coverage_percentage = models.FloatField(null=True, blank=True)
-    insurance_covers_amount = models.IntegerField(null=True, blank=True, help_text="Amount covered in USD cents")
-    patient_pays_amount = models.IntegerField(null=True, blank=True, help_text="Patient payment in USD cents")
+    insurance_covers_amount = models.IntegerField(null=True, blank=True, help_text="Amount covered in XOF cents")
+    patient_pays_amount = models.IntegerField(null=True, blank=True, help_text="Patient payment in XOF cents")
 
     approval_notes = models.TextField(blank=True)
     rejection_reason = models.TextField(blank=True)
@@ -611,7 +611,7 @@ class CoverageRule(SyncMixin):
     insurance_package = models.ForeignKey(InsurancePackage, on_delete=models.CASCADE, related_name='coverage_rules')
     service_category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='coverage_rules')
     coverage_percentage = models.DecimalField(max_digits=5, decimal_places=2, help_text="Percentage covered by insurance")
-    max_coverage_per_service = models.IntegerField(null=True, blank=True, help_text="Max amount per service in USD cents")
+    max_coverage_per_service = models.IntegerField(null=True, blank=True, help_text="Max amount per service in XOF cents")
     max_coverage_per_year = models.IntegerField(null=True, blank=True, help_text="Annual limit for this category")
     waiting_period_days = models.IntegerField(default=0, help_text="Days before coverage starts")
     requires_pre_authorization = models.BooleanField(default=False)
@@ -636,8 +636,8 @@ class CoverageRule(SyncMixin):
 class CopayDeductibleConfig(SyncMixin):
     region_code = models.CharField(max_length=50, default="global", db_index=True)
     insurance_package = models.ForeignKey(InsurancePackage, on_delete=models.CASCADE, related_name='copay_configs')
-    annual_deductible = models.IntegerField(default=0, help_text="Annual deductible in USD cents")
-    out_of_pocket_maximum = models.IntegerField(null=True, blank=True, help_text="Annual OOP max in USD cents")
+    annual_deductible = models.IntegerField(default=0, help_text="Annual deductible in XOF cents")
+    out_of_pocket_maximum = models.IntegerField(null=True, blank=True, help_text="Annual OOP max in XOF cents")
     copay_consultation = models.IntegerField(default=0, help_text="Fixed copay for consultations")
     copay_specialist = models.IntegerField(default=0, help_text="Fixed copay for specialists")
     copay_emergency = models.IntegerField(default=0, help_text="Fixed copay for emergency")
@@ -661,7 +661,7 @@ class CopayDeductibleConfig(SyncMixin):
         ]
 
     def __str__(self):
-        # Amount stored in USD cents - display formatted
+        # Amount stored in XOF cents - display formatted
         return f"{self.insurance_package.name} - Deductible: ${self.annual_deductible/100:.2f}"
 
 
@@ -673,9 +673,9 @@ class FeeSchedule(SyncMixin):
     service_category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='fee_schedules')
     service_code = models.CharField(max_length=50, help_text="CPT, ICD, or internal code")
     service_description = models.CharField(max_length=255)
-    usual_and_customary_rate = models.IntegerField(help_text="Typical market rate in USD cents")
-    maximum_allowed_amount = models.IntegerField(help_text="Max amount insurance will consider in USD cents")
-    contracted_rate = models.IntegerField(null=True, blank=True, help_text="Negotiated rate with providers in USD cents")
+    usual_and_customary_rate = models.IntegerField(help_text="Typical market rate in XOF cents")
+    maximum_allowed_amount = models.IntegerField(help_text="Max amount insurance will consider in XOF cents")
+    contracted_rate = models.IntegerField(null=True, blank=True, help_text="Negotiated rate with providers in XOF cents")
     geographic_modifier = models.DecimalField(max_digits=4, decimal_places=2, default=1.0, help_text="Regional cost adjustment")
     effective_date = models.DateField(default=timezone.now)
     expiration_date = models.DateField(null=True, blank=True)
@@ -691,7 +691,7 @@ class FeeSchedule(SyncMixin):
         ]
 
     def __str__(self):
-        # Amount stored in USD cents - display formatted
+        # Amount stored in XOF cents - display formatted
         return f"{self.service_code} - {self.service_description}: ${self.maximum_allowed_amount/100:.2f}"
 
 
@@ -952,8 +952,8 @@ class ProviderPerformance(SyncMixin):
         ('below_average', 'Below Average'),
         ('poor', 'Poor'),
     ], blank=True)
-    bonus_earned = models.IntegerField(default=0, help_text="Performance bonus in USD cents")
-    penalty_assessed = models.IntegerField(default=0, help_text="Performance penalty in USD cents")
+    bonus_earned = models.IntegerField(default=0, help_text="Performance bonus in XOF cents")
+    penalty_assessed = models.IntegerField(default=0, help_text="Performance penalty in XOF cents")
     notes = models.TextField(blank=True)
 
     class Meta:

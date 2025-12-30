@@ -85,14 +85,14 @@ class FedaPayTransactionSerializer(serializers.ModelSerializer):  # Serializer f
 
 class WalletTopupRequestSerializer(serializers.Serializer):  # Serializer for WalletTopupRequest data
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=100)
-    currency = serializers.CharField(max_length=3, default="USD")
+    currency = serializers.CharField(max_length=3, default="XOF")
 
 
 class ServicePaymentRequestSerializer(serializers.Serializer):
     """Serializer for service payment requests"""
     doctor_id = serializers.UUIDField(required=True)
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=1)
-    currency = serializers.CharField(max_length=3, default="USD")
+    currency = serializers.CharField(max_length=3, default="XOF")
     service_type = serializers.ChoiceField(
         choices=[
             ('appointment', 'Appointment'),

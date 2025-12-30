@@ -141,9 +141,9 @@ class Admission(SyncMixin):  # Tracks patient hospital admissions and treatment 
     discharge_instructions = models.TextField(blank=True)
     follow_up_required = models.BooleanField(default=False)
     follow_up_date = models.DateField(null=True, blank=True)
-    total_cost = models.IntegerField(default=0)  # USD cents
-    insurance_coverage = models.IntegerField(default=0)  # USD cents
-    patient_responsibility = models.IntegerField(default=0)  # USD cents
+    total_cost = models.IntegerField(default=0)  # XOF cents
+    insurance_coverage = models.IntegerField(default=0)  # XOF cents
+    patient_responsibility = models.IntegerField(default=0)  # XOF cents
     notes = models.TextField(blank=True)
 
     class Meta:  # Meta class implementation
@@ -216,12 +216,12 @@ class HospitalBill(SyncMixin):  # Stores hospital billing information and paymen
     patient = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='patient_hospital_bills')
     admission = models.ForeignKey(Admission, on_delete=models.SET_NULL, null=True, blank=True, related_name='bills')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    total_amount = models.IntegerField(default=0)  # USD cents
-    discount_amount = models.IntegerField(default=0)  # USD cents
-    tax_amount = models.IntegerField(default=0)  # USD cents
-    insurance_coverage = models.IntegerField(default=0)  # USD cents
-    amount_paid = models.IntegerField(default=0)  # USD cents
-    balance_due = models.IntegerField(default=0)  # USD cents
+    total_amount = models.IntegerField(default=0)  # XOF cents
+    discount_amount = models.IntegerField(default=0)  # XOF cents
+    tax_amount = models.IntegerField(default=0)  # XOF cents
+    insurance_coverage = models.IntegerField(default=0)  # XOF cents
+    amount_paid = models.IntegerField(default=0)  # XOF cents
+    balance_due = models.IntegerField(default=0)  # XOF cents
     due_date = models.DateField(null=True, blank=True)
     billing_date = models.DateField(default=timezone.now)
     notes = models.TextField(blank=True)
@@ -257,15 +257,15 @@ class BillItem(SyncMixin):  # Represents individual line items on hospital bills
     item_type = models.CharField(max_length=20, choices=ITEM_TYPE_CHOICES)
     description = models.CharField(max_length=255)
     quantity = models.IntegerField(default=1)
-    unit_price = models.IntegerField()  # USD cents
-    total_price = models.IntegerField()  # USD cents
+    unit_price = models.IntegerField()  # XOF cents
+    total_price = models.IntegerField()  # XOF cents
     date_of_service = models.DateField(default=timezone.now)
 
     class Meta:  # Meta class implementation
         db_table = 'hospital_bill_items'
 
     def __str__(self):  # Return string representation
-        # Amounts stored in USD cents - display formatted
+        # Amounts stored in XOF cents - display formatted
         return f"{self.description} - ${self.total_price/100:.2f}"
 
 
@@ -283,7 +283,7 @@ class Payment(SyncMixin):  # Records payments received for hospital bills
     payment_number = models.CharField(max_length=50, unique=True)
     hospital = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='received_payments')
     bill = models.ForeignKey(HospitalBill, on_delete=models.CASCADE, related_name='payments')
-    amount = models.IntegerField()  # USD cents
+    amount = models.IntegerField()  # XOF cents
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
     transaction_ref = models.CharField(max_length=100, blank=True)
     payment_date = models.DateTimeField(default=timezone.now)
@@ -300,7 +300,7 @@ class Payment(SyncMixin):  # Records payments received for hospital bills
         ]
 
     def __str__(self):  # Return string representation
-        # Amount stored in USD cents - display formatted
+        # Amount stored in XOF cents - display formatted
         return f"{self.payment_number} - ${self.amount/100:.2f}"
 
 
@@ -1078,8 +1078,8 @@ class EquipmentMaintenance(SyncMixin):
     next_maintenance_due = models.DateField(null=True, blank=True)
     maintenance_frequency_days = models.IntegerField(default=365, help_text="Days between maintenance")
 
-    # Cost - Changed from DecimalField to IntegerField (USD cents)
-    maintenance_cost = models.IntegerField(default=0)  # USD cents
+    # Cost - Changed from DecimalField to IntegerField (XOF cents)
+    maintenance_cost = models.IntegerField(default=0)  # XOF cents
 
     notes = models.TextField(blank=True)
 

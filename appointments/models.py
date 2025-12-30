@@ -86,8 +86,8 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
         blank=True,
     )
 
-    consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Base consultation fee in USD")
-    currency = models.CharField(max_length=3, default='USD', help_text="Currency code for all fees")
+    consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Base consultation fee in XOF")
+    currency = models.CharField(max_length=3, default='XOF', help_text="Currency code for all fees")
     additional_services_total = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 

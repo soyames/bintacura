@@ -94,7 +94,7 @@ class ChartOfAccounts(SyncMixin):
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     is_system_account = models.BooleanField(default=False, help_text="System-managed, cannot be deleted")
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, default='XOF')
     opening_balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     opening_balance_date = models.DateField(null=True, blank=True)
 
@@ -235,7 +235,7 @@ class BankAccount(SyncMixin):
     bank_name = models.CharField(max_length=255)
     account_number = models.CharField(max_length=100)
     account_type = models.CharField(max_length=30, choices=ACCOUNT_TYPE_CHOICES)
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, default='XOF')
     iban = models.CharField(max_length=50, blank=True)
     swift_code = models.CharField(max_length=20, blank=True)
     branch_name = models.CharField(max_length=255, blank=True)

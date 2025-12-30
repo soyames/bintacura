@@ -91,7 +91,7 @@ class ProviderPayout(SyncMixin):  # Manages scheduled payouts to healthcare prov
         Participant, on_delete=models.CASCADE, related_name="payouts"
     )
     amount = models.BigIntegerField()
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     period_start = models.DateField()
     period_end = models.DateField()
@@ -121,7 +121,7 @@ class DoctorPayout(SyncMixin):  # Manages scheduled payouts to doctors for consu
         Participant, on_delete=models.CASCADE, related_name="doctor_payouts"
     )
     amount = models.BigIntegerField()
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     period_start = models.DateField()
     period_end = models.DateField()
@@ -259,7 +259,7 @@ class PaymentRequest(SyncMixin):  # Manages payment requests sent between partic
         Participant, on_delete=models.CASCADE, related_name="received_payment_requests"
     )
     amount = models.BigIntegerField()
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     transaction = models.ForeignKey(
@@ -329,7 +329,7 @@ class Transfer(SyncMixin):  # Records money transfers between wallets and extern
     amount = models.BigIntegerField()
     fee = models.BigIntegerField(default=0)
     total_amount = models.BigIntegerField()
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     transfer_type = models.CharField(max_length=20, choices=TRANSFER_TYPE_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     description = models.TextField(blank=True)
@@ -519,7 +519,7 @@ class FedaPayTransaction(SyncMixin):  # Tracks FedaPay payment gateway transacti
     
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     
     description = models.TextField()
@@ -582,7 +582,7 @@ class FedaPayPayout(SyncMixin):  # Manages FedaPay payouts to providers
     )
     
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     
     mode = models.CharField(max_length=50)
@@ -711,7 +711,7 @@ class ServiceCatalog(SyncMixin):  # Catalogs services offered by healthcare prov
     service_name = models.CharField(max_length=255)
     service_description = models.TextField()
     price = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     duration_minutes = models.IntegerField(null=True, blank=True, help_text="Estimated duration")
     is_active = models.BooleanField(default=True)
     is_available = models.BooleanField(default=True)
@@ -865,7 +865,7 @@ class ServiceTransaction(SyncMixin):  # Records patient payments for healthcare 
     conversion_timestamp = models.DateTimeField(null=True, blank=True, help_text="When currency conversion was performed")
     
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES)
     patient_phone = models.ForeignKey(
         ParticipantPhone,
@@ -937,7 +937,7 @@ class TransactionFee(SyncMixin):  # Calculates and tracks fees for service trans
     platform_fee_amount = models.DecimalField(max_digits=12, decimal_places=2)
     
     tax_rate = models.DecimalField(max_digits=5, decimal_places=4, default=0.18)
-    tax_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, help_text="Tax in USD")
+    tax_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, help_text="Tax in XOF")
     tax_amount_local = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, help_text="Tax in local currency")
     tax_amount = models.DecimalField(max_digits=12, decimal_places=2)
     
@@ -1037,7 +1037,7 @@ class GatewayTransaction(SyncMixin):  # Tracks transactions processed through pa
     conversion_timestamp = models.DateTimeField(null=True, blank=True, help_text="Currency conversion time")
     
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default="USD")
+    currency = models.CharField(max_length=3, default="XOF")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_method = models.CharField(max_length=100, blank=True)
     payment_url = models.URLField(blank=True)

@@ -65,7 +65,7 @@ class DoctorData(models.Model):  # Stores detailed doctor profile information in
     license_number = models.CharField(max_length=100, unique=True)
     years_of_experience = models.IntegerField(default=0)
     qualifications = models.JSONField(default=list)
-    consultation_fee = models.IntegerField(default=0)  # Stored in USD cents
+    consultation_fee = models.IntegerField(default=0)  # Stored in XOF cents
     bio = models.TextField(blank=True)
     languages_spoken = models.JSONField(default=list)
     rating = models.FloatField(default=0.0)
@@ -132,7 +132,7 @@ class DoctorService(SyncMixin):  # Represents services offered by doctors with p
     name = models.CharField(max_length=200)
     category = models.CharField(max_length=50, choices=SERVICE_CATEGORY_CHOICES)
     description = models.TextField(blank=True)
-    price = models.IntegerField(default=0)  # Stored in USD cents
+    price = models.IntegerField(default=0)  # Stored in XOF cents
     duration_minutes = models.PositiveIntegerField()
     is_available = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)

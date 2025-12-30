@@ -79,7 +79,7 @@ class RideShareQuote(models.Model):
     distance_fare = models.DecimalField(max_digits=10, decimal_places=2)
     surge_multiplier = models.FloatField(default=1.0)
     total_fare = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, default='XOF')
 
     # Driver details (when available)
     driver_name = models.CharField(max_length=255, blank=True)

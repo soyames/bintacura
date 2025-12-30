@@ -26,8 +26,8 @@ class SystemConfiguration(models.Model):
     
     default_consultation_currency = models.CharField(
         max_length=3,
-        default='USD',
-        help_text="Base currency for consultation fee (USD is platform default)"
+        default='XOF',
+        help_text="Base currency for consultation fee (XOF is platform default)"
     )
     
     # Fee structure
@@ -84,7 +84,7 @@ class SystemConfiguration(models.Model):
             # Create default configuration if none exists
             config = cls.objects.create(
                 default_consultation_fee=5.00,
-                default_consultation_currency='USD',
+                default_consultation_currency='XOF',
                 platform_fee_percentage=1.00,
                 tax_percentage=18.00,
                 wallet_topup_fee_percentage=0.00,

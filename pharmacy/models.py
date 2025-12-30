@@ -65,7 +65,7 @@ class PharmacyOrder(SyncMixin):  # Tracks customer medication orders and fulfill
     payment_method = models.CharField(max_length=30, choices=PAYMENT_METHOD_CHOICES, default='cash_on_delivery', help_text='Payment method selected by patient')
     payment_reference = models.CharField(max_length=100, blank=True, help_text='Payment transaction reference number')
     total_amount = models.IntegerField(default=0)
-    currency = models.CharField(max_length=3, default='USD', help_text='Currency code for this order')
+    currency = models.CharField(max_length=3, default='XOF', help_text='Currency code for this order')
     amount_paid = models.IntegerField(default=0)
     insurance_covered = models.IntegerField(default=0)
     delivery_method = models.CharField(max_length=50, default='pickup')
@@ -272,10 +272,10 @@ class PharmacyBonusConfig(SyncMixin):  # Configures referral bonus programs betw
         ('tiered', 'Tiered'),
     ], default='percentage')
     bonus_percentage = models.IntegerField(default=0, help_text="Bonus percentage in basis points (e.g., 500 = 5%)")
-    fixed_bonus_amount = models.IntegerField(default=0, help_text="Fixed bonus amount in USD cents")
+    fixed_bonus_amount = models.IntegerField(default=0, help_text="Fixed bonus amount in XOF cents")
     min_prescriptions_per_month = models.IntegerField(default=0)
     max_prescriptions_per_month = models.IntegerField(default=0)
-    bonus_amount_for_tier = models.IntegerField(default=0, help_text="Tier bonus amount in USD cents")
+    bonus_amount_for_tier = models.IntegerField(default=0, help_text="Tier bonus amount in XOF cents")
     is_active = models.BooleanField(default=True)
     valid_from = models.DateField(default=timezone.now)
     valid_until = models.DateField(null=True, blank=True)
@@ -369,7 +369,7 @@ class ExpiryAlert(SyncMixin):  # Tracks expiry date alerts for medications appro
     expiry_date = models.DateField()
     days_until_expiry = models.IntegerField()
     quantity_affected = models.IntegerField()
-    estimated_loss_value = models.IntegerField(default=0, help_text="Potential financial loss if not sold in USD cents")
+    estimated_loss_value = models.IntegerField(default=0, help_text="Potential financial loss if not sold in XOF cents")
 
     alert_date = models.DateTimeField(default=timezone.now)
     acknowledged_at = models.DateTimeField(null=True, blank=True)
@@ -433,7 +433,7 @@ class StockReconciliation(SyncMixin):  # Manages physical inventory counts and r
 
     total_items_counted = models.IntegerField(default=0)
     items_with_discrepancies = models.IntegerField(default=0)
-    total_variance_value = models.IntegerField(default=0, help_text="Total variance value in USD cents")
+    total_variance_value = models.IntegerField(default=0, help_text="Total variance value in XOF cents")
 
     notes = models.TextField(blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
@@ -463,8 +463,8 @@ class StockReconciliationItem(SyncMixin):  # Records individual item counts duri
     variance = models.IntegerField(help_text="Difference (counted - system)")
     variance_percentage = models.IntegerField(default=0, help_text="Variance percentage in basis points (e.g., 1000 = 10%)")
 
-    unit_price = models.IntegerField(help_text="Unit price in USD cents")
-    variance_value = models.IntegerField(help_text="Financial impact of variance in USD cents")
+    unit_price = models.IntegerField(help_text="Unit price in XOF cents")
+    variance_value = models.IntegerField(help_text="Financial impact of variance in XOF cents")
 
     reason = models.CharField(
         max_length=50,
@@ -531,15 +531,15 @@ class CashRegister(SyncMixin):  # Manages cash register for pharmacy sales
         related_name='closed_registers'
     )
 
-    opening_balance = models.IntegerField(default=0, help_text="Opening balance in USD cents")
-    expected_closing_balance = models.IntegerField(default=0, help_text="Expected closing balance in USD cents")
-    actual_closing_balance = models.IntegerField(default=0, null=True, blank=True, help_text="Actual closing balance in USD cents")
-    variance = models.IntegerField(default=0, help_text="Variance in USD cents")
+    opening_balance = models.IntegerField(default=0, help_text="Opening balance in XOF cents")
+    expected_closing_balance = models.IntegerField(default=0, help_text="Expected closing balance in XOF cents")
+    actual_closing_balance = models.IntegerField(default=0, null=True, blank=True, help_text="Actual closing balance in XOF cents")
+    variance = models.IntegerField(default=0, help_text="Variance in XOF cents")
 
-    total_cash_sales = models.IntegerField(default=0, help_text="Total cash sales in USD cents")
-    total_card_sales = models.IntegerField(default=0, help_text="Total card sales in USD cents")
-    total_mobile_money_sales = models.IntegerField(default=0, help_text="Total mobile money sales in USD cents")
-    total_insurance_sales = models.IntegerField(default=0, help_text="Total insurance sales in USD cents")
+    total_cash_sales = models.IntegerField(default=0, help_text="Total cash sales in XOF cents")
+    total_card_sales = models.IntegerField(default=0, help_text="Total card sales in XOF cents")
+    total_mobile_money_sales = models.IntegerField(default=0, help_text="Total mobile money sales in XOF cents")
+    total_insurance_sales = models.IntegerField(default=0, help_text="Total insurance sales in XOF cents")
 
     number_of_transactions = models.IntegerField(default=0)
 
@@ -587,15 +587,15 @@ class EndOfDaySettlement(SyncMixin):  # Manages end-of-day settlement process
         related_name='eod_settlements'
     )
 
-    # Sales Summary (all in USD cents)
-    total_revenue = models.IntegerField(default=0, help_text="Total revenue in USD cents")
-    total_cost_of_goods = models.IntegerField(default=0, help_text="Total COGS in USD cents")
-    gross_profit = models.IntegerField(default=0, help_text="Gross profit in USD cents")
+    # Sales Summary (all in XOF cents)
+    total_revenue = models.IntegerField(default=0, help_text="Total revenue in XOF cents")
+    total_cost_of_goods = models.IntegerField(default=0, help_text="Total COGS in XOF cents")
+    gross_profit = models.IntegerField(default=0, help_text="Gross profit in XOF cents")
 
-    cash_sales = models.IntegerField(default=0, help_text="Cash sales in USD cents")
-    card_sales = models.IntegerField(default=0, help_text="Card sales in USD cents")
-    mobile_money_sales = models.IntegerField(default=0, help_text="Mobile money sales in USD cents")
-    insurance_claims = models.IntegerField(default=0, help_text="Insurance claims in USD cents")
+    cash_sales = models.IntegerField(default=0, help_text="Cash sales in XOF cents")
+    card_sales = models.IntegerField(default=0, help_text="Card sales in XOF cents")
+    mobile_money_sales = models.IntegerField(default=0, help_text="Mobile money sales in XOF cents")
+    insurance_claims = models.IntegerField(default=0, help_text="Insurance claims in XOF cents")
 
     # Transaction Counts
     total_transactions = models.IntegerField(default=0)
@@ -603,10 +603,10 @@ class EndOfDaySettlement(SyncMixin):  # Manages end-of-day settlement process
     prescriptions_filled = models.IntegerField(default=0)
     otc_sales = models.IntegerField(default=0)
 
-    # Cash Management (all in USD cents)
-    opening_cash = models.IntegerField(default=0, help_text="Opening cash in USD cents")
-    closing_cash = models.IntegerField(default=0, help_text="Closing cash in USD cents")
-    cash_variance = models.IntegerField(default=0, help_text="Cash variance in USD cents")
+    # Cash Management (all in XOF cents)
+    opening_cash = models.IntegerField(default=0, help_text="Opening cash in XOF cents")
+    closing_cash = models.IntegerField(default=0, help_text="Closing cash in XOF cents")
+    cash_variance = models.IntegerField(default=0, help_text="Cash variance in XOF cents")
 
     # Staff
     prepared_by = models.ForeignKey(
