@@ -5,6 +5,69 @@ from core.models import Participant, Department
 from core.mixins import SyncMixin
 
 
+class HospitalData(models.Model):
+    """
+    Hospital profile data - OneToOne extension of Participant.
+    Stores hospital-specific information including consultation fees.
+    Does not use SyncMixin as it syncs with the parent Participant.
+    """
+    participant = models.OneToOneField(
+        Participant, on_delete=models.CASCADE, related_name="hospital_data"
+    )
+    license_number = models.CharField(max_length=100, unique=True)
+    bed_capacity = models.IntegerField(default=0)
+    consultation_fee = models.IntegerField(default=0)  # Stored in XOF cents
+    emergency_services = models.BooleanField(default=False)
+    has_icu = models.BooleanField(default=False)
+    has_maternity = models.BooleanField(default=False)
+    has_laboratory = models.BooleanField(default=False)
+    has_pharmacy = models.BooleanField(default=False)
+    has_ambulance = models.BooleanField(default=False)
+    specialties = models.JSONField(default=list)
+    operating_hours = models.JSONField(default=dict)
+    rating = models.FloatField(default=0.0)
+    total_reviews = models.IntegerField(default=0)
+    
+    class Meta:
+        db_table = "hospital_data"
+    
+    def __str__(self):
+        return f"{self.participant.full_name} - Hospital"
+    
+    def get_actual_rating(self):
+        """Calculate real-time average rating from Review model"""
+        from core.models import Review
+        from django.db.models import Avg
+        
+        reviews = Review.objects.filter(
+            reviewed_type='hospital',
+            reviewed_id=self.participant.uid,
+            is_approved=True
+        )
+        
+        if not reviews.exists():
+            return 0.0
+        
+        avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+        return round(avg_rating, 1) if avg_rating else 0.0
+    
+    def get_actual_total_reviews(self):
+        """Get real-time count of approved reviews"""
+        from core.models import Review
+        
+        return Review.objects.filter(
+            reviewed_type='hospital',
+            reviewed_id=self.participant.uid,
+            is_approved=True
+        ).count()
+    
+    def update_rating_cache(self):
+        """Update cached rating and total_reviews fields from actual reviews"""
+        self.rating = self.get_actual_rating()
+        self.total_reviews = self.get_actual_total_reviews()
+        self.save(update_fields=['rating', 'total_reviews'])
+
+
 class HospitalStaff(SyncMixin):  # Manages hospital staff members with roles and permissions
     ROLE_CHOICES = [
         ('administrator', 'Administrateur'),

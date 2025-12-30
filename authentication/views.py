@@ -247,13 +247,20 @@ def register_view(request):  # Register view
                 preferred_language=detected_language,
             )
 
-            from payments.services.phone_verification_service import PhoneVerificationService
-            PhoneVerificationService.initiate_phone_verification(
-                participant=user,
-                phone_number=formatted_phone,
-                country_code=country_code,
-                is_primary=True
-            )
+            # Try to initiate phone verification, but don't fail registration if it fails
+            try:
+                from payments.services.phone_verification_service import PhoneVerificationService
+                PhoneVerificationService.initiate_phone_verification(
+                    participant=user,
+                    phone_number=formatted_phone,
+                    country_code=country_code,
+                    is_primary=True
+                )
+            except Exception as phone_error:
+                # Log error but continue with registration
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Phone verification error for {email}: {str(phone_error)}")
 
             request.session["pending_user_id"] = str(user.uid)
             request.session["pending_user_email"] = user.email
@@ -443,19 +450,37 @@ def create_role_specific_data(user):
     """Create role-specific data for newly registered users"""
     from doctor.models import DoctorData
     from patient.models import PatientData
+    from hospital.models import HospitalData
     from core.models import Wallet
+    from django.conf import settings
     
     try:
         if user.role == 'doctor':
             if not hasattr(user, 'doctor_data'):
+                default_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
+                consultation_fee_cents = default_fee_xof * 100
+                
                 DoctorData.objects.create(
                     participant=user,
                     specialization='general_practice',
                     license_number=f'DOC{str(user.uid)[:8].upper()}',
                     years_of_experience=0,
-                    consultation_fee=0,
+                    consultation_fee=consultation_fee_cents,
                     rating=5.0,
                     is_available_for_telemedicine=False
+                )
+        
+        elif user.role == 'hospital':
+            if not hasattr(user, 'hospital_data'):
+                default_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
+                consultation_fee_cents = default_fee_xof * 100
+                
+                HospitalData.objects.create(
+                    participant=user,
+                    license_number=f'HOSP{str(user.uid)[:8].upper()}',
+                    consultation_fee=consultation_fee_cents,
+                    bed_capacity=0,
+                    rating=5.0,
                 )
         
         elif user.role == 'patient':
