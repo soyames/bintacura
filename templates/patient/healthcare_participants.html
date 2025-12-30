@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
     
     <link rel="stylesheet" href="{% static 'css/providers.css' %}">
+    {% include "components/settings_script.html" %}
     {% include "components/translation_script.html" %}
 </head>
 
@@ -106,6 +107,24 @@
 
         async function loadDoctors() {
             try {
+                // Get default from backend settings (no hardcoding)
+                const platformSettings = window.BINTACURA_SETTINGS || {};
+                let defaultFee = platformSettings.DEFAULT_CONSULTATION_FEE || 3500;
+                let currency = platformSettings.DEFAULT_CURRENCY || 'XOF';
+                let currencySymbol = currency === 'XOF' ? 'CFA' : currency;
+                
+                try {
+                    const feeResponse = await fetchApi('core/system/consultation-fee/');
+                    const feeData = await feeResponse.json();
+                    if (feeData.success) {
+                        defaultFee = parseFloat(feeData.fee_local) || defaultFee;
+                        currency = feeData.currency || currency;
+                        currencySymbol = feeData.currency_symbol || currencySymbol;
+                    }
+                } catch (error) {
+                    console.warn('Could not load consultation fee from API, using platform defaults');
+                }
+                
                 const response = await fetchApi('providers/doctors/');
                 const data = await response.json();
                 const grid = document.getElementById('doctorsGrid');
@@ -113,6 +132,9 @@
                 const doctors = data.results || data;
                 if (doctors && doctors.length > 0) {
                     grid.innerHTML = doctors.map(doctor => {
+                        const doctorFeeInCents = doctor.consultation_fee || 0;
+                        const consultationFee = doctorFeeInCents > 0 ? doctorFeeInCents / 100 : defaultFee;
+                        
                         const servicesHtml = doctor.services && doctor.services.length > 0
                             ? `<div class="services-section">
                                 <div class="services-label">Services disponibles:</div>
@@ -137,7 +159,7 @@
                                 <div class="provider-details">
                                     <div class="detail-row">📞 ${doctor.phone || 'N/A'}</div>
                                     <div class="detail-row">✉️ ${doctor.email || 'N/A'}</div>
-                                    <div class="detail-row">💰 <span class="convert-currency" data-amount-cents="${doctor.consultation_fee || 0}">${(doctor.consultation_fee || 0) / 100} USD</span></div>
+                                    <div class="detail-row">💰 ${currencySymbol} ${consultationFee.toLocaleString()}</div>
                                 </div>
                                 ${servicesHtml}
                                 <div class="rating">
@@ -166,6 +188,24 @@
 
         async function loadHospitals() {
             try {
+                // Get default from backend settings (no hardcoding)
+                const platformSettings = window.BINTACURA_SETTINGS || {};
+                let defaultFee = platformSettings.DEFAULT_CONSULTATION_FEE || 3500;
+                let currency = platformSettings.DEFAULT_CURRENCY || 'XOF';
+                let currencySymbol = currency === 'XOF' ? 'CFA' : currency;
+                
+                try {
+                    const feeResponse = await fetchApi('core/system/consultation-fee/');
+                    const feeData = await feeResponse.json();
+                    if (feeData.success) {
+                        defaultFee = parseFloat(feeData.fee_local) || defaultFee;
+                        currency = feeData.currency || currency;
+                        currencySymbol = feeData.currency_symbol || currencySymbol;
+                    }
+                } catch (error) {
+                    console.warn('Could not load consultation fee from API, using platform defaults');
+                }
+                
                 const response = await fetchApi('providers/providers/?type=hospital');
                 const data = await response.json();
                 const grid = document.getElementById('hospitalsGrid');
@@ -173,6 +213,9 @@
                 const hospitals = data.results || data;
                 if (hospitals && hospitals.length > 0) {
                     grid.innerHTML = hospitals.map(hospital => {
+                        const hospitalFeeInCents = hospital.consultation_fee || 0;
+                        const consultationFee = hospitalFeeInCents > 0 ? hospitalFeeInCents / 100 : defaultFee;
+                        
                         const servicesHtml = hospital.services && hospital.services.length > 0
                             ? `<div class="services-section">
                                 <div class="services-label">Services disponibles:</div>
@@ -198,6 +241,7 @@
                                     <div class="detail-row">📍 ${hospital.address || 'Adresse non renseignée'}</div>
                                     <div class="detail-row">📞 ${hospital.phone_number || 'N/A'}</div>
                                     <div class="detail-row">🛏️ ${hospital.bed_capacity || 'N/A'} lits</div>
+                                    <div class="detail-row">💰 ${currencySymbol} ${consultationFee.toLocaleString()}</div>
                                 </div>
                                 ${servicesHtml}
                                 <div class="rating">

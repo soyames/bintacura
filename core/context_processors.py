@@ -2,7 +2,20 @@
 Context processors to inject data into all templates
 """
 from decimal import Decimal
+from django.conf import settings
 from currency_converter.services import CurrencyConverterService
+
+
+def platform_settings(request):
+    """Make platform settings available to all templates"""
+    default_currency = getattr(settings, 'DEFAULT_CURRENCY', 'XOF')
+    default_fee_setting = f'DEFAULT_CONSULTATION_FEE_{default_currency}'
+    default_fee = getattr(settings, default_fee_setting, 3500)
+    
+    return {
+        'DEFAULT_CURRENCY': default_currency,
+        'DEFAULT_CONSULTATION_FEE': default_fee,
+    }
 
 
 def currency_context(request):

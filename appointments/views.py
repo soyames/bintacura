@@ -70,15 +70,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
 
             try:
                 doctor_data = DoctorData.objects.get(participant=doctor)
-                # consultation_fee stored in USD cents, convert to USD dollars
-                consultation_fee_usd = Decimal(str(doctor_data.consultation_fee)) / 100 if doctor_data.consultation_fee > 0 else Decimal('5.00')
+                consultation_fee_xof = doctor_data.get_consultation_fee()
             except DoctorData.DoesNotExist:
-                consultation_fee_usd = Decimal('5.00')  # Default: $5.00 USD
+                from django.conf import settings
+                consultation_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
 
             patient_currency = CurrencyConverterService.get_participant_currency(patient)
             consultation_fee = CurrencyConverterService.convert(
-                consultation_fee_usd,
-                'USD',
+                Decimal(str(consultation_fee_xof)),
+                'XOF',
                 patient_currency
             )
 
@@ -87,25 +87,23 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
             service = None
             if service_id:
                 try:
-                    from core.models import ProviderService
+                    from doctor.models import DoctorService
 
-                    service = ProviderService.objects.get(
+                    service = DoctorService.objects.get(
                         id=service_id,
-                        provider=doctor,
+                        doctor=doctor,
                         is_active=True,
                         is_available=True,
                     )
                     if service.price:
-                        # service.price stored in USD cents, convert to USD dollars
-                        service_price_usd = Decimal(str(service.price)) / 100
                         service_price_local = CurrencyConverterService.convert(
-                            service_price_usd,
-                            'USD',
+                            Decimal(str(service.price)),
+                            'XOF',
                             patient_currency
                         )
                         additional_services_total = service_price_local
                         consultation_fee = consultation_fee + service_price_local
-                except ProviderService.DoesNotExist:
+                except DoctorService.DoesNotExist:
                     pass
 
             subtotal = consultation_fee

@@ -111,6 +111,13 @@ class DoctorData(models.Model):  # Stores detailed doctor profile information in
         self.rating = self.get_actual_rating()
         self.total_reviews = self.get_actual_total_reviews()
         self.save(update_fields=['rating', 'total_reviews'])
+    
+    def get_consultation_fee(self):
+        """Get consultation fee, using settings default if not set"""
+        from django.conf import settings
+        if self.consultation_fee and self.consultation_fee > 0:
+            return self.consultation_fee
+        return getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
 
 
 class DoctorService(SyncMixin):  # Represents services offered by doctors with pricing and duration

@@ -7,15 +7,16 @@ console.log('📋 Loading appointment_booking.js v2.0 (Core API)');
 
 class AppointmentBooking {
     constructor() {
+        const platformSettings = window.BINTACURA_SETTINGS || {};
         this.currentStep = 1;
         this.selectedDoctor = null;
         this.selectedHospital = null;
         this.selectedServices = [];
         this.selectedDate = null;
         this.selectedTime = null;
-        this.consultationFee = 5.00; // Default EUR
+        this.consultationFee = platformSettings.DEFAULT_CONSULTATION_FEE || 3500;
         this.localConsultationFee = 0;
-        this.localCurrency = 'XAF';
+        this.localCurrency = platformSettings.DEFAULT_CURRENCY || 'XOF';
         this.totalAmount = 0;
         this.bookingType = 'doctor'; // 'doctor' or 'hospital'
     }
@@ -244,6 +245,10 @@ class AppointmentBooking {
     }
 
     createHospitalCard(hospital) {
+        const currencySymbol = this.getCurrencySymbol(this.localCurrency);
+        const hospitalFeeInCents = hospital.consultation_fee || 0;
+        const consultationFee = hospitalFeeInCents > 0 ? hospitalFeeInCents / 100 : this.localConsultationFee || 0;
+        
         // Calculate rating display
         const rating = parseFloat(hospital.rating) || 0;
         const totalReviews = parseInt(hospital.total_reviews) || 0;
@@ -263,6 +268,7 @@ class AppointmentBooking {
                 <div class="hospital-name">${hospital.provider_name}</div>
                 <div class="hospital-address">${hospital.address || ''}</div>
                 <div class="hospital-phone">${hospital.phone_number || ''}</div>
+                <div class="hospital-fee">Consultation: ${currencySymbol}${this.formatAmount(consultationFee)}</div>
                 <div class="hospital-rating">${ratingText}</div>
             </div>
         `;

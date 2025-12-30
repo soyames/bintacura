@@ -522,35 +522,49 @@ class PatientDashboardView(PatientRequiredMixin, TemplateView):  # Main dashboar
         from prescriptions.models import Prescription
         from .models import Wallet, Transaction
         from datetime import date, timedelta
+        import logging
 
+        logger = logging.getLogger(__name__)
         patient = self.request.user
 
-        upcoming_appointments = (
-            Appointment.objects.filter(
-                patient=patient,
-                status__in=["pending", "confirmed"],
-                appointment_date__gte=date.today(),
+        try:
+            upcoming_appointments = (
+                Appointment.objects.filter(
+                    patient=patient,
+                    status__in=["pending", "confirmed"],
+                    appointment_date__gte=date.today(),
+                )
+                .select_related("doctor")
+                .order_by("appointment_date", "appointment_time")[:3]
             )
-            .select_related("doctor")
-            .order_by("appointment_date", "appointment_time")[:3]
-        )
+            context["upcoming_appointments"] = upcoming_appointments
+            context["upcoming_count"] = upcoming_appointments.count()
+        except Exception as e:
+            logger.error(f"Error fetching appointments for patient {patient.email}: {str(e)}")
+            context["upcoming_appointments"] = []
+            context["upcoming_count"] = 0
 
-        recent_prescriptions = (
-            Prescription.objects.filter(patient=patient)
-            .select_related("doctor")
-            .order_by("-issue_date")[:3]
-        )
+        try:
+            recent_prescriptions = (
+                Prescription.objects.filter(patient=patient)
+                .select_related("doctor")
+                .order_by("-issue_date")[:3]
+            )
+            context["recent_prescriptions"] = recent_prescriptions
+            context["prescriptions_count"] = recent_prescriptions.count()
+        except Exception as e:
+            logger.error(f"Error fetching prescriptions for patient {patient.email}: {str(e)}")
+            context["recent_prescriptions"] = []
+            context["prescriptions_count"] = 0
 
         try:
             wallet = Wallet.objects.get(participant=patient)
             context["wallet_balance"] = wallet.balance / 100
         except Wallet.DoesNotExist:
             context["wallet_balance"] = 0
-
-        context["upcoming_appointments"] = upcoming_appointments
-        context["upcoming_count"] = upcoming_appointments.count()
-        context["recent_prescriptions"] = recent_prescriptions
-        context["prescriptions_count"] = recent_prescriptions.count()
+        except Exception as e:
+            logger.error(f"Error fetching wallet for patient {patient.email}: {str(e)}")
+            context["wallet_balance"] = 0
 
         return context
 

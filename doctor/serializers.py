@@ -37,8 +37,8 @@ class DoctorDataSerializer(serializers.ModelSerializer):  # Serializer for Docto
         ]
 
     def get_consultation_fee(self, obj):
-        """Return system default consultation fee (always 0 as doctors should use system default)"""
-        return 0
+        """Return consultation fee using model method that uses settings default"""
+        return obj.get_consultation_fee()
 
     def get_participant(self, obj):  # Get participant
         participant = obj.participant

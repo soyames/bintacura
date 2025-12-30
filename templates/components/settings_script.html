@@ -1,0 +1,8 @@
+{% load static %}
+{# Settings passed to JavaScript - no hardcoding #}
+<script>
+window.BINTACURA_SETTINGS = {
+    DEFAULT_CURRENCY: '{{ DEFAULT_CURRENCY }}',
+    DEFAULT_CONSULTATION_FEE: {{ DEFAULT_CONSULTATION_FEE }},
+};
+</script>

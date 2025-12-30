@@ -21,13 +21,13 @@ class SystemConfiguration(models.Model):
         decimal_places=2,
         default=5.00,
         validators=[MinValueValidator(0)],
-        help_text="Standard consultation fee for all appointments in USD (base price)"
+        help_text="Standard consultation fee for all appointments (base price)"
     )
     
     default_consultation_currency = models.CharField(
         max_length=3,
         default='XOF',
-        help_text="Base currency for consultation fee (XOF is platform default)"
+        help_text="Base currency for consultation fee (from settings.DEFAULT_CURRENCY)"
     )
     
     # Fee structure
@@ -79,12 +79,18 @@ class SystemConfiguration(models.Model):
     @classmethod
     def get_active_config(cls):
         """Get the active system configuration"""
+        from django.conf import settings
+        
         config = cls.objects.filter(is_active=True).first()
         if not config:
-            # Create default configuration if none exists
+            # Create default configuration using settings
+            default_currency = getattr(settings, 'DEFAULT_CURRENCY', 'XOF')
+            default_fee_setting = f'DEFAULT_CONSULTATION_FEE_{default_currency}'
+            default_fee = getattr(settings, default_fee_setting, 3500)
+            
             config = cls.objects.create(
-                default_consultation_fee=5.00,
-                default_consultation_currency='XOF',
+                default_consultation_fee=default_fee,
+                default_consultation_currency=default_currency,
                 platform_fee_percentage=1.00,
                 tax_percentage=18.00,
                 wallet_topup_fee_percentage=0.00,

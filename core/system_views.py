@@ -10,7 +10,7 @@ from decimal import Decimal
 from core.system_config import SystemConfiguration
 from currency_converter.services import CurrencyConverterService
 
-from core.models import Participant, ProviderService
+from core.models import Participant
 
 
 class GetConsultationFeeView(APIView):
@@ -31,31 +31,47 @@ class GetConsultationFeeView(APIView):
     
     def get(self, request):
         try:
+            from django.conf import settings
+            
             # Get system config
             system_config = SystemConfiguration.get_active_config()
-            base_fee_usd = Decimal(str(system_config.default_consultation_fee))
+            base_currency = system_config.default_consultation_currency
+            
+            # Get the default fee based on currency from settings
+            default_currency = getattr(settings, 'DEFAULT_CURRENCY', 'XOF')
+            if base_currency == default_currency:
+                # Use setting name dynamically: DEFAULT_CONSULTATION_FEE_XOF
+                setting_name = f'DEFAULT_CONSULTATION_FEE_{default_currency}'
+                default_fee = getattr(settings, setting_name, 3500)
+                base_fee_amount = Decimal(str(default_fee))
+            else:
+                base_fee_amount = Decimal(str(system_config.default_consultation_fee))
             
             # Get patient's currency
-            patient_currency = CurrencyConverterService.get_currency_from_country(request.user)
+            patient_currency = CurrencyConverterService.get_participant_currency(request.user)
             
-            # Convert to patient's currency
-            fee_in_local_currency = CurrencyConverterService.convert(
-                base_fee_usd,
-                'USD',
-                patient_currency
-            )
+            # Convert to patient's currency if different
+            if patient_currency == base_currency:
+                fee_in_local_currency = base_fee_amount
+            else:
+                fee_in_local_currency = CurrencyConverterService.convert(
+                    base_fee_amount,
+                    base_currency,
+                    patient_currency
+                )
             
             # Format the amount
             formatted = CurrencyConverterService.format_amount(fee_in_local_currency, patient_currency)
             
             return Response({
                 'success': True,
-                'fee_usd': str(base_fee_usd),
+                'fee_eur': str(fee_in_local_currency),  # Keep for backwards compatibility
                 'fee_local': str(fee_in_local_currency),
                 'currency': patient_currency,
                 'currency_symbol': formatted.split()[0] if formatted else patient_currency,
                 'formatted': formatted,
-                'base_currency': 'USD'
+                'base_currency': base_currency,
+                'base_fee': str(base_fee_amount)
             })
         
         except Exception as e:
@@ -110,30 +126,39 @@ class GetParticipantServicesView(APIView):
             category = request.query_params.get('category', None)
             is_available = request.query_params.get('is_available', 'true').lower() == 'true'
             
-            services = ProviderService.objects.filter(
-                provider=participant,
-                is_active=True
-            )
-            
-            if category:
-                services = services.filter(category=category)
-            
-            if is_available:
-                services = services.filter(is_available=True)
-            
             services_data = []
-            for service in services:
-                services_data.append({
-                    'id': str(service.id),
-                    'name': service.name,
-                    'description': service.description or '',
-                    'category': service.category,
-                    'price': str(service.price),
-                    'currency': service.currency,
-                    'duration_minutes': service.duration_minutes,
-                    'is_available': service.is_available,
-                    'requires_appointment': service.requires_appointment if hasattr(service, 'requires_appointment') else True
-                })
+            
+            if participant.role == 'doctor':
+                from doctor.models import DoctorService
+                services = DoctorService.objects.filter(
+                    doctor=participant,
+                    is_active=True
+                )
+                
+                if category:
+                    services = services.filter(category=category)
+                
+                if is_available:
+                    services = services.filter(is_available=True)
+                
+                patient_currency = CurrencyConverterService.get_participant_currency(request.user)
+                for service in services:
+                    price_in_patient_currency = CurrencyConverterService.convert(
+                        Decimal(str(service.price)),
+                        'XOF',
+                        patient_currency
+                    )
+                    services_data.append({
+                        'id': str(service.id),
+                        'name': service.name,
+                        'description': service.description or '',
+                        'category': service.category,
+                        'price': str(price_in_patient_currency),
+                        'currency': patient_currency,
+                        'duration_minutes': service.duration_minutes,
+                        'is_available': service.is_available,
+                        'requires_appointment': True
+                    })
             
             return Response({
                 'success': True,

@@ -453,6 +453,9 @@ def create_role_specific_data(user):
     from hospital.models import HospitalData
     from core.models import Wallet
     from django.conf import settings
+    import logging
+    
+    logger = logging.getLogger(__name__)
     
     try:
         if user.role == 'doctor':
@@ -469,6 +472,7 @@ def create_role_specific_data(user):
                     rating=5.0,
                     is_available_for_telemedicine=False
                 )
+                logger.info(f"Created DoctorData for {user.email}")
         
         elif user.role == 'hospital':
             if not hasattr(user, 'hospital_data'):
@@ -482,12 +486,14 @@ def create_role_specific_data(user):
                     bed_capacity=0,
                     rating=5.0,
                 )
+                logger.info(f"Created HospitalData for {user.email}")
         
         elif user.role == 'patient':
             if not hasattr(user, 'patient_data'):
                 PatientData.objects.create(
                     participant=user
                 )
+                logger.info(f"Created PatientData for {user.email}")
         
         # Create wallet for all users except super_admin
         if user.role not in ['super_admin', 'admin']:
@@ -497,6 +503,10 @@ def create_role_specific_data(user):
                     balance=0,
                     currency=user.preferred_currency or 'XOF'
                 )
+                logger.info(f"Created Wallet for {user.email}")
+    except Exception as e:
+        logger.error(f"Error creating role-specific data for {user.email} (role: {user.role}): {str(e)}")
+        raise
     
     except Exception as e:
         # Log the error but don't fail the registration

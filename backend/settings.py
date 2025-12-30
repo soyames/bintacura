@@ -210,6 +210,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "ads.context_processors.active_ads",
+                "core.context_processors.platform_settings",
                 "core.context_processors.currency_context",
                 "core.context_processors.wallet_context",
             ],
@@ -379,46 +380,24 @@ SESSION_ENGINE = "django.contrib.sessions.backends.db"
 #TWILIO_PHONE_NUMBER = config("TWILIO_PHONE_NUMBER", default="")
 
 # ============================================================================
-# EMAIL CONFIGURATION - Zoho Mail
+# EMAIL CONFIGURATION - Zoho Mail SMTP (Always Active)
 # ============================================================================
 
-# Email Backend Configuration
-USE_SES = config("USE_SES", default=False, cast=bool)
+# Always use SMTP for email delivery in all environments
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-if USE_SES:
-    # AWS SES Configuration (commented out until needed)
-    # EMAIL_BACKEND = "django_ses.SESBackend"
-    # AWS_SES_REGION_NAME = config("AWS_SES_REGION_NAME", default="eu-north-1")
-    # AWS_SES_REGION_ENDPOINT = f"email.{AWS_SES_REGION_NAME}.amazonaws.com"
-    # AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
-    # AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
+# Zoho EU SMTP Configuration
+EMAIL_HOST = config("EMAIL_HOST", default="smtppro.zoho.eu")
+EMAIL_PORT = config("EMAIL_PORT", default=465, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=True, cast=bool)
 
-    # For now, use console backend when SES is "enabled" but not configured
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-else:
-    # Local development: use console backend (prints emails to console)
-    if DEBUG:
-        EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    else:
-        # Production: use Zoho SMTP for email delivery
-        EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# Zoho authentication credentials
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="contacts@bintacura.org")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 
-        # Zoho EU SMTP Configuration
-        # Server: smtppro.zoho.eu (Zoho Europe Mail Server)
-        # Port: 465 with SSL (not TLS on port 587)
-        EMAIL_HOST = config("EMAIL_HOST", default="smtppro.zoho.eu")
-        EMAIL_PORT = config("EMAIL_PORT", default=465, cast=int)
-        EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
-        EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=True, cast=bool)
-
-        # Zoho authentication credentials
-        # Primary account: contacts@bintacura.org
-        # Also available: no-reply@bintacura.org (for automated notifications)
-        EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="contacts@bintacura.org")
-        EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-
-        # Email timeout settings
-        EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=30, cast=int)
+# Email timeout settings
+EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=30, cast=int)
 
 # Email addresses configuration
 # Primary sender email (used for all outbound emails)

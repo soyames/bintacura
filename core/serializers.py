@@ -316,6 +316,7 @@ class HospitalProfileSerializer(serializers.ModelSerializer):  # Serializer for 
     name = serializers.CharField(source='full_name')
     phone = serializers.CharField(source='phone_number')
     services = serializers.SerializerMethodField()
+    consultation_fee = serializers.SerializerMethodField()
 
     class Meta:
         model = Participant
@@ -328,11 +329,19 @@ class HospitalProfileSerializer(serializers.ModelSerializer):  # Serializer for 
             "longitude",
             "phone",
             "email",
+            "consultation_fee",
             "services",
             "is_active",
             "created_at",
         ]
         read_only_fields = ["uid", "created_at"]
+
+    def get_consultation_fee(self, obj):
+        """Return consultation fee using model method that uses settings default"""
+        if hasattr(obj, 'hospital_data'):
+            return obj.hospital_data.get_consultation_fee()
+        from django.conf import settings
+        return getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
 
     def get_services(self, obj):
         try:

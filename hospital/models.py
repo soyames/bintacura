@@ -66,6 +66,13 @@ class HospitalData(models.Model):
         self.rating = self.get_actual_rating()
         self.total_reviews = self.get_actual_total_reviews()
         self.save(update_fields=['rating', 'total_reviews'])
+    
+    def get_consultation_fee(self):
+        """Get consultation fee, using settings default if not set"""
+        from django.conf import settings
+        if self.consultation_fee and self.consultation_fee > 0:
+            return self.consultation_fee
+        return getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
 
 
 class HospitalStaff(SyncMixin):  # Manages hospital staff members with roles and permissions
@@ -673,7 +680,7 @@ class SurgerySchedule(SyncMixin):
     admission = models.ForeignKey(Admission, on_delete=models.SET_NULL, null=True, blank=True, related_name='surgeries')
 
     # Scheduling
-    operating_room = models.ForeignKey(OperatingRoom, on_delete=models.PROTECT, related_name='scheduled_surgeries')
+    operating_room = models.ForeignKey('OperatingRoom', on_delete=models.PROTECT, related_name='scheduled_surgeries')
     scheduled_date = models.DateField()
     scheduled_start_time = models.TimeField()
     estimated_duration_minutes = models.IntegerField()
