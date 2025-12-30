@@ -603,10 +603,10 @@ class AvailabilityViewSet(viewsets.ModelViewSet):  # View for AvailabilitySet op
         return Availability.objects.none()
 
     def perform_create(self, serializer):  # Perform create
-        serializer.save(provider=self.request.user)
+        serializer.save()
 
     def list(self, request, *args, **kwargs):  # List
-        participant_id = request.query_params.get("participant_id") or request.query_params.get("provider_id")
+        participant_id = request.query_params.get("participant_id") or request.query_params.get("doctor_id") or request.query_params.get("hospital_id")
         date_param = request.query_params.get("date")
 
         if participant_id and date_param:
@@ -614,7 +614,7 @@ class AvailabilityViewSet(viewsets.ModelViewSet):  # View for AvailabilitySet op
 
         return super().list(request, *args, **kwargs)
 
-    def get_available_slots(self, request, provider_id, date_str):  # Get available slots
+    def get_available_slots(self, request, participant_id, date_str):  # Get available slots
         from datetime import datetime, timedelta, time as dt_time
         
         try:
@@ -630,7 +630,7 @@ class AvailabilityViewSet(viewsets.ModelViewSet):  # View for AvailabilitySet op
             weekday_name = selected_date.strftime('%A').lower()
 
             availabilities = Availability.objects.filter(
-                participant__uid=provider_id,
+                participant__uid=participant_id,
                 weekday=weekday_name,
                 is_active=True
             )
@@ -642,7 +642,7 @@ class AvailabilityViewSet(viewsets.ModelViewSet):  # View for AvailabilitySet op
                 })
 
             existing_appointments = Appointment.objects.filter(
-                Q(doctor__uid=provider_id) | Q(hospital__uid=provider_id),
+                Q(doctor__uid=participant_id) | Q(hospital__uid=participant_id),
                 appointment_date=selected_date,
                 status__in=['pending', 'confirmed', 'in_progress']
             ).values_list('appointment_time', flat=True)
@@ -680,7 +680,7 @@ class AvailabilityViewSet(viewsets.ModelViewSet):  # View for AvailabilitySet op
                 'available_slots': all_slots,
                 'date': date_str,
                 'weekday': weekday_name,
-                'provider_id': provider_id
+                'participant_id': participant_id
             })
 
         except ValueError as e:

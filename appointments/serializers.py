@@ -128,8 +128,8 @@ class AppointmentQueueSerializer(serializers.ModelSerializer):  # Serializer for
 class AppointmentBookingSerializer(serializers.Serializer):
     """Serializer for booking appointments with payment"""
     participant_id = serializers.UUIDField(required=False, allow_null=True)
-    provider_id = serializers.UUIDField(required=False, allow_null=True)
     doctor_id = serializers.UUIDField(required=False, allow_null=True)
+    hospital_id = serializers.UUIDField(required=False, allow_null=True)
     additional_service_ids = serializers.ListField(
         child=serializers.UUIDField(),
         required=False,
@@ -150,10 +150,10 @@ class AppointmentBookingSerializer(serializers.Serializer):
     )
     
     def validate(self, data):
-        provider_id = data.get('participant_id') or data.get('provider_id') or data.get('doctor_id')
-        if not provider_id:
-            raise serializers.ValidationError("Either participant_id, provider_id, or doctor_id is required")
-        data['provider_id'] = provider_id
+        participant_id = data.get('participant_id') or data.get('doctor_id') or data.get('hospital_id')
+        if not participant_id:
+            raise serializers.ValidationError("Either participant_id, doctor_id, or hospital_id is required")
+        data['participant_id'] = participant_id
         return data
     reason = serializers.CharField(required=False, allow_blank=True)
     symptoms = serializers.CharField(required=False, allow_blank=True)

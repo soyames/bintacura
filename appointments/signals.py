@@ -45,7 +45,7 @@ def create_default_availability(sender, instance, created, **kwargs):
     created_slots = []
     for weekday in weekdays:
         availability = Availability.objects.create(
-            provider=instance,
+            participant=instance,
             weekday=weekday,
             start_time=start_time,
             end_time=end_time,
@@ -71,7 +71,7 @@ def ensure_complete_availability(participant):
     
     weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     existing_days = set(
-        Availability.objects.filter(provider=participant).values_list('weekday', flat=True)
+        Availability.objects.filter(participant=participant).values_list('weekday', flat=True)
     )
     
     missing_days = set(weekdays) - existing_days
@@ -92,7 +92,7 @@ def ensure_complete_availability(participant):
     created_count = 0
     for weekday in missing_days:
         Availability.objects.create(
-            provider=participant,
+            participant=participant,
             weekday=weekday,
             start_time=start_time,
             end_time=end_time,

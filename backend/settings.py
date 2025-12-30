@@ -5,14 +5,54 @@ import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment configuration
-try:
-    from config import load_environment, get_environment, is_production, is_local
-    current_env = load_environment()
-except ImportError:
-    # Fallback if config.py not found
-    current_env = config('ENVIRONMENT', default='development')
-    print(f"Running in {current_env} mode")
+# Environment detection
+def detect_environment():
+    """Auto-detect the current environment"""
+    env = config('ENVIRONMENT', default=None)
+    if env:
+        return env.lower()
+    if os.environ.get('RENDER'):
+        return 'production'
+    hostname = os.environ.get('HOSTNAME', '').lower()
+    if any(x in hostname for x in ['prod', 'production', 'render']):
+        return 'production'
+    elif any(x in hostname for x in ['staging', 'stage']):
+        return 'staging'
+    return 'development'
+
+def is_local():
+    """Detect if running on local machine"""
+    if os.environ.get('RENDER'):
+        return False
+    cloud_indicators = ['AWS_EXECUTION_ENV', 'KUBERNETES_SERVICE_HOST', 'HEROKU_APP_NAME', 
+                       'DYNO', 'GOOGLE_CLOUD_PROJECT', 'AZURE_FUNCTIONS_ENVIRONMENT', 'IS_RENDER']
+    for indicator in cloud_indicators:
+        if os.environ.get(indicator):
+            return False
+    return True
+
+def is_production():
+    """Check if running in production"""
+    return detect_environment() == 'production'
+
+current_env = detect_environment()
+_is_local = is_local()
+
+# Print configuration summary
+location = 'LOCAL MACHINE' if _is_local else 'RENDER.COM/AWS'
+print("\n" + "="*70)
+print("BINTACURA ENVIRONMENT CONFIGURATION")
+print("="*70)
+print(f"Environment:     {current_env.upper()}")
+print(f"Location:        {location}")
+print(f"Region:          {config('DEPLOYMENT_REGION', default='EU-NORTH-1').upper()}")
+print(f"Debug Mode:      {config('DEBUG', default=False, cast=bool)}")
+print(f"Database:        {config('DB_HOST', default='localhost')}")
+print(f"Email Backend:   {'AWS SES' if config('USE_SES', default=False, cast=bool) else 'SMTP'}")
+print(f"Security:        {config('SECURITY_PROFILE', default='moderate')}")
+if _is_local:
+    print(f"Local Port:      8080")
+print("="*70 + "\n")
 
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
