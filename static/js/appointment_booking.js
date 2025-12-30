@@ -216,8 +216,8 @@ class AppointmentBooking {
         const doctorName = doctor.participant ? doctor.participant.full_name : 'Médecin';
         const doctorId = doctor.participant ? doctor.participant.uid : doctor.id;
         const specialty = doctor.specialization_display || doctor.specialization || 'Médecin Généraliste';
-        const doctorFeeInCents = doctor.consultation_fee || 0;
-        const consultationFee = doctorFeeInCents > 0 ? doctorFeeInCents / 100 : this.localConsultationFee || 0;
+        const doctorFee = doctor.consultation_fee || 0;
+        const consultationFee = doctorFee > 0 ? doctorFee : this.localConsultationFee || 0;
 
         // Calculate rating display
         const rating = parseFloat(doctor.rating) || 0;
@@ -246,8 +246,8 @@ class AppointmentBooking {
 
     createHospitalCard(hospital) {
         const currencySymbol = this.getCurrencySymbol(this.localCurrency);
-        const hospitalFeeInCents = hospital.consultation_fee || 0;
-        const consultationFee = hospitalFeeInCents > 0 ? hospitalFeeInCents / 100 : this.localConsultationFee || 0;
+        const hospitalFee = hospital.consultation_fee || 0;
+        const consultationFee = hospitalFee > 0 ? hospitalFee : this.localConsultationFee || 0;
         
         // Calculate rating display
         const rating = parseFloat(hospital.rating) || 0;

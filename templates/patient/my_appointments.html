@@ -198,7 +198,7 @@
                         ` : ''}
                         ${apt.payment_status === 'pending' && apt.status === 'pending' ? `
                             <button class="action-btn btn-success" onclick="payForAppointment('${apt.id}', ${apt.consultation_fee || 0})">
-                                💳 Payer (<span class="convert-currency" data-amount-cents="${apt.consultation_fee || 0}">${((apt.consultation_fee || 0) / 100).toFixed(2)} USD</span>)
+                                💳 Payer (<span class="convert-currency" data-amount-cents="${apt.consultation_fee || 0}">${(apt.consultation_fee || 0).toFixed(2)} USD</span>)
                             </button>
                         ` : ''}
                         ${apt.status === 'pending' || apt.status === 'confirmed' ? `

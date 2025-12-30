@@ -461,14 +461,13 @@ def create_role_specific_data(user):
         if user.role == 'doctor':
             if not hasattr(user, 'doctor_data'):
                 default_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
-                consultation_fee_cents = default_fee_xof * 100
                 
                 DoctorData.objects.create(
                     participant=user,
                     specialization='general_practice',
                     license_number=f'DOC{str(user.uid)[:8].upper()}',
                     years_of_experience=0,
-                    consultation_fee=consultation_fee_cents,
+                    consultation_fee=default_fee_xof,
                     rating=5.0,
                     is_available_for_telemedicine=False
                 )
@@ -477,12 +476,11 @@ def create_role_specific_data(user):
         elif user.role == 'hospital':
             if not hasattr(user, 'hospital_data'):
                 default_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
-                consultation_fee_cents = default_fee_xof * 100
                 
                 HospitalData.objects.create(
                     participant=user,
                     license_number=f'HOSP{str(user.uid)[:8].upper()}',
-                    consultation_fee=consultation_fee_cents,
+                    consultation_fee=default_fee_xof,
                     bed_capacity=0,
                     rating=5.0,
                 )

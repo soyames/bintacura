@@ -14,7 +14,6 @@ def set_default_hospital_fees(apps, schema_editor):
     
     # Get default from settings, fallback to 3500 if not set
     default_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
-    default_fee_cents = default_fee_xof * 100
     
     # Get all hospital participants
     hospitals = Participant.objects.filter(role='hospital')
@@ -26,7 +25,7 @@ def set_default_hospital_fees(apps, schema_editor):
             participant=hospital,
             defaults={
                 'license_number': f'HOSP{str(hospital.uid)[:8].upper()}',
-                'consultation_fee': default_fee_cents,
+                'consultation_fee': default_fee_xof,
                 'bed_capacity': 0,
                 'rating': 5.0,
             }
@@ -34,11 +33,11 @@ def set_default_hospital_fees(apps, schema_editor):
         
         # Update consultation fee if it's 0
         if hospital_data.consultation_fee == 0:
-            hospital_data.consultation_fee = default_fee_cents
+            hospital_data.consultation_fee = default_fee_xof
             hospital_data.save()
             created_count += 1
     
-    print(f"Created/Updated {created_count} hospital profiles with default consultation fee of {default_fee_xof} XOF ({default_fee_cents} cents)")
+    print(f"Created/Updated {created_count} hospital profiles with default consultation fee of {default_fee_xof} XOF")
 
 
 def reverse_func(apps, schema_editor):

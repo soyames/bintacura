@@ -13,14 +13,13 @@ def set_default_consultation_fees(apps, schema_editor):
     
     # Get default from settings, fallback to 3500 if not set
     default_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
-    default_fee_cents = default_fee_xof * 100
     
     # Update doctors with 0 or negative consultation fee
     updated_count = DoctorData.objects.filter(
         consultation_fee__lte=0
-    ).update(consultation_fee=default_fee_cents)
+    ).update(consultation_fee=default_fee_xof)
     
-    print(f"Updated {updated_count} doctor profiles with default consultation fee of {default_fee_xof} XOF ({default_fee_cents} cents)")
+    print(f"Updated {updated_count} doctor profiles with default consultation fee of {default_fee_xof} XOF")
 
 
 def reverse_func(apps, schema_editor):

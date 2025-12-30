@@ -801,7 +801,7 @@ class MedicalEquipment(SyncMixin):
         return f"{self.equipment_id} - {self.name}"
 
 
-class ProviderService(SyncMixin):
+class ParticipantService(SyncMixin):
     SERVICE_CATEGORY_CHOICES = [
         ("consultation", "Consultation"),
         ("surgery", "Surgery"),
@@ -818,7 +818,7 @@ class ProviderService(SyncMixin):
         ("other", "Other"),
     ]
 
-    provider = models.ForeignKey(
+    participant = models.ForeignKey(
         Participant, on_delete=models.CASCADE, related_name="services"
     )
     name = models.CharField(max_length=255)
@@ -834,13 +834,17 @@ class ProviderService(SyncMixin):
     class Meta:
         db_table = "participant_services"
         indexes = [
-            models.Index(fields=["provider", "category"]),
+            models.Index(fields=["participant", "category"]),
             models.Index(fields=["is_active", "is_available"]),
         ]
         ordering = ["category", "name"]
 
-    def __str__(self):  # Returns service name with provider
-        return f"{self.name} - {self.provider.full_name}"
+    def __str__(self):  # Returns service name with participant
+        return f"{self.name} - {self.participant.full_name}"
+
+
+# Alias for backward compatibility - will be removed eventually
+ProviderService = ParticipantService
 
 
 class FeatureFlagConfig(models.Model):

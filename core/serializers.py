@@ -144,11 +144,11 @@ class ProviderDataSerializer(serializers.ModelSerializer):  # Serializer for Pro
         ]
 
 
-class ProviderServiceSerializer(serializers.ModelSerializer):  # Serializer for ProviderService model with category display
+class ParticipantServiceSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source="get_category_display", read_only=True)
 
     class Meta:
-        model = ProviderService
+        model = ParticipantService
         fields = [
             "id",
             "name",
@@ -161,6 +161,10 @@ class ProviderServiceSerializer(serializers.ModelSerializer):  # Serializer for 
             "is_active",
             "is_available",
         ]
+
+
+# Alias for backward compatibility
+ProviderServiceSerializer = ParticipantServiceSerializer
 
 
 class WalletSerializer(serializers.ModelSerializer):  # Serializer for Wallet model with participant information

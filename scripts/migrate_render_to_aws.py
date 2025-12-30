@@ -50,7 +50,7 @@ def migrate_data_from_render_to_aws():
             print(f"  - {table}")
     
     if extra_in_aws:
-        print(f"\n✓ Extra in AWS ({len(extra_in_aws)}):")
+        print(f"\nExtra in AWS ({len(extra_in_aws)}):")
         for table in sorted(extra_in_aws):
             print(f"  - {table}")
     

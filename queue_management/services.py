@@ -113,10 +113,10 @@ class QueueManagementService:
             type=appointment_type,
             reason=reason,
             symptoms=symptoms,
-            consultation_fee=int(default_consultation_fee * 100),  # Store in cents
+            consultation_fee=int(default_consultation_fee),
             additional_services_total=additional_services_total,
-            original_price=int(subtotal * 100),  # Store in cents (before fee)
-            final_price=int(total_amount_with_fee * 100),  # Store in cents (with transaction fee)
+            original_price=int(subtotal),
+            final_price=int(total_amount_with_fee),
             status='pending',
             payment_status='pending',
             is_hospital_appointment=service_participant.role == 'hospital',

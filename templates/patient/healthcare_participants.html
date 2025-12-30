@@ -132,8 +132,8 @@
                 const doctors = data.results || data;
                 if (doctors && doctors.length > 0) {
                     grid.innerHTML = doctors.map(doctor => {
-                        const doctorFeeInCents = doctor.consultation_fee || 0;
-                        const consultationFee = doctorFeeInCents > 0 ? doctorFeeInCents / 100 : defaultFee;
+                        const doctorFee = doctor.consultation_fee || 0;
+                        const consultationFee = doctorFee > 0 ? doctorFee : defaultFee;
                         
                         const servicesHtml = doctor.services && doctor.services.length > 0
                             ? `<div class="services-section">
@@ -213,8 +213,8 @@
                 const hospitals = data.results || data;
                 if (hospitals && hospitals.length > 0) {
                     grid.innerHTML = hospitals.map(hospital => {
-                        const hospitalFeeInCents = hospital.consultation_fee || 0;
-                        const consultationFee = hospitalFeeInCents > 0 ? hospitalFeeInCents / 100 : defaultFee;
+                        const hospitalFee = hospital.consultation_fee || 0;
+                        const consultationFee = hospitalFee > 0 ? hospitalFee : defaultFee;
                         
                         const servicesHtml = hospital.services && hospital.services.length > 0
                             ? `<div class="services-section">

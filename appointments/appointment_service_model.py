@@ -19,7 +19,7 @@ class AppointmentService(models.Model):
         related_name='appointment_services'
     )
     service = models.ForeignKey(
-        'core.ProviderService',
+        'core.ParticipantService',
         on_delete=models.CASCADE,
         related_name='service_appointments'
     )

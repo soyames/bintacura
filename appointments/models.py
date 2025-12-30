@@ -64,7 +64,7 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
         blank=True,
     )
     service = models.ForeignKey(
-        "core.ProviderService",
+        "core.ParticipantService",
         on_delete=models.SET_NULL,
         related_name="appointments",
         null=True,
