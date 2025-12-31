@@ -6,24 +6,24 @@ app_name = "superadmin"
 urlpatterns = [
     path("dashboard/", admin_views.AdminDashboardView.as_view(), name="dashboard"),
     path(
-        "provider-verification/",
-        admin_views.ProviderVerificationView.as_view(),
-        name="provider_verification",
+        "participant-verification/",
+        admin_views.ParticipantVerificationView.as_view(),
+        name="participant_verification",
     ),
     path(
-        "provider/<uuid:provider_id>/",
-        admin_views.ProviderDetailView.as_view(),
-        name="provider_detail",
+        "participant/<uuid:participant_id>/",
+        admin_views.ParticipantDetailView.as_view(),
+        name="participant_detail",
     ),
     path(
-        "provider/<uuid:provider_id>/approve/",
-        admin_views.ApproveProviderView.as_view(),
-        name="approve_provider",
+        "participant/<uuid:participant_id>/approve/",
+        admin_views.ApproveParticipantView.as_view(),
+        name="approve_participant",
     ),
     path(
-        "provider/<uuid:provider_id>/reject/",
-        admin_views.RejectProviderView.as_view(),
-        name="reject_provider",
+        "participant/<uuid:participant_id>/reject/",
+        admin_views.RejectParticipantView.as_view(),
+        name="reject_participant",
     ),
     path(
         "refunds/", admin_views.RefundManagementView.as_view(), name="refund_management"

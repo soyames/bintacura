@@ -20,7 +20,7 @@ from django.views.generic import (
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from django.db import models as db_models
+from django.db import models as db_models, transaction
 from django.http import JsonResponse
 from decimal import Decimal
 import json
@@ -64,6 +64,27 @@ class ParticipantViewSet(viewsets.ModelViewSet):  # ViewSet for managing partici
         if role:
             queryset = queryset.filter(role=role)
         return queryset
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on role"""
+        role = self.request.query_params.get('role')
+        if role == 'insurance_company':
+            return InsuranceCompanySerializer
+        return self.serializer_class
+    
+    @action(detail=False, methods=['get'], url_path='insurance-companies')
+    def insurance_companies(self, request):
+        """Get list of active insurance companies"""
+        companies = Participant.objects.filter(
+            role='insurance_company',
+            is_active=True
+        ).select_related('insurance_company_data')
+        
+        serializer = InsuranceCompanySerializer(companies, many=True)
+        return Response({
+            'count': companies.count(),
+            'results': serializer.data
+        })
 
 
 class ParticipantProfileViewSet(viewsets.ModelViewSet):  # ViewSet for managing participant profile information via REST API
@@ -723,6 +744,91 @@ class InsuranceDashboardView(InsuranceRequiredMixin, TemplateView):  # Main dash
         return context
 
 
+class InsuranceServicesView(InsuranceRequiredMixin, TemplateView):
+    """Manage insurance company services/products"""
+    template_name = "insurance/services.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from core.models import ParticipantService
+
+        services = ParticipantService.objects.filter(
+            participant=self.request.user,
+            is_active=True
+        ).order_by("category", "name")
+
+        context["services"] = services
+        context["total_services"] = services.count()
+        context["active_services"] = services.filter(is_available=True).count()
+
+        return context
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            from core.models import ParticipantService
+
+            data = json.loads(request.body)
+            action = data.get("action")
+
+            if action == "create":
+                ParticipantService.objects.create(
+                    participant=request.user,
+                    name=data.get("name"),
+                    category=data.get("category", "insurance"),
+                    description=data.get("description", ""),
+                    price=data.get("price"),
+                    currency=data.get("currency", "XOF"),
+                    duration_minutes=data.get("duration_minutes"),
+                    is_active=True,
+                    is_available=True,
+                )
+                return JsonResponse(
+                    {"success": True, "message": "Service ajouté avec succès"}
+                )
+
+            elif action == "update":
+                service = ParticipantService.objects.get(
+                    id=data.get("service_id"), participant=request.user
+                )
+                service.name = data.get("name", service.name)
+                service.category = data.get("category", service.category)
+                service.description = data.get("description", service.description)
+                service.price = data.get("price", service.price)
+                service.currency = data.get("currency", service.currency)
+                service.duration_minutes = data.get(
+                    "duration_minutes", service.duration_minutes
+                )
+                service.is_available = data.get("is_available", service.is_available)
+                service.save()
+
+                return JsonResponse(
+                    {"success": True, "message": "Service modifié avec succès"}
+                )
+
+            elif action == "delete":
+                service = ParticipantService.objects.get(
+                    id=data.get("service_id"), participant=request.user
+                )
+                service.is_active = False
+                service.save()
+
+                return JsonResponse(
+                    {"success": True, "message": "Service désactivé avec succès"}
+                )
+
+            return JsonResponse(
+                {"success": False, "message": "Action invalide"}, status=400
+            )
+
+        except ParticipantService.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "message": "Service introuvable"}, status=404
+            )
+        except Exception as e:
+            return JsonResponse({"success": False, "message": str(e)}, status=500)
+
+
 class MainDashboardView(LoginRequiredMixin, TemplateView):  # Generic main dashboard view with role-based routing
     template_name = "dashboards/main_dashboard.html"
     login_url = "/auth/login/"
@@ -1075,10 +1181,6 @@ class DoctorSettingsView(DoctorRequiredMixin, TemplateView):  # Doctor account s
         return context
 
 
-class DoctorAnalyticsView(DoctorRequiredMixin, TemplateView):  # Doctor analytics and performance metrics
-    template_name = "doctor/analytics.html"
-
-
 class DoctorLaboratoryView(DoctorRequiredMixin, TemplateView):  # Doctor laboratory requests and results
     template_name = "doctor/laboratory.html"
 
@@ -1142,10 +1244,10 @@ class DoctorServicesView(DoctorRequiredMixin, TemplateView):  # Manage doctor se
 
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
         context = super().get_context_data(**kwargs)
-        from doctor.models import DoctorService
+        from core.models import ParticipantService
 
-        services = DoctorService.objects.filter(
-            doctor=self.request.user, is_active=True
+        services = ParticipantService.objects.filter(
+            participant=self.request.user, is_active=True
         ).order_by("-created_at")
 
         context["services"] = services
@@ -1154,20 +1256,25 @@ class DoctorServicesView(DoctorRequiredMixin, TemplateView):  # Manage doctor se
 
         return context
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):  # Handle form submission for data updates
         try:
-            from doctor.models import DoctorService
+            from core.models import ParticipantService
+            from decimal import Decimal
 
             data = json.loads(request.body)
             action = data.get("action")
 
             if action == "create":
-                DoctorService.objects.create(
-                    doctor=request.user,
+                # Price comes in major units (XOF), store as Decimal
+                price = Decimal(str(data.get("price", 0)))
+                
+                ParticipantService.objects.create(
+                    participant=request.user,
                     name=data.get("name"),
                     category=data.get("category"),
                     description=data.get("description", ""),
-                    price=data.get("price"),
+                    price=price,
                     currency=data.get("currency", "XOF"),
                     duration_minutes=data.get("duration_minutes"),
                     is_active=True,
@@ -1178,13 +1285,15 @@ class DoctorServicesView(DoctorRequiredMixin, TemplateView):  # Manage doctor se
                 )
 
             elif action == "update":
-                service = DoctorService.objects.get(
-                    id=data.get("service_id"), doctor=request.user
+                service = ParticipantService.objects.get(
+                    id=data.get("service_id"), participant=request.user
                 )
                 service.name = data.get("name", service.name)
                 service.category = data.get("category", service.category)
                 service.description = data.get("description", service.description)
-                service.price = data.get("price", service.price)
+                
+                if "price" in data:
+                    service.price = Decimal(str(data.get("price")))
                 service.currency = data.get("currency", service.currency)
                 service.duration_minutes = data.get(
                     "duration_minutes", service.duration_minutes
@@ -1197,8 +1306,8 @@ class DoctorServicesView(DoctorRequiredMixin, TemplateView):  # Manage doctor se
                 )
 
             elif action == "delete":
-                service = DoctorService.objects.get(
-                    id=data.get("service_id"), doctor=request.user
+                service = ParticipantService.objects.get(
+                    id=data.get("service_id"), participant=request.user
                 )
                 service.is_active = False
                 service.save()
@@ -1619,9 +1728,9 @@ class HospitalServicesView(HospitalRequiredMixin, TemplateView):  # Manage hospi
 
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
         context = super().get_context_data(**kwargs)
-        from core.models import ProviderService
+        from core.models import ParticipantService
 
-        services = ProviderService.objects.filter(provider=self.request.user).order_by(
+        services = ParticipantService.objects.filter(participant=self.request.user).order_by(
             "category", "name"
         )
 
@@ -1631,21 +1740,23 @@ class HospitalServicesView(HospitalRequiredMixin, TemplateView):  # Manage hospi
 
         return context
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):  # Handle form submission for data updates
-        from core.models import ProviderService
+        from core.models import ParticipantService
+        from decimal import Decimal
 
         try:
             data = json.loads(request.body)
             action = data.get("action")
 
             if action == "create":
-                service = ProviderService.objects.create(
-                    provider=request.user,
+                service = ParticipantService.objects.create(
+                    participant=request.user,
                     name=data.get("name"),
                     category=data.get("category"),
                     description=data.get("description", ""),
-                    price=data.get("price"),
-                    currency=data.get("currency", "FCFA"),
+                    price=Decimal(str(data.get("price"))),
+                    currency=data.get("currency", "XOF"),
                     duration_minutes=data.get("duration_minutes"),
                     is_active=True,
                     is_available=True,
@@ -1655,13 +1766,14 @@ class HospitalServicesView(HospitalRequiredMixin, TemplateView):  # Manage hospi
                 )
 
             elif action == "update":
-                service = ProviderService.objects.get(
-                    id=data.get("service_id"), provider=request.user
+                service = ParticipantService.objects.get(
+                    id=data.get("service_id"), participant=request.user
                 )
                 service.name = data.get("name", service.name)
                 service.category = data.get("category", service.category)
                 service.description = data.get("description", service.description)
-                service.price = data.get("price", service.price)
+                if "price" in data:
+                    service.price = Decimal(str(data.get("price")))
                 service.currency = data.get("currency", service.currency)
                 service.duration_minutes = data.get(
                     "duration_minutes", service.duration_minutes
@@ -1674,8 +1786,8 @@ class HospitalServicesView(HospitalRequiredMixin, TemplateView):  # Manage hospi
                 )
 
             elif action == "delete":
-                service = ProviderService.objects.get(
-                    id=data.get("service_id"), provider=request.user
+                service = ParticipantService.objects.get(
+                    id=data.get("service_id"), participant=request.user
                 )
                 service.is_active = False
                 service.save()
@@ -2184,10 +2296,10 @@ class PharmacyServicesView(PharmacyRequiredMixin, TemplateView):  # Class for ph
 
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
         context = super().get_context_data(**kwargs)
-        from core.models import ProviderService
+        from core.models import ParticipantService
 
-        services = ProviderService.objects.filter(
-            provider=self.request.user, is_active=True
+        services = ParticipantService.objects.filter(
+            participant=self.request.user, is_active=True
         ).order_by("-created_at")
 
         context["services"] = services
@@ -2196,21 +2308,23 @@ class PharmacyServicesView(PharmacyRequiredMixin, TemplateView):  # Class for ph
 
         return context
 
+    @transaction.atomic
     def post(self, request, *args, **kwargs):  # Handle form submission for data updates
         try:
-            from core.models import ProviderService
+            from core.models import ParticipantService
+            from decimal import Decimal
 
             data = json.loads(request.body)
             action = data.get("action")
 
             if action == "create":
-                ProviderService.objects.create(
-                    provider=request.user,
+                ParticipantService.objects.create(
+                    participant=request.user,
                     name=data.get("name"),
                     category=data.get("category"),
                     description=data.get("description", ""),
-                    price=data.get("price"),
-                    currency=data.get("currency", "FCFA"),
+                    price=Decimal(str(data.get("price"))),
+                    currency=data.get("currency", "XOF"),
                     duration_minutes=data.get("duration_minutes"),
                     is_active=True,
                     is_available=True,
@@ -2220,13 +2334,14 @@ class PharmacyServicesView(PharmacyRequiredMixin, TemplateView):  # Class for ph
                 )
 
             elif action == "update":
-                service = ProviderService.objects.get(
-                    id=data.get("service_id"), provider=request.user
+                service = ParticipantService.objects.get(
+                    id=data.get("service_id"), participant=request.user
                 )
                 service.name = data.get("name", service.name)
                 service.category = data.get("category", service.category)
                 service.description = data.get("description", service.description)
-                service.price = data.get("price", service.price)
+                if "price" in data:
+                    service.price = Decimal(str(data.get("price")))
                 service.currency = data.get("currency", service.currency)
                 service.duration_minutes = data.get(
                     "duration_minutes", service.duration_minutes
@@ -2240,7 +2355,7 @@ class PharmacyServicesView(PharmacyRequiredMixin, TemplateView):  # Class for ph
 
             elif action == "delete":
                 service = ProviderService.objects.get(
-                    id=data.get("service_id"), provider=request.user
+                    id=data.get("service_id"), participant=request.user
                 )
                 service.is_active = False
                 service.save()
@@ -2642,7 +2757,7 @@ class PatientWalletView(PatientRequiredMixin, TemplateView):  # Class for patien
 
         transactions = ServiceTransaction.objects.filter(
             db_models.Q(patient=self.request.user) |
-            db_models.Q(service_provider=self.request.user)
+            db_models.Q(service_participant=self.request.user)
         ).select_related(
             'patient', 'service_provider', 'gateway_transaction', 'fee_details'
         ).order_by("-created_at")[:20]
@@ -2683,7 +2798,7 @@ class PatientWalletView(PatientRequiredMixin, TemplateView):  # Class for patien
         context["total_paid"] = total_paid
 
         provider_transactions = ServiceTransaction.objects.filter(
-            service_provider=self.request.user, status="completed"
+            service_participant=self.request.user, status="completed"
         ).prefetch_related('fee_details')
 
         total_earned = Decimal('0')
@@ -2704,7 +2819,7 @@ class PatientWalletView(PatientRequiredMixin, TemplateView):  # Class for patien
 
         pending_transactions = ServiceTransaction.objects.filter(
             db_models.Q(patient=self.request.user) |
-            db_models.Q(service_provider=self.request.user),
+            db_models.Q(service_participant=self.request.user),
             status="pending"
         )
         context["pending_count"] = pending_transactions.count()
@@ -2758,23 +2873,6 @@ class MyAppointmentsView(PatientRequiredMixin, TemplateView):  # Class for myapp
         context["upcoming_appointments"] = upcoming_appointments
         context["past_appointments"] = past_appointments
         context["upcoming_count"] = upcoming_appointments.count()
-
-        return context
-
-
-class TransportRequestView(PatientRequiredMixin, TemplateView):  # Class for transportrequest
-    template_name = "patient/transport_request.html"
-
-    def get_context_data(self, **kwargs):  # Add additional context data for template rendering
-        context = super().get_context_data(**kwargs)
-
-        from core.models import Participant
-
-        transport_providers = Participant.objects.filter(
-            role="hospital", is_active=True
-        ).select_related("provider_data")
-
-        context["transport_providers"] = transport_providers
 
         return context
 
@@ -3870,46 +3968,6 @@ class PharmaciesAPIView(APIView):  # Class for pharmaciesapi
             "success": True,
             "pharmacies": serializer.data,
             "count": pharmacies.count(),
-        }, status=status.HTTP_200_OK)
-
-
-class PrescriptionsAPIView(APIView):  # Class for prescriptionsapi
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):  # Handle get operation
-        from prescriptions.models import Prescription, PrescriptionItem
-
-        prescriptions = Prescription.objects.filter(
-            patient=request.user
-        ).select_related('doctor').prefetch_related('items')
-
-        prescriptions_data = []
-        for prescription in prescriptions:
-            doctor_name = prescription.doctor.full_name if prescription.doctor else 'Inconnu'
-
-            items_data = []
-            for item in prescription.items.all():
-                items_data.append({
-                    'id': str(item.id),
-                    'medication_name': item.medication_name,
-                    'dosage': item.dosage,
-                    'quantity': item.quantity,
-                    'frequency': item.frequency,
-                    'instructions': item.instructions,
-                })
-
-            prescriptions_data.append({
-                'id': str(prescription.id),
-                'issue_date': prescription.issue_date.strftime('%Y-%m-%d'),
-                'valid_until': prescription.valid_until.strftime('%Y-%m-%d'),
-                'doctor_name': doctor_name,
-                'diagnosis': prescription.diagnosis,
-                'items': items_data,
-            })
-
-        return Response({
-            "success": True,
-            "prescriptions": prescriptions_data,
         }, status=status.HTTP_200_OK)
 
 

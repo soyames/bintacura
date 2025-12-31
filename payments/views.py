@@ -388,6 +388,14 @@ class ServicePaymentView(APIView):
             # Get provider
             provider = Participant.objects.get(uid=data['provider_id'])
             
+            # Check if provider is verified and can receive payments
+            if provider.role in ['doctor', 'hospital', 'pharmacy', 'insurance_company']:
+                if not provider.is_verified or not provider.can_receive_payments:
+                    return Response(
+                        {"error": "This provider is not yet verified to receive payments. Please contact support."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            
             # Process payment based on method
             if data['payment_method'] == 'wallet':
                 result = ServicePaymentService.process_wallet_payment(

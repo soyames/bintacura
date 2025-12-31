@@ -15,6 +15,12 @@ from rest_framework.response import Response
 from .models import DoctorData, DoctorAffiliation
 from .serializers import DoctorDataSerializer, DoctorAffiliationSerializer
 from core.models import Participant
+from core.mixins import DoctorRequiredMixin
+
+
+class DoctorAnalyticsView(DoctorRequiredMixin, TemplateView):
+    template_name = "doctor/analytics.html"
+
 
 class DoctorQueueView(LoginRequiredMixin, TemplateView):  # View for DoctorQueue operations
     template_name = 'doctor/queue.html'

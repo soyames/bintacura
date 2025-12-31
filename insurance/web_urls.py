@@ -5,6 +5,7 @@ app_name = 'insurance_portal'
 
 urlpatterns = [
     path('dashboard/', views.InsuranceDashboardView.as_view(), name='dashboard'),
+    path('services/', views.InsuranceServicesView.as_view(), name='services'),
     path('validation/', views.InsuranceValidationView.as_view(), name='validation'),
     path('claims/', views.InsuranceClaimsView.as_view(), name='claims'),
     path('policies/', views.InsurancePoliciesView.as_view(), name='policies'),

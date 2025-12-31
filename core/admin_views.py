@@ -13,7 +13,6 @@ import json
 from core.models import (
     Participant,
     ParticipantProfile,
-    ProviderData,
     InsuranceCompanyData,
     RefundRequest,
     Transaction,
@@ -23,6 +22,8 @@ from core.models import (
     AdminPermissions,
 )
 from doctor.models import DoctorData
+from hospital.models import HospitalData
+from pharmacy.models import PharmacyData
 from analytics.services import AnalyticsService
 from core.services import WalletService
 
@@ -52,29 +53,29 @@ class AdminDashboardView(SuperAdminRequiredMixin, TemplateView):
             Q(role__in=["doctor", "hospital", "pharmacy", "insurance_company"]),
             is_verified=False,
             is_active=True,
-        ).select_related("doctor_data", "provider_data", "insurance_company_data")[:5]
+        ).select_related("doctor_data", "hospital_data", "pharmacy_data", "insurance_company_data")[:5]
 
         context["pending_refunds_list"] = (
             RefundRequest.objects.filter(status="pending")
-            .select_related("provider")
+            .select_related("participant")
             .order_by("-created_at")[:5]
         )
 
         return context
 
 
-class ProviderVerificationView(SuperAdminRequiredMixin, ListView):
+class ParticipantVerificationView(SuperAdminRequiredMixin, ListView):
     template_name = "admin/participant_verification.html"
-    context_object_name = "providers"
+    context_object_name = "participants"
     paginate_by = 20
 
-    def get_queryset(self):  # Retrieves providers with filters for verification status, role and search
+    def get_queryset(self):  # Retrieves healthcare participants with filters for verification status, role and search
         queryset = (
             Participant.objects.filter(
                 Q(role__in=["doctor", "hospital", "pharmacy", "insurance_company"]),
                 is_active=True,
             )
-            .select_related("doctor_data", "provider_data", "insurance_company_data")
+            .select_related("doctor_data", "hospital_data", "pharmacy_data", "insurance_company_data")
             .order_by("-created_at")
         )
 
@@ -122,96 +123,111 @@ class ProviderVerificationView(SuperAdminRequiredMixin, ListView):
         return context
 
 
-class ProviderDetailView(SuperAdminRequiredMixin, DetailView):
+class ParticipantDetailView(SuperAdminRequiredMixin, DetailView):
     model = Participant
     template_name = "admin/participant_detail.html"
-    context_object_name = "provider"
-    pk_url_kwarg = "provider_id"
+    context_object_name = "participant"
+    pk_url_kwarg = "participant_id"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        provider = self.object
+        participant = self.object
 
-        if provider.role == "doctor":
-            context["doctor_data"] = getattr(provider, "doctor_data", None)
-        elif provider.role in ["hospital", "pharmacy"]:
-            context["provider_data"] = getattr(provider, "provider_data", None)
-        elif provider.role == "insurance_company":
+        if participant.role == "doctor":
+            context["doctor_data"] = getattr(participant, "doctor_data", None)
+        elif participant.role == "hospital":
+            context["hospital_data"] = getattr(participant, "hospital_data", None)
+        elif participant.role == "pharmacy":
+            context["pharmacy_data"] = getattr(participant, "pharmacy_data", None)
+        elif participant.role == "insurance_company":
             context["insurance_data"] = getattr(
-                provider, "insurance_company_data", None
+                participant, "insurance_company_data", None
             )
 
-        context["user_profile"] = getattr(provider, "user_profile", None)
-        context["wallet"] = Wallet.objects.filter(participant=provider).first()
+        context["user_profile"] = getattr(participant, "user_profile", None)
+        context["wallet"] = Wallet.objects.filter(participant=participant).first()
 
         context["recent_transactions"] = Transaction.objects.filter(
-            Q(sender=provider) | Q(recipient=provider)
+            Q(sender=participant) | Q(recipient=participant)
         ).order_by("-created_at")[:10]
 
         context["activity_logs"] = ParticipantActivityLog.objects.filter(
-            participant=provider
+            participant=participant
         ).order_by("-timestamp")[:10]
 
         return context
 
 
-class ApproveProviderView(SuperAdminRequiredMixin, View):
-    def post(self, request, provider_id):  # Approves provider verification and releases held payments
-        provider = get_object_or_404(Participant, uid=provider_id)
+class ApproveParticipantView(SuperAdminRequiredMixin, View):
+    def post(self, request, participant_id):  # Approves participant verification and releases held payments
+        participant = get_object_or_404(Participant, uid=participant_id)
 
-        if provider.role not in ["doctor", "hospital", "pharmacy", "insurance_company"]:
-            messages.error(request, "Invalid provider type.")
-            return redirect("admin:provider_verification")
+        if participant.role not in ["doctor", "hospital", "pharmacy", "insurance_company"]:
+            messages.error(request, "Invalid participant type.")
+            return redirect("superadmin:participant_verification")
 
-        provider.is_verified = True
-        provider.has_blue_checkmark = True
-        provider.save()
+        participant.is_verified = True
+        participant.has_blue_checkmark = True
+        participant.can_receive_payments = True
+        participant.verified_at = timezone.now()
+        participant.verified_by = request.user
+        
+        verification_notes = request.POST.get('notes', '')
+        if verification_notes:
+            participant.verification_notes = verification_notes
+            
+        participant.save()
 
         ParticipantActivityLog.objects.create(
-            participant=provider,
+            participant=participant,
             activity_type="verification_approved",
-            description=f"Provider verified and blue checkmark granted by {request.user.email}",
+            description=f"Participant verified and blue checkmark granted by {request.user.email}",
         )
 
         AuditLogEntry.objects.create(
             participant=request.user,
             action_type="update",
-            resource_type="provider_verification",
-            resource_id=str(provider.uid),
+            resource_type="participant_verification",
+            resource_id=str(participant.uid),
             details={
                 "action": "approve",
-                "provider_email": provider.email,
-                "provider_role": provider.role,
+                "participant_email": participant.email,
+                "participant_role": participant.role,
+                "notes": verification_notes,
             },
             success=True,
         )
 
         from payments.payment_hold_service import release_held_payments
 
-        released_count = release_held_payments(provider)
+        released_count = release_held_payments(participant)
 
         messages.success(
             request,
-            f"Provider {provider.full_name or provider.email} has been verified successfully. {released_count} payments released from hold.",
+            f"Participant {participant.full_name or participant.email} has been verified successfully. {released_count} payments released from hold.",
         )
-        return redirect("admin:provider_detail", provider_id=provider_id)
+        return redirect("superadmin:participant_detail", participant_id=participant_id)
 
 
-class RejectProviderView(SuperAdminRequiredMixin, View):
-    def post(self, request, provider_id):  # Rejects provider verification with reason and logs activity
-        provider = get_object_or_404(Participant, uid=provider_id)
+class RejectParticipantView(SuperAdminRequiredMixin, View):
+    def post(self, request, participant_id):  # Rejects participant verification with reason and logs activity
+        participant = get_object_or_404(Participant, uid=participant_id)
         reason = request.POST.get("reason", "")
 
-        if provider.role not in ["doctor", "hospital", "pharmacy", "insurance_company"]:
-            messages.error(request, "Invalid provider type.")
-            return redirect("admin:provider_verification")
+        if participant.role not in ["doctor", "hospital", "pharmacy", "insurance_company"]:
+            messages.error(request, "Invalid participant type.")
+            return redirect("superadmin:participant_verification")
 
-        provider.is_verified = False
-        provider.has_blue_checkmark = False
-        provider.save()
+        participant.is_verified = False
+        participant.has_blue_checkmark = False
+        participant.can_receive_payments = False
+        participant.verified_at = None
+        participant.verified_by = None
+        participant.verification_notes = f"REJECTED: {reason}"
+        participant.save()
 
         ParticipantActivityLog.objects.create(
-            participant=provider,
+            participant=participant,
             activity_type="verification_rejected",
             description=f"Verification rejected by {request.user.email}. Reason: {reason}",
         )
@@ -219,12 +235,12 @@ class RejectProviderView(SuperAdminRequiredMixin, View):
         AuditLogEntry.objects.create(
             participant=request.user,
             action_type="update",
-            resource_type="provider_verification",
-            resource_id=str(provider.uid),
+            resource_type="participant_verification",
+            resource_id=str(participant.uid),
             details={
                 "action": "reject",
-                "provider_email": provider.email,
-                "provider_role": provider.role,
+                "participant_email": participant.email,
+                "participant_role": participant.role,
                 "reason": reason,
             },
             success=True,
@@ -232,9 +248,9 @@ class RejectProviderView(SuperAdminRequiredMixin, View):
 
         messages.warning(
             request,
-            f"Provider {provider.full_name or provider.email} verification has been rejected.",
+            f"Participant {participant.full_name or participant.email} verification has been rejected.",
         )
-        return redirect("admin:provider_detail", provider_id=provider_id)
+        return redirect("superadmin:participant_detail", participant_id=participant_id)
 
 
 class RefundManagementView(SuperAdminRequiredMixin, ListView):
@@ -244,7 +260,7 @@ class RefundManagementView(SuperAdminRequiredMixin, ListView):
 
     def get_queryset(self):
         queryset = RefundRequest.objects.select_related(
-            "provider", "transaction", "admin_reviewer"
+            "participant", "transaction", "admin_reviewer"
         ).order_by("-created_at")
 
         status_filter = self.request.GET.get("status")
@@ -254,8 +270,8 @@ class RefundManagementView(SuperAdminRequiredMixin, ListView):
         search = self.request.GET.get("search")
         if search:
             queryset = queryset.filter(
-                Q(provider__full_name__icontains=search)
-                | Q(provider__email__icontains=search)
+                Q(participant__full_name__icontains=search)
+                | Q(participant__email__icontains=search)
                 | Q(reason__icontains=search)
             )
 
@@ -289,14 +305,14 @@ class RefundDetailView(SuperAdminRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         refund = self.object
 
-        wallet = Wallet.objects.filter(participant=refund.provider).first()
+        wallet = Wallet.objects.filter(participant=refund.participant).first()
         context["wallet_balance"] = wallet.balance if wallet else Decimal("0")
 
         return context
 
 
 class ApproveRefundView(SuperAdminRequiredMixin, View):
-    def post(self, request, refund_id):  # Approves refund request and deposits amount to provider wallet
+    def post(self, request, refund_id):  # Approves refund request and deposits amount to participant wallet
         refund = get_object_or_404(RefundRequest, id=refund_id)
         admin_notes = request.POST.get("admin_notes", "")
 
@@ -312,7 +328,7 @@ class ApproveRefundView(SuperAdminRequiredMixin, View):
             refund.save()
 
             refund_transaction = WalletService.deposit(
-                participant=refund.provider,
+                participant=refund.participant,
                 amount=refund.amount,
                 payment_method="refund",
                 description=f"Refund approved: {refund.reason[:100]}",
@@ -330,7 +346,7 @@ class ApproveRefundView(SuperAdminRequiredMixin, View):
             refund.save()
 
             ParticipantActivityLog.objects.create(
-                participant=refund.provider,
+                participant=refund.participant,
                 activity_type="refund_approved",
                 description=f"Refund of {refund.amount} {refund.currency} approved by {request.user.email}",
             )
@@ -343,7 +359,7 @@ class ApproveRefundView(SuperAdminRequiredMixin, View):
                 details={
                     "action": "approve",
                     "amount": float(refund.amount),
-                    "provider_email": refund.provider.email,
+                    "participant_email": refund.participant.email,
                     "notes": admin_notes,
                 },
                 success=True,
@@ -351,7 +367,7 @@ class ApproveRefundView(SuperAdminRequiredMixin, View):
 
             messages.success(
                 request,
-                f"Refund request approved and {refund.amount} {refund.currency} credited to provider's wallet.",
+                f"Refund request approved and {refund.amount} {refund.currency} credited to participant's wallet.",
             )
 
         except Exception as e:
@@ -378,7 +394,7 @@ class RejectRefundView(SuperAdminRequiredMixin, View):
         refund.save()
 
         ParticipantActivityLog.objects.create(
-            participant=refund.provider,
+            participant=refund.participant,
             activity_type="refund_rejected",
             description=f"Refund request rejected by {request.user.email}. Reason: {admin_notes}",
         )
@@ -391,7 +407,7 @@ class RejectRefundView(SuperAdminRequiredMixin, View):
             details={
                 "action": "reject",
                 "amount": float(refund.amount),
-                "provider_email": refund.provider.email,
+                "participant_email": refund.participant.email,
                 "notes": admin_notes,
             },
             success=True,

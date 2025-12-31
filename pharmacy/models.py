@@ -5,6 +5,53 @@ from core.models import Participant
 from core.mixins import SyncMixin
 from prescriptions.models import Medication
 
+
+class PharmacyData(models.Model):
+    """
+    Pharmacy profile data - OneToOne extension of Participant.
+    Stores pharmacy-specific information including license and services.
+    Does not use SyncMixin as it syncs with the parent Participant.
+    """
+    participant = models.OneToOneField(
+        Participant, on_delete=models.CASCADE, related_name="pharmacy_data"
+    )
+    license_number = models.CharField(max_length=100, unique=True)
+    registration_number = models.CharField(max_length=100, blank=True)
+    consultation_fee = models.IntegerField(default=0)  # For pharmacist consultations
+    has_delivery = models.BooleanField(default=False)
+    delivery_radius_km = models.IntegerField(default=0)
+    accepts_prescriptions = models.BooleanField(default=True)
+    has_refrigeration = models.BooleanField(default=False)
+    operates_24_7 = models.BooleanField(default=False)
+    operating_hours = models.JSONField(default=dict)
+    services_offered = models.JSONField(default=list)
+    rating = models.FloatField(default=0.0)
+    total_reviews = models.IntegerField(default=0)
+    
+    class Meta:
+        db_table = "pharmacy_data"
+    
+    def __str__(self):
+        return f"{self.participant.full_name} - Pharmacy"
+    
+    def get_actual_rating(self):
+        """Calculate real-time average rating from Review model"""
+        from core.models import Review
+        from django.db.models import Avg
+        
+        reviews = Review.objects.filter(
+            reviewed_type='pharmacy',
+            reviewed_id=self.participant.uid,
+            is_approved=True
+        )
+        
+        if not reviews.exists():
+            return 0.0
+            
+        avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+        return round(avg_rating, 2) if avg_rating else 0.0
+
+
 class PharmacyInventory(SyncMixin):  # Manages pharmacy medication stock and inventory levels
     pharmacy = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='inventory_items')
     medication = models.ForeignKey(Medication, on_delete=models.CASCADE, related_name='inventory_items')

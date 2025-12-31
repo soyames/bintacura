@@ -101,6 +101,10 @@ class Participant(AbstractBaseUser, PermissionsMixin):
     is_verified = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
     has_blue_checkmark = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True, help_text="When the account was verified by admin")
+    verified_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_accounts', help_text="Admin who verified this account")
+    verification_notes = models.TextField(blank=True, help_text="Admin notes about verification")
+    can_receive_payments = models.BooleanField(default=False, help_text="Whether this participant can receive payments from patients")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     last_login_at = models.DateTimeField(null=True, blank=True)
@@ -378,7 +382,7 @@ class RefundRequest(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    provider = models.ForeignKey(
+    participant = models.ForeignKey(
         Participant, on_delete=models.CASCADE, related_name="refund_requests"
     )
     transaction = models.ForeignKey(
@@ -418,13 +422,13 @@ class RefundRequest(models.Model):
     class Meta:
         db_table = "refund_requests"
         indexes = [
-            models.Index(fields=["provider", "status"]),
+            models.Index(fields=["participant", "status"]),
             models.Index(fields=["status", "created_at"]),
             models.Index(fields=["admin_reviewer"]),
         ]
 
     def __str__(self):  # Returns string representation of refund request
-        return f"Refund Request {self.id} - {self.provider.full_name} - {self.amount} {self.currency}"
+        return f"Refund Request {self.id} - {self.participant.full_name} - {self.amount} {self.currency}"
 
 
 class Wallet(SyncMixin):
@@ -819,6 +823,7 @@ class ParticipantService(SyncMixin):
         ("dental", "Dental"),
         ("maternity", "Maternity"),
         ("pediatric", "Pediatric"),
+        ("insurance", "Insurance Product/Service"),
         ("other", "Other"),
     ]
 
@@ -912,6 +917,10 @@ class RegionalConfiguration(models.Model):
     region_timezone = models.CharField(max_length=50, default="UTC")
     language_code = models.CharField(max_length=10, default="fr")
     currency_code = models.CharField(max_length=3, default="XOF")
+    default_consultation_fee = models.IntegerField(
+        default=3500,
+        help_text="Default consultation fee in local currency (XOF cents for West Africa)"
+    )
     
     # Payment configuration
     payment_provider = models.CharField(

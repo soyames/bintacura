@@ -10,7 +10,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('doctor', '0002_doctorservice'),
+        ('doctor', '0003_migrate_services_to_participant_service'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

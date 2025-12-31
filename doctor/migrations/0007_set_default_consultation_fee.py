@@ -30,7 +30,7 @@ def reverse_func(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('doctor', '0005_remove_doctordata_affiliated_hospitals_and_more'),
+        ('doctor', '0006_remove_doctordata_affiliated_hospitals_and_more'),
     ]
 
     operations = [

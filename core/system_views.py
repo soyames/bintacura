@@ -16,62 +16,62 @@ from core.models import Participant
 class GetConsultationFeeView(APIView):
     """
     Get the default consultation fee in patient's local currency
+    Uses regional pricing based on participant's location (phone number + geolocation)
     
-    GET /api/system/consultation-fee/
+    GET /api/v1/core/system/consultation-fee/
     
     Response:
     {
-        "fee_usd": "5.00",
-        "fee_local": "3012.50",
+        "success": true,
+        "fee_local": "5000.00",
         "currency": "XOF",
-        "formatted": "CFA 3013"
+        "formatted": "CFA 5000",
+        "region": "benin"
     }
     """
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
         try:
-            from django.conf import settings
+            from core.region_config import get_region_from_phone, get_consultation_fee, get_region_config
+            from currency_converter.services import CurrencyConverterService
             
-            # Get system config
-            system_config = SystemConfiguration.get_active_config()
-            base_currency = system_config.default_consultation_currency
+            # Determine patient's region from phone number
+            patient = request.user
+            region_code = get_region_from_phone(patient.phone_number)
             
-            # Get the default fee based on currency from settings
-            default_currency = getattr(settings, 'DEFAULT_CURRENCY', 'XOF')
-            if base_currency == default_currency:
-                # Use setting name dynamically: DEFAULT_CONSULTATION_FEE_XOF
-                setting_name = f'DEFAULT_CONSULTATION_FEE_{default_currency}'
-                default_fee = getattr(settings, setting_name, 3500)
-                base_fee_amount = Decimal(str(default_fee))
-            else:
-                base_fee_amount = Decimal(str(system_config.default_consultation_fee))
+            # Get regional consultation fee (in XOF)
+            base_fee_xof = get_consultation_fee(region_code, 'XOF')
             
-            # Get patient's currency
-            patient_currency = CurrencyConverterService.get_participant_currency(request.user)
+            # Get patient's preferred currency
+            patient_currency = CurrencyConverterService.get_participant_currency(patient)
             
             # Convert to patient's currency if different
-            if patient_currency == base_currency:
-                fee_in_local_currency = base_fee_amount
+            if patient_currency == 'XOF':
+                fee_in_local_currency = Decimal(str(base_fee_xof))
             else:
                 fee_in_local_currency = CurrencyConverterService.convert(
-                    base_fee_amount,
-                    base_currency,
+                    Decimal(str(base_fee_xof)),
+                    'XOF',
                     patient_currency
                 )
             
             # Format the amount
             formatted = CurrencyConverterService.format_amount(fee_in_local_currency, patient_currency)
             
+            # Get region info
+            region_info = get_region_config(region_code)
+            
             return Response({
                 'success': True,
-                'fee_eur': str(fee_in_local_currency),  # Keep for backwards compatibility
                 'fee_local': str(fee_in_local_currency),
                 'currency': patient_currency,
                 'currency_symbol': formatted.split()[0] if formatted else patient_currency,
                 'formatted': formatted,
-                'base_currency': base_currency,
-                'base_fee': str(base_fee_amount)
+                'base_currency': 'XOF',
+                'base_fee': str(base_fee_xof),
+                'region': region_code,
+                'region_name': region_info.get('name', 'Unknown')
             })
         
         except Exception as e:

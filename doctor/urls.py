@@ -28,7 +28,7 @@ urlpatterns = [
     path("view-invoice/<uuid:invoice_id>/", __import__('payments.invoice_views', fromlist=['InvoiceDetailView']).InvoiceDetailView.as_view(), name="view-invoice"),
     path("download-invoice/<uuid:invoice_id>/", __import__('payments.invoice_views', fromlist=['InvoiceDownloadView']).InvoiceDownloadView.as_view(), name="download-invoice"),
     path("transactions/", views.TransactionsView.as_view(), name="transactions"),
-    path("analytics/", views.DoctorAnalyticsView.as_view(), name="analytics"),
+    path("analytics/", doctor_views.DoctorAnalyticsView.as_view(), name="analytics"),
     path("laboratory/", views.DoctorLaboratoryView.as_view(), name="laboratory"),
     path("referrals/", views.DoctorReferralsView.as_view(), name="referrals"),
     path("certificates/", views.DoctorCertificatesView.as_view(), name="certificates"),

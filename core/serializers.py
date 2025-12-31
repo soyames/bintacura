@@ -356,3 +356,58 @@ class HospitalProfileSerializer(serializers.ModelSerializer):  # Serializer for 
             return 'Services généraux'
 
 
+class InsuranceCompanySerializer(serializers.ModelSerializer):
+    """Serializer for insurance companies with company data"""
+    name = serializers.CharField(source='full_name')
+    phone = serializers.CharField(source='phone_number')
+    company_info = serializers.SerializerMethodField()
+    packages = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Participant
+        fields = [
+            "uid",
+            "name",
+            "email",
+            "phone",
+            "address",
+            "city",
+            "latitude",
+            "longitude",
+            "company_info",
+            "packages",
+            "is_active",
+            "is_verified",
+            "created_at",
+        ]
+        read_only_fields = ["uid", "created_at"]
+    
+    def get_company_info(self, obj):
+        """Return insurance company specific data"""
+        if hasattr(obj, 'insurance_company_data'):
+            data = obj.insurance_company_data
+            return {
+                'company_name': data.company_name,
+                'license_number': data.license_number,
+                'coverage_types': data.coverage_types,
+                'website': data.website,
+                'country': data.country,
+            }
+        return None
+    
+    def get_packages(self, obj):
+        """Return insurance packages offered"""
+        try:
+            from insurance.models import InsurancePackage
+            packages = InsurancePackage.objects.filter(company=obj, is_active=True)
+            return [{
+                'id': pkg.id,
+                'name': pkg.name,
+                'premium_amount': float(pkg.premium_amount),
+                'coverage_type': pkg.coverage_type,
+                'max_coverage_amount': float(pkg.max_coverage_amount) if pkg.max_coverage_amount else None,
+            } for pkg in packages[:5]]  # Limit to 5 packages
+        except:
+            return []
+
+

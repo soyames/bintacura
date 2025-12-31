@@ -1,0 +1,355 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Services - Compagnie d'Assurance BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pharmacy_services.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="insurance_company" page_title="Produits & Services" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_insurance.html" %}
+
+    <div class="main-content">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">{{ total_services|default:0 }}</div>
+                <div class="stat-label">Total Produits/Services</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ active_services|default:0 }}</div>
+                <div class="stat-label">Produits Actifs</div>
+            </div>
+        </div>
+
+        <div class="services-grid">
+            {% for service in services %}
+            <div class="service-card">
+                <div class="service-header">
+                    <div class="service-category">{{ service.get_category_display }}</div>
+                    <span class="service-status {% if service.is_available %}available{% else %}unavailable{% endif %}">
+                        {{ service.is_available|yesno:"Disponible,Indisponible" }}
+                    </span>
+                </div>
+                <h3 class="service-name">{{ service.name }}</h3>
+                <p class="service-description">{{ service.description|default:"Aucune description" }}</p>
+                <div class="service-details">
+                    <div class="service-price">{{ service.price }} {{ service.currency }}</div>
+                    <div class="service-duration">{{ service.duration_minutes }} min</div>
+                </div>
+                <div class="service-actions">
+                    <button type="button" class="btn-edit" onclick='editService("{{ service.id }}", "{{ service.name|escapejs }}", "{{ service.category }}", "{{ service.description|escapejs }}", {{ service.price }}, "{{ service.currency }}", {{ service.duration_minutes }}, {{ service.is_available|yesno:"true,false" }})'>Modifier</button>
+                    <button type="button" class="btn-delete" onclick="deleteService('{{ service.id }}')">Supprimer</button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <p>💊 Aucun service disponible. Cliquez sur "Ajouter un Service" pour commencer.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="modal" id="addServiceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter un Service</h2>
+                <button type="button" class="modal-close" onclick="closeAddServiceModal()">×</button>
+            </div>
+            <form id="addServiceForm" onsubmit="submitAddService(event)">
+                <div class="form-group">
+                    <label>Nom du service</label>
+                    <input type="text" id="serviceName" required>
+                </div>
+                <div class="form-group">
+                    <label>Catégorie</label>
+                    <select id="serviceCategory" required>
+                        <option value="">Sélectionner</option>
+                        <option value="pharmacy">Dispensation de Médicaments</option>
+                        <option value="consultation">Conseil Pharmaceutique</option>
+                        <option value="vaccination">Vaccination</option>
+                        <option value="pharmacy">Préparation Magistrale</option>
+                        <option value="diagnostic">Test de Dépistage</option>
+                        <option value="pharmacy">Matériel Médical</option>
+                        <option value="pharmacy">Parapharmacie</option>
+                        <option value="pharmacy">Livraison à Domicile</option>
+                        <option value="consultation">Consultation Pharmaceutique</option>
+                        <option value="other">Autre Service</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="serviceDescription" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prix</label>
+                        <input type="number" id="servicePrice" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Devise</label>
+                        <select id="serviceCurrency" required>
+                            <option value="FCFA">FCFA</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Durée (minutes)</label>
+                    <input type="number" id="serviceDuration" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddServiceModal()">Annuler</button>
+                    <button type="submit" class="btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="editServiceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Modifier le Service</h2>
+                <button type="button" class="modal-close" onclick="closeEditServiceModal()">×</button>
+            </div>
+            <form id="editServiceForm" onsubmit="submitEditService(event)">
+                <input type="hidden" id="editServiceId">
+                <div class="form-group">
+                    <label>Nom du service</label>
+                    <input type="text" id="editServiceName" required>
+                </div>
+                <div class="form-group">
+                    <label>Catégorie</label>
+                    <select id="editServiceCategory" required>
+                        <option value="pharmacy">Dispensation de Médicaments</option>
+                        <option value="consultation">Conseil Pharmaceutique</option>
+                        <option value="vaccination">Vaccination</option>
+                        <option value="pharmacy">Préparation Magistrale</option>
+                        <option value="diagnostic">Test de Dépistage</option>
+                        <option value="pharmacy">Matériel Médical</option>
+                        <option value="pharmacy">Parapharmacie</option>
+                        <option value="pharmacy">Livraison à Domicile</option>
+                        <option value="consultation">Consultation Pharmaceutique</option>
+                        <option value="other">Autre Service</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editServiceDescription" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prix</label>
+                        <input type="number" id="editServicePrice" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Devise</label>
+                        <select id="editServiceCurrency" required>
+                            <option value="FCFA">FCFA</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Durée (minutes)</label>
+                    <input type="number" id="editServiceDuration" required>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="editServiceAvailable">
+                        Service disponible
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeEditServiceModal()">Annuler</button>
+                    <button type="submit" class="btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuIcon = document.getElementById('menuIcon');
+
+        function toggleSidebar() {
+            const isOpen = sidebar.classList.contains('active');
+            if (isOpen) {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                menuIcon.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                menuIcon.classList.add('active');
+            }
+        }
+
+        menuIcon.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        function showAddServiceModal() {
+            document.getElementById('addServiceModal').classList.add('show');
+        }
+
+        function closeAddServiceModal() {
+            document.getElementById('addServiceModal').classList.remove('show');
+            document.getElementById('addServiceForm').reset();
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function submitAddService(event) {
+            event.preventDefault();
+
+            const data = {
+                action: 'create',
+                name: document.getElementById('serviceName').value,
+                category: document.getElementById('serviceCategory').value,
+                description: document.getElementById('serviceDescription').value,
+                price: document.getElementById('servicePrice').value,
+                currency: document.getElementById('serviceCurrency').value,
+                duration_minutes: document.getElementById('serviceDuration').value
+            };
+
+            try {
+                const csrftoken = getCookie('csrftoken');
+                const response = await fetch('/pharmacy/services/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    closeAddServiceModal();
+                    location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de l\'ajout du service');
+            }
+        }
+
+        function editService(id, name, category, description, price, currency, duration, available) {
+            document.getElementById('editServiceId').value = id;
+            document.getElementById('editServiceName').value = name;
+            document.getElementById('editServiceCategory').value = category;
+            document.getElementById('editServiceDescription').value = description;
+            document.getElementById('editServicePrice').value = price;
+            document.getElementById('editServiceCurrency').value = currency;
+            document.getElementById('editServiceDuration').value = duration;
+            document.getElementById('editServiceAvailable').checked = available;
+            document.getElementById('editServiceModal').classList.add('show');
+        }
+
+        function closeEditServiceModal() {
+            document.getElementById('editServiceModal').classList.remove('show');
+        }
+
+        async function submitEditService(event) {
+            event.preventDefault();
+
+            const data = {
+                action: 'update',
+                service_id: document.getElementById('editServiceId').value,
+                name: document.getElementById('editServiceName').value,
+                category: document.getElementById('editServiceCategory').value,
+                description: document.getElementById('editServiceDescription').value,
+                price: document.getElementById('editServicePrice').value,
+                currency: document.getElementById('editServiceCurrency').value,
+                duration_minutes: document.getElementById('editServiceDuration').value,
+                is_available: document.getElementById('editServiceAvailable').checked
+            };
+
+            try {
+                const csrftoken = getCookie('csrftoken');
+                const response = await fetch('/pharmacy/services/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    closeEditServiceModal();
+                    location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de la modification du service');
+            }
+        }
+
+        async function deleteService(serviceId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce service?')) {
+                return;
+            }
+
+            const data = {
+                action: 'delete',
+                service_id: serviceId
+            };
+
+            try {
+                const csrftoken = getCookie('csrftoken');
+                const response = await fetch('/pharmacy/services/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('Erreur lors de la suppression du service');
+            }
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+</html>
+
