@@ -411,20 +411,32 @@ class AppointmentBooking {
         slotsContainer.innerHTML = '<p class="loading-message">🔄 Chargement des créneaux...</p>';
 
         try {
-            const response = await fetch(`/api/v1/appointments/availability/?participant_id=${participantId}&date=${selectedDate}`);
+            const participantType = this.selectedDoctor ? 'doctor_id' : 'hospital_id';
+            const response = await fetch(`/patient/api/available-slots/?${participantType}=${participantId}&date=${selectedDate}`);
             const data = await response.json();
 
-            if (!data.available_slots || data.available_slots.length === 0) {
+            if (!data.success || !data.slots || data.slots.length === 0) {
                 slotsContainer.innerHTML = `
                     <div class="empty-state">
                         <div style="font-size: 32px;">📅</div>
-                        <p>Aucun créneau disponible</p>
+                        <p>${data.message || 'Aucun créneau disponible'}</p>
                     </div>
                 `;
                 return;
             }
 
-            slotsContainer.innerHTML = data.available_slots.map(slot => 
+            const availableSlots = data.slots.filter(slot => slot.available);
+            if (availableSlots.length === 0) {
+                slotsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 32px;">📅</div>
+                        <p>Tous les créneaux sont réservés pour cette date</p>
+                    </div>
+                `;
+                return;
+            }
+
+            slotsContainer.innerHTML = availableSlots.map(slot => 
                 `<div class="time-slot" onclick="appointmentBooking.selectTime('${slot.time}')">${slot.time}</div>`
             ).join('');
         } catch (error) {

@@ -2572,169 +2572,190 @@ class TransactionsView(LoginRequiredMixin, TemplateView):  # Class for transacti
     login_url = "/auth/login/"
 
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
-        context = super().get_context_data(**kwargs)
-        portal = self.request.path.split("/")[1]
-        context["portal"] = portal
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            context = super().get_context_data(**kwargs)
+            portal = self.request.path.split("/")[1]
+            context["portal"] = portal
 
-        from payments.models import ServiceTransaction, PaymentReceipt
-        from appointments.models import Appointment
-        from django.db.models import Q, Sum, Case, When, DecimalField
-        from .geolocation_service import GeolocationService
-        from currency_converter.services import CurrencyConverterService
-        from decimal import Decimal
+            from payments.models import ServiceTransaction, PaymentReceipt
+            from appointments.models import Appointment
+            from django.db.models import Q, Sum, Case, When, DecimalField
+            from .geolocation_service import GeolocationService
+            from currency_converter.services import CurrencyConverterService
+            from decimal import Decimal
 
-        # Get patient's local currency based on country code and geolocation
-        patient_currency = None
+            # Get patient's local currency based on country code and geolocation
+            patient_currency = None
 
-        # Try to get currency from patient's phone country code
-        if self.request.user.role == 'patient':
-            try:
-                from core.models import ParticipantPhone
-                phone = ParticipantPhone.objects.filter(
-                    participant=self.request.user,
-                    is_verified=True
-                ).first()
-                if phone and phone.country:
-                    patient_currency = CurrencyConverterService.get_currency_from_country(phone.country)
-            except Exception:
-                pass
-
-        # Fallback to geolocation-based currency
-        if not patient_currency:
-            patient_currency = GeolocationService.get_currency_for_request(self.request)
-
-        # Final fallback to base currency
-        if not patient_currency:
-            patient_currency = CurrencyConverterService.BASE_CURRENCY
-
-        display_currency = patient_currency
-        context["display_currency"] = display_currency
-        context["currency"] = display_currency
-
-        # Get all transactions for this patient
-        if self.request.user.role == 'patient':
-            # Get ServiceTransaction records
-            service_transactions = ServiceTransaction.objects.filter(
-                patient=self.request.user
-            ).select_related('service_provider', 'gateway_transaction')
-
-            # Get Appointments with payment info
-            appointments = Appointment.objects.filter(
-                patient=self.request.user,
-                payment_status__in=['paid', 'pending', 'partial']
-            ).select_related('doctor', 'hospital')
-
-            # Combine all transactions
-            all_transactions = []
-
-            # Add ServiceTransaction records with currency conversion
-            for txn in service_transactions:
-                # Convert amount to patient's local currency
-                original_amount = txn.amount
-                original_currency = txn.currency or 'XOF'
-
+            # Try to get currency from patient's phone country code
+            if self.request.user.role == 'patient':
                 try:
-                    converted_amount = CurrencyConverterService.convert(
-                        Decimal(str(original_amount)),
-                        original_currency,
-                        display_currency
-                    )
+                    from core.models import ParticipantPhone
+                    phone = ParticipantPhone.objects.filter(
+                        participant=self.request.user,
+                        is_verified=True
+                    ).first()
+                    if phone and phone.country:
+                        patient_currency = CurrencyConverterService.get_currency_from_country(phone.country)
                 except Exception:
-                    converted_amount = original_amount
+                    pass
 
-                all_transactions.append({
-                    'type': 'service_transaction',
-                    'transaction_ref': txn.transaction_ref,
-                    'created_at': txn.created_at,
-                    'service_type': txn.service_type,
-                    'service_type_display': txn.get_service_type_display(),
-                    'service_description': txn.service_description,
-                    'payment_method': txn.get_payment_method_display(),
-                    'amount': converted_amount,
-                    'original_amount': original_amount,
-                    'original_currency': original_currency,
-                    'currency': display_currency,
-                    'status': txn.status,
-                    'status_display': txn.get_status_display(),
-                })
+            # Fallback to geolocation-based currency
+            if not patient_currency:
+                patient_currency = GeolocationService.get_currency_for_request(self.request)
 
-            # Add Appointments as transactions with currency conversion
-            for appt in appointments:
-                status = 'completed' if appt.payment_status == 'paid' else 'pending'
-                status_display = 'Completed' if appt.payment_status == 'paid' else 'Pending'
-                provider = appt.doctor.full_name if appt.doctor else (appt.hospital.full_name if appt.hospital else 'N/A')
-                txn_ref = f"APT-{appt.created_at.strftime('%Y%m%d%H%M%S')}-{str(appt.id)[:8].upper()}"
+            # Final fallback to base currency
+            if not patient_currency:
+                patient_currency = CurrencyConverterService.BASE_CURRENCY
 
-                # Convert appointment fee to patient's local currency
-                original_amount = appt.consultation_fee or Decimal('0.00')
-                original_currency = 'XOF'  # Default currency for appointments
+            display_currency = patient_currency
+            context["display_currency"] = display_currency
+            context["currency"] = display_currency
 
-                try:
-                    converted_amount = CurrencyConverterService.convert(
-                        original_amount,
-                        original_currency,
-                        display_currency
-                    )
-                except Exception:
-                    converted_amount = original_amount
+            # Get all transactions for this patient
+            if self.request.user.role == 'patient':
+                # Get ServiceTransaction records
+                service_transactions = ServiceTransaction.objects.filter(
+                    patient=self.request.user
+                ).select_related('service_provider', 'gateway_transaction')
 
-                all_transactions.append({
-                    'type': 'appointment',
-                    'transaction_ref': txn_ref,
-                    'created_at': appt.created_at,
-                    'service_type': 'appointment',
-                    'service_type_display': appt.get_appointment_type_display() if hasattr(appt, 'get_appointment_type_display') else appt.appointment_type.replace('_', ' ').title(),
-                    'service_description': f"Rendez-vous - {appt.appointment_date.strftime('%d/%m/%Y à %H:%M')}",
-                    'payment_method': appt.payment_method.replace('_', ' ').title() if appt.payment_method else 'N/A',
-                    'amount': converted_amount,
-                    'original_amount': original_amount,
-                    'original_currency': original_currency,
-                    'currency': display_currency,
-                    'status': status,
-                    'status_display': status_display,
-                })
+                # Get Appointments with payment info
+                appointments = Appointment.objects.filter(
+                    patient=self.request.user,
+                    payment_status__in=['paid', 'pending', 'partial']
+                ).select_related('doctor', 'hospital')
 
-            # Sort by date (newest first)
-            all_transactions.sort(key=lambda x: x['created_at'], reverse=True)
+                # Combine all transactions
+                all_transactions = []
 
-            # Calculate summary statistics (using converted amounts)
-            total_income = Decimal('0.00')
-            total_expenses = Decimal('0.00')
-            pending_amount = Decimal('0.00')
+                # Add ServiceTransaction records with currency conversion
+                for txn in service_transactions:
+                    # Convert amount to patient's local currency
+                    original_amount = txn.amount
+                    original_currency = txn.currency or 'XOF'
 
-            for txn in all_transactions:
-                amount = Decimal(str(txn['amount']))
-                if txn['status'] == 'completed':
-                    total_expenses += amount
-                elif txn['status'] == 'pending':
-                    pending_amount += amount
+                    try:
+                        converted_amount = CurrencyConverterService.convert(
+                            Decimal(str(original_amount)),
+                            original_currency,
+                            display_currency
+                        )
+                    except Exception:
+                        converted_amount = original_amount
 
-            context['total_income'] = total_income
-            context['total_expenses'] = total_expenses
-            context['pending_amount'] = pending_amount
-            context['net_balance'] = total_income - total_expenses
+                    all_transactions.append({
+                        'type': 'service_transaction',
+                        'transaction_ref': txn.transaction_ref,
+                        'created_at': txn.created_at,
+                        'service_type': txn.service_type,
+                        'service_type_display': txn.get_service_type_display(),
+                        'service_description': txn.service_description,
+                        'payment_method': txn.get_payment_method_display(),
+                        'amount': converted_amount,
+                        'original_amount': original_amount,
+                        'original_currency': original_currency,
+                        'currency': display_currency,
+                        'status': txn.status,
+                        'status_display': txn.get_status_display(),
+                    })
 
-            # Get payment receipts
-            receipts = PaymentReceipt.objects.filter(
-                issued_to=self.request.user
-            ).select_related('service_transaction', 'issued_by')
+                # Add Appointments as transactions with currency conversion
+                for appt in appointments:
+                    status = 'completed' if appt.payment_status == 'paid' else 'pending'
+                    status_display = 'Completed' if appt.payment_status == 'paid' else 'Pending'
+                    provider = appt.doctor.full_name if appt.doctor else (appt.hospital.full_name if appt.hospital else 'N/A')
+                    txn_ref = f"APT-{appt.created_at.strftime('%Y%m%d%H%M%S')}-{str(appt.id)[:8].upper()}"
 
-            transaction_to_invoice = {}
-            for receipt in receipts:
-                if receipt.service_transaction:
-                    transaction_to_invoice[receipt.service_transaction.transaction_ref] = receipt.id
+                    # Convert appointment fee to patient's local currency
+                    original_amount = appt.consultation_fee or Decimal('0.00')
+                    original_currency = 'XOF'  # Default currency for appointments
 
-            context['transaction_to_invoice'] = transaction_to_invoice
-            context['transactions'] = all_transactions
-        else:
-            context['transactions'] = []
-            context['total_income'] = 0
-            context['total_expenses'] = 0
-            context['pending_amount'] = 0
-            context['net_balance'] = 0
-            context['transaction_to_invoice'] = {}
+                    try:
+                        converted_amount = CurrencyConverterService.convert(
+                            original_amount,
+                            original_currency,
+                            display_currency
+                        )
+                    except Exception:
+                        converted_amount = original_amount
 
-        return context
+                    all_transactions.append({
+                        'type': 'appointment',
+                        'transaction_ref': txn_ref,
+                        'created_at': appt.created_at,
+                        'service_type': 'appointment',
+                        'service_type_display': appt.get_appointment_type_display() if hasattr(appt, 'get_appointment_type_display') else appt.appointment_type.replace('_', ' ').title(),
+                        'service_description': f"Rendez-vous - {appt.appointment_date.strftime('%d/%m/%Y à %H:%M')}",
+                        'payment_method': appt.payment_method.replace('_', ' ').title() if appt.payment_method else 'N/A',
+                        'amount': converted_amount,
+                        'original_amount': original_amount,
+                        'original_currency': original_currency,
+                        'currency': display_currency,
+                        'status': status,
+                        'status_display': status_display,
+                    })
+
+                # Sort by date (newest first)
+                all_transactions.sort(key=lambda x: x['created_at'], reverse=True)
+
+                # Calculate summary statistics (using converted amounts)
+                total_income = Decimal('0.00')
+                total_expenses = Decimal('0.00')
+                pending_amount = Decimal('0.00')
+
+                for txn in all_transactions:
+                    amount = Decimal(str(txn['amount']))
+                    if txn['status'] == 'completed':
+                        total_expenses += amount
+                    elif txn['status'] == 'pending':
+                        pending_amount += amount
+
+                context['total_income'] = total_income
+                context['total_expenses'] = total_expenses
+                context['pending_amount'] = pending_amount
+                context['net_balance'] = total_income - total_expenses
+
+                # Get payment receipts
+                receipts = PaymentReceipt.objects.filter(
+                    issued_to=self.request.user
+                ).select_related('service_transaction', 'issued_by')
+
+                transaction_to_invoice = {}
+                for receipt in receipts:
+                    if receipt.service_transaction:
+                        transaction_to_invoice[receipt.service_transaction.transaction_ref] = receipt.id
+
+                context['transaction_to_invoice'] = transaction_to_invoice
+                context['transactions'] = all_transactions
+            else:
+                context['transactions'] = []
+                context['total_income'] = 0
+                context['total_expenses'] = 0
+                context['pending_amount'] = 0
+                context['net_balance'] = 0
+                context['transaction_to_invoice'] = {}
+
+            return context
+        except Exception as e:
+            logger.error(f"Error in TransactionsView: {str(e)}", exc_info=True)
+            # Return safe defaults
+            context = super().get_context_data(**kwargs)
+            context.update({
+                'portal': self.request.path.split("/")[1] if "/" in self.request.path else 'patient',
+                'transactions': [],
+                'total_income': 0,
+                'total_expenses': 0,
+                'pending_amount': 0,
+                'net_balance': 0,
+                'transaction_to_invoice': {},
+                'display_currency': 'XOF',
+                'currency': 'XOF',
+                'error_message': 'Unable to load transactions. Please try again later.'
+            })
+            return context
 
 
 class PatientWalletView(PatientRequiredMixin, TemplateView):  # Class for patientwallet
@@ -2973,63 +2994,82 @@ class TelemedicineView(PatientRequiredMixin, TemplateView):  # Class for telemed
     template_name = "patient/telemedicine.html"
 
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
-        context = super().get_context_data(**kwargs)
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            context = super().get_context_data(**kwargs)
 
-        from doctor.models import DoctorData
-        from core.models import Participant
-        from appointments.models import Appointment
-        from django.db.models import Q
-        from datetime import datetime, date
+            from doctor.models import DoctorData
+            from core.models import Participant
+            from appointments.models import Appointment
+            from django.db.models import Q
+            from datetime import datetime, date
 
-        # Get all doctors available for telemedicine
-        doctors = (
-            Participant.objects.filter(
-                role="doctor",
-                is_active=True,
-                doctor_data__is_available_for_telemedicine=True,
+            # Get all doctors available for telemedicine
+            doctors = (
+                Participant.objects.filter(
+                    role="doctor",
+                    is_active=True,
+                    doctor_data__is_available_for_telemedicine=True,
+                )
+                .select_related("doctor_data")
+                .order_by("-doctor_data__rating")
             )
-            .select_related("doctor_data")
-            .order_by("-doctor_data__rating")
-        )
 
-        # Update ratings from actual reviews for accurate display
-        for doctor in doctors:
-            doctor.doctor_data.update_rating_cache()
+            # Update ratings from actual reviews for accurate display
+            for doctor in doctors:
+                try:
+                    doctor.doctor_data.update_rating_cache()
+                except Exception as e:
+                    logger.warning(f"Could not update rating for doctor {doctor.id}: {str(e)}")
 
-        context["doctors"] = doctors
+            context["doctors"] = doctors
 
-        # Get upcoming telemedicine appointments
-        upcoming_appointments = (
-            Appointment.objects.filter(
-                patient=self.request.user,
-                type="telemedicine",
-                status__in=["pending", "confirmed"],
-                appointment_date__gte=date.today(),
+            # Get upcoming telemedicine appointments
+            upcoming_appointments = (
+                Appointment.objects.filter(
+                    patient=self.request.user,
+                    type="telemedicine",
+                    status__in=["pending", "confirmed"],
+                    appointment_date__gte=date.today(),
+                )
+                .select_related("doctor")
+                .order_by("appointment_date", "appointment_time")[:5]
             )
-            .select_related("doctor")
-            .order_by("appointment_date", "appointment_time")[:5]
-        )
 
-        context["upcoming_appointments"] = upcoming_appointments
+            context["upcoming_appointments"] = upcoming_appointments
 
-        # Get previous telemedicine consultations
-        previous_consultations = (
-            Appointment.objects.filter(
-                patient=self.request.user,
-                type="telemedicine",
-                status__in=["completed", "cancelled"],
+            # Get previous telemedicine consultations
+            previous_consultations = (
+                Appointment.objects.filter(
+                    patient=self.request.user,
+                    type="telemedicine",
+                    status__in=["completed", "cancelled"],
+                )
+                .select_related("doctor")
+                .order_by("-appointment_date", "-appointment_time")[:10]
             )
-            .select_related("doctor")
-            .order_by("-appointment_date", "-appointment_time")[:10]
-        )
 
-        context["previous_consultations"] = previous_consultations
+            context["previous_consultations"] = previous_consultations
 
-        # Get specializations for filter
-        specializations = DoctorData.SPECIALIZATION_CHOICES
-        context["specializations"] = specializations
+            # Get specializations for filter
+            specializations = DoctorData.SPECIALIZATION_CHOICES
+            context["specializations"] = specializations
 
-        return context
+            return context
+        except Exception as e:
+            logger.error(f"Error in TelemedicineView: {str(e)}", exc_info=True)
+            # Return safe defaults
+            context = super().get_context_data(**kwargs)
+            context.update({
+                'doctors': [],
+                'upcoming_appointments': [],
+                'previous_consultations': [],
+                'specializations': [],
+                'error_message': 'Unable to load telemedicine data. Please try again later.'
+            })
+            return context
 
 
 class ConsultationFeedbackView(PatientRequiredMixin, TemplateView):
@@ -3126,44 +3166,62 @@ class InsuranceSubscriptionView(PatientRequiredMixin, TemplateView):  # Class fo
     template_name = "patient/insurance_subscription.html"
 
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
-        context = super().get_context_data(**kwargs)
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            context = super().get_context_data(**kwargs)
 
-        from insurance.models import (
-            InsurancePackage,
-            PatientInsuranceCard,
-            InsuranceClaim,
-        )
-
-        user = self.request.user
-
-        available_packages = (
-            InsurancePackage.objects.filter(is_active=True)
-            .select_related("company")
-            .order_by("premium_amount")
-        )
-
-        user_insurance_cards = (
-            PatientInsuranceCard.objects.filter(
-                patient=user, status__in=["active", "pending"]
+            from insurance.models import (
+                InsurancePackage,
+                PatientInsuranceCard,
+                InsuranceClaim,
             )
-            .select_related("insurance_package")
-            .order_by("-issue_date")
-        )
 
-        recent_claims = (
-            InsuranceClaim.objects.filter(patient=user)
-            .select_related("insurance_package")
-            .order_by("-submission_date")[:5]
-        )
+            user = self.request.user
 
-        context["available_packages"] = available_packages
-        context["user_insurance_cards"] = user_insurance_cards
-        context["recent_claims"] = recent_claims
-        context["has_active_insurance"] = user_insurance_cards.filter(
-            status="active"
-        ).exists()
+            available_packages = (
+                InsurancePackage.objects.filter(is_active=True)
+                .select_related("company")
+                .order_by("premium_amount")
+            )
+            
+            logger.info(f"Found {available_packages.count()} active insurance packages")
 
-        return context
+            user_insurance_cards = (
+                PatientInsuranceCard.objects.filter(
+                    patient=user, status__in=["active", "pending"]
+                )
+                .select_related("insurance_package")
+                .order_by("-issue_date")
+            )
+
+            recent_claims = (
+                InsuranceClaim.objects.filter(patient=user)
+                .select_related("insurance_package")
+                .order_by("-submission_date")[:5]
+            )
+
+            context["available_packages"] = available_packages
+            context["user_insurance_cards"] = user_insurance_cards
+            context["recent_claims"] = recent_claims
+            context["has_active_insurance"] = user_insurance_cards.filter(
+                status="active"
+            ).exists()
+
+            return context
+        except Exception as e:
+            logger.error(f"Error in InsuranceSubscriptionView: {str(e)}", exc_info=True)
+            # Return safe defaults
+            context = super().get_context_data(**kwargs)
+            context.update({
+                'available_packages': [],
+                'user_insurance_cards': [],
+                'recent_claims': [],
+                'has_active_insurance': False,
+                'error_message': 'Unable to load insurance data. Please try again later.'
+            })
+            return context
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
@@ -3727,7 +3785,7 @@ class HospitalAppointmentsAPIView(APIView):  # Class for hospitalappointmentsapi
 
 
 class AvailableSlotsAPIView(APIView):
-    """Get available appointment slots for a hospital on a specific date"""
+    """Get available appointment slots for a doctor or hospital on a specific date"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -3737,11 +3795,12 @@ class AvailableSlotsAPIView(APIView):
 
         try:
             hospital_id = request.GET.get('hospital_id')
+            doctor_id = request.GET.get('doctor_id')
             date_str = request.GET.get('date')
 
-            if not hospital_id or not date_str:
+            if not (hospital_id or doctor_id) or not date_str:
                 return Response(
-                    {"success": False, "error": "Paramètres manquants"},
+                    {"success": False, "error": "Paramètres manquants (doctor_id ou hospital_id requis)"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -3754,16 +3813,25 @@ class AvailableSlotsAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Get hospital
+            # Get participant (doctor or hospital)
             try:
-                hospital = Participant.objects.get(
-                    uid=hospital_id,
-                    role='hospital',
-                    is_active=True
-                )
+                if doctor_id:
+                    participant = Participant.objects.get(
+                        uid=doctor_id,
+                        role='doctor',
+                        is_active=True
+                    )
+                    participant_type = 'doctor'
+                else:
+                    participant = Participant.objects.get(
+                        uid=hospital_id,
+                        role='hospital',
+                        is_active=True
+                    )
+                    participant_type = 'hospital'
             except Participant.DoesNotExist:
                 return Response(
-                    {"success": False, "error": "Hôpital non trouvé"},
+                    {"success": False, "error": f"{'Docteur' if doctor_id else 'Hôpital'} non trouvé"},
                     status=status.HTTP_404_NOT_FOUND
                 )
 
@@ -3777,7 +3845,7 @@ class AvailableSlotsAPIView(APIView):
 
             # Get availability for this day
             availability = Availability.objects.filter(
-                participant=hospital,
+                participant=participant,
                 weekday=weekday,
                 is_active=True
             ).first()
@@ -3798,13 +3866,22 @@ class AvailableSlotsAPIView(APIView):
             slot_duration = timedelta(minutes=availability.slot_duration)
 
             # Get already booked appointments
-            booked_times = set(
-                Appointment.objects.filter(
-                    hospital=hospital,
-                    appointment_date=appointment_date,
-                    status__in=['pending', 'confirmed', 'in_progress']
-                ).values_list('appointment_time', flat=True)
-            )
+            if participant_type == 'doctor':
+                booked_times = set(
+                    Appointment.objects.filter(
+                        doctor=participant,
+                        appointment_date=appointment_date,
+                        status__in=['pending', 'confirmed', 'in_progress']
+                    ).values_list('appointment_time', flat=True)
+                )
+            else:
+                booked_times = set(
+                    Appointment.objects.filter(
+                        hospital=participant,
+                        appointment_date=appointment_date,
+                        status__in=['pending', 'confirmed', 'in_progress']
+                    ).values_list('appointment_time', flat=True)
+                )
 
             while current_time <= end_time:
                 time_str = current_time.strftime('%H:%M')
@@ -3820,7 +3897,7 @@ class AvailableSlotsAPIView(APIView):
             return Response({
                 "success": True,
                 "slots": slots,
-                "hospital": hospital.full_name,
+                participant_type: participant.full_name,
                 "date": date_str
             })
 

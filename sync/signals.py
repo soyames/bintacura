@@ -18,7 +18,23 @@ from core.mixins import SyncMixin
 
 def get_current_instance_id():
     """Get the current instance's UUID from settings or environment"""
-    return getattr(settings, 'INSTANCE_ID', None)
+    instance_id = getattr(settings, 'INSTANCE_ID', None)
+    
+    # Validate and clean the instance_id
+    if instance_id:
+        instance_id_str = str(instance_id).strip()
+        # Check if it's empty, 'None', or just whitespace
+        if not instance_id_str or instance_id_str == 'None' or instance_id_str.isspace():
+            return None
+        # Try to validate it's a valid UUID
+        try:
+            import uuid
+            uuid.UUID(instance_id_str)
+            return instance_id_str
+        except (ValueError, AttributeError):
+            return None
+    
+    return None
 
 
 @receiver(post_save)

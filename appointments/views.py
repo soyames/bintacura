@@ -44,6 +44,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
         return Appointment.objects.none()
 
     @transaction.atomic
+    @transaction.atomic
     def create(self, request, *args, **kwargs):  # Create
         try:
             if request.user.role != "patient":
@@ -54,10 +55,18 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
             
             patient = request.user
             doctor_id = request.data.get("doctor_id")
+            appointment_date = request.data.get("appointment_date")
+            appointment_time = request.data.get("appointment_time")
 
             if not doctor_id:
                 return Response(
                     {"error": "L'identifiant du médecin est requis"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            if not appointment_date or not appointment_time:
+                return Response(
+                    {"error": "La date et l'heure du rendez-vous sont requises"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -65,7 +74,21 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
                 doctor = Participant.objects.get(uid=doctor_id, role="doctor")
             except Participant.DoesNotExist:
                 return Response(
-                    {"error": "Médecin non trouvé"}, status=status.HTTP_404_NOT_FOUND
+                    {"error": "Médecin non trouvé"}, status=status.HTTP_404_NOT_FOUND,
+                )
+            
+            # Prevent double booking - check if slot is already taken
+            existing_appointment = Appointment.objects.filter(
+                doctor=doctor,
+                appointment_date=appointment_date,
+                appointment_time=appointment_time,
+                status__in=['pending', 'confirmed', 'in_progress']
+            ).exists()
+            
+            if existing_appointment:
+                return Response(
+                    {"error": "Ce créneau horaire n'est plus disponible. Veuillez en choisir un autre."},
+                    status=status.HTTP_409_CONFLICT,
                 )
 
             try:
