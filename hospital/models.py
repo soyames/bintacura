@@ -16,7 +16,7 @@ class HospitalData(models.Model):
     )
     license_number = models.CharField(max_length=100, unique=True)
     bed_capacity = models.IntegerField(default=0)
-    consultation_fee = models.IntegerField(default=0)  # Stored in XOF cents
+    consultation_fee = models.IntegerField(default=0)  # Stored in XOF (major units, not cents)
     emergency_services = models.BooleanField(default=False)
     has_icu = models.BooleanField(default=False)
     has_maternity = models.BooleanField(default=False)
@@ -194,6 +194,14 @@ class Admission(SyncMixin):  # Tracks patient hospital admissions and treatment 
 
     region_code = models.CharField(max_length=50, default="global", db_index=True)
     admission_number = models.CharField(max_length=50, unique=True)
+    idempotency_key = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Client-provided unique key to prevent duplicate admission creation"
+    )
     hospital = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='admissions')
     patient = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='hospital_admissions')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, related_name='admissions')

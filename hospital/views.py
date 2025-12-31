@@ -118,8 +118,10 @@ class BedViewSet(viewsets.ModelViewSet):  # View for BedSet operations
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
+    @transaction.atomic
     def update_status(self, request, pk=None):  # Update status
-        bed = self.get_object()
+        # Use select_for_update to prevent race conditions on bed status
+        bed = Bed.objects.select_for_update().get(pk=pk)
         new_status = request.data.get('status')
 
         if new_status in dict(Bed.STATUS_CHOICES):
@@ -158,8 +160,10 @@ class AdmissionViewSet(viewsets.ModelViewSet):  # View for AdmissionSet operatio
         admission = serializer.save(hospital=self.request.user, admission_number=admission_number)
 
         if admission.bed:
-            admission.bed.status = 'occupied'
-            admission.bed.save()
+            # Use select_for_update to prevent race conditions on bed allocation
+            bed = Bed.objects.select_for_update().get(pk=admission.bed.pk)
+            bed.status = 'occupied'
+            bed.save()
 
             if admission.department:
                 admission.department.occupied_beds = Bed.objects.filter(
@@ -171,7 +175,8 @@ class AdmissionViewSet(viewsets.ModelViewSet):  # View for AdmissionSet operatio
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def discharge(self, request, pk=None):  # Discharge
-        admission = self.get_object()
+        # Use select_for_update to prevent race conditions
+        admission = Admission.objects.select_for_update().get(pk=pk)
 
         if admission.status == 'discharged':
             return Response({'error': 'Patient déjà sorti'}, status=status.HTTP_400_BAD_REQUEST)
@@ -185,9 +190,11 @@ class AdmissionViewSet(viewsets.ModelViewSet):  # View for AdmissionSet operatio
         admission.save()
 
         if admission.bed:
-            admission.bed.status = 'available'
-            admission.bed.last_cleaned = timezone.now()
-            admission.bed.save()
+            # Use select_for_update to prevent race conditions on bed status
+            bed = Bed.objects.select_for_update().get(pk=admission.bed.pk)
+            bed.status = 'available'
+            bed.last_cleaned = timezone.now()
+            bed.save()
 
             if admission.department:
                 admission.department.occupied_beds = Bed.objects.filter(

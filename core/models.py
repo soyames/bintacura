@@ -114,7 +114,7 @@ class Participant(AbstractBaseUser, PermissionsMixin):
     country = models.CharField(max_length=100, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Latitude for location on Leaflet map")
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, help_text="Longitude for location on Leaflet map")
-    preferred_currency = models.CharField(max_length=3, default="EUR", blank=True)
+    preferred_currency = models.CharField(max_length=3, default="XOF", blank=True)
     preferred_language = models.CharField(max_length=2, default="fr", choices=[("fr", "Français"), ("en", "English")], blank=True)
     
     # Multi-region support
@@ -487,7 +487,7 @@ class Wallet(SyncMixin):
         Participant, on_delete=models.CASCADE, related_name="core_wallet"
     )
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, help_text="DEPRECATED: Use computed ledger balance instead")
-    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="EUR")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="XOF")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     last_transaction_date = models.DateTimeField(null=True, blank=True)
     region_code = models.CharField(max_length=50, default="global", db_index=True)
@@ -601,17 +601,21 @@ class Transaction(SyncMixin):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3, default="XOF")
     
-    # Dual currency fields (Final Payment Model)
-    amount_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Reference amount in XOF")
+    # Dual currency fields (Multi-Currency Payment System)
+    amount_xof = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Reference amount in XOF (platform base currency)")
     amount_local = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Amount in participant local currency")
     currency_code = models.CharField(max_length=3, default="XOF", help_text="Local currency code used for payment")
     exchange_rate_used = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True, help_text="Exchange rate at time of transaction")
     conversion_timestamp = models.DateTimeField(null=True, blank=True, help_text="When currency conversion was applied")
     
     # Commission tracking (1% BintaCura fee)
-    commission_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="BintaCura 1% commission in XOF")
+    commission_amount_xof = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="BintaCura 1% commission in XOF")
     commission_amount_local = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="BintaCura 1% commission in local currency")
     tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Tax amount (18% where applicable)")
+    
+    # DEPRECATED: Legacy USD fields (kept for backward compatibility, use XOF fields above)
+    amount_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="DEPRECATED: Use amount_xof instead")
+    commission_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="DEPRECATED: Use commission_amount_xof instead")
     
     # Gateway integration
     gateway_transaction_id = models.CharField(max_length=255, null=True, blank=True, help_text="External gateway transaction ID")

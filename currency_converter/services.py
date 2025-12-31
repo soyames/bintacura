@@ -255,6 +255,107 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
         }
     
     @classmethod
+    def convert_and_log(cls, amount, from_currency: str, to_currency: str, 
+                       participant, transaction_id, conversion_type='transaction'):
+        """
+        Convert amount and create audit log for compliance and traceability.
+        
+        Args:
+            amount: Amount to convert
+            from_currency: Source currency code
+            to_currency: Target currency code
+            participant: Participant model instance
+            transaction_id: UUID of related transaction
+            conversion_type: Type of conversion (transaction, appointment, etc.)
+            
+        Returns:
+            dict with conversion details including log_id
+        """
+        from django.db import transaction as db_transaction
+        from .models import CurrencyConversionLog, ExchangeRate
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        if not isinstance(amount, Decimal):
+            amount = Decimal(str(amount))
+        
+        # Get rate and source info
+        rate = cls.get_rate(from_currency, to_currency)
+        converted = amount * rate
+        
+        if to_currency in ['XOF', 'XAF', 'NGN', 'KES']:
+            converted = converted.quantize(Decimal('1'))
+        else:
+            converted = converted.quantize(Decimal('0.01'))
+        
+        # Determine rate source
+        rate_source = 'static'
+        rate_fetched_at = None
+        try:
+            db_rate = ExchangeRate.objects.filter(
+                base_code=from_currency,
+                target_code=to_currency,
+                is_active=True,
+                fetched_at__gte=timezone.now() - timedelta(days=7)
+            ).first()
+            if db_rate:
+                rate_source = 'database'
+                rate_fetched_at = db_rate.fetched_at
+        except:
+            pass
+        
+        # Determine currency resolution method
+        resolved_via = 'default'
+        participant_country = ''
+        phone_country = ''
+        
+        if hasattr(participant, 'phone_number') and participant.phone_number:
+            phone_country = cls._extract_country_from_phone(participant.phone_number) or ''
+            if phone_country:
+                resolved_via = 'phone'
+        
+        if hasattr(participant, 'country') and participant.country:
+            participant_country = participant.country.upper()
+            if resolved_via == 'phone' and participant_country:
+                resolved_via = 'combined'
+            elif participant_country:
+                resolved_via = 'geo'
+        
+        # Create audit log
+        with db_transaction.atomic():
+            log = CurrencyConversionLog.objects.create(
+                transaction_id=transaction_id,
+                conversion_type=conversion_type,
+                participant=participant,
+                from_currency=from_currency,
+                to_currency=to_currency,
+                from_amount=amount,
+                to_amount=converted,
+                exchange_rate=rate,
+                participant_country=participant_country,
+                participant_phone_country=phone_country,
+                resolved_via=resolved_via,
+                rate_source=rate_source,
+                rate_fetched_at=rate_fetched_at
+            )
+        
+        logger.info(
+            f"Currency conversion logged: {amount} {from_currency} → {converted} {to_currency} "
+            f"(rate: {rate}, method: {resolved_via}, log_id: {log.id})"
+        )
+        
+        return {
+            'original_amount': amount,
+            'converted_amount': converted,
+            'from_currency': from_currency,
+            'to_currency': to_currency,
+            'rate': rate,
+            'log_id': log.id,
+            'resolved_via': resolved_via,
+            'rate_source': rate_source,
+        }
+    
+    @classmethod
     def format_amount(cls, amount, currency: str) -> str:
         if not isinstance(amount, Decimal):
             amount = Decimal(str(amount))

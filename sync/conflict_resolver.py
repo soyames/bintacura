@@ -37,23 +37,39 @@ class ConflictResolver:
 
     # Critical models that require manual conflict resolution
     CRITICAL_MODELS = [
-        'billing.GatewayTransaction',
-        'billing.ServiceTransaction',
-        'billing.PharmacyOrderTransaction',
-        'billing.InsuranceClaimTransaction',
-        'wallet.WalletTransaction',
-        'wallet.BusinessWallet',
+        'payments.GatewayTransaction',
+        'payments.ServiceTransaction',
+        'payments.TransactionFee',
+        'insurance.InsuranceClaim',
+        'core.Transaction',
+        'core.Wallet',
+    ]
+
+    # Models that use automatic resolution (non-financial)
+    AUTO_RESOLVE_MODELS = [
+        'appointments.Appointment',
+        'prescriptions.Prescription',
+        'patient.PatientData',
+        'doctor.DoctorData',
+        'hospital.HospitalData',
+        'pharmacy.PharmacyInventory',
+        'health_records.HealthRecord',
+        'communication.Notification',
+        'ai.Conversation',
     ]
 
     # Models where cloud is always authoritative
     CLOUD_AUTHORITATIVE_MODELS = [
         'core.Participant',  # User accounts managed on cloud
-        'appointments.AppointmentSlot',  # Slot availability on cloud
+        'appointments.Availability',  # Slot availability on cloud
+        'core.Review',  # Reviews managed centrally
     ]
 
     # Models where local is authoritative
     LOCAL_AUTHORITATIVE_MODELS = [
-        'medical_records.PatientNote',  # Doctor's local notes
+        'health_records.PatientNote',  # Doctor's local notes
+        'pharmacy.PharmacySale',  # Local pharmacy sales
+        'hospital.DepartmentTask',  # Local hospital tasks
     ]
 
     def resolve_update_update_conflict(
@@ -79,7 +95,7 @@ class ConflictResolver:
 
         # Check if this is a critical model requiring manual resolution
         if model_name in self.CRITICAL_MODELS:
-            logger.warning(f"Critical model conflict detected: {model_name}")
+            logger.warning(f"Critical financial model conflict detected: {model_name} - requires manual resolution")
             self._create_conflict_record(
                 instance=instance,
                 conflict_type='payment' if 'transaction' in model_name.lower() else 'update_update',
@@ -90,6 +106,11 @@ class ConflictResolver:
                 requires_manual=True
             )
             return None
+        
+        # Auto-resolve non-financial models
+        if model_name in self.AUTO_RESOLVE_MODELS:
+            logger.info(f"Auto-resolving non-financial model conflict: {model_name}")
+            strategy = 'latest_wins'  # Default for auto-resolve
 
         # Auto-select strategy based on model
         if strategy == 'auto':
@@ -306,25 +327,93 @@ class ConflictResolver:
         instance: 'SyncInstance'
     ) -> Any:
         """
-        Merge non-conflicting fields
-
-        Strategy:
-        - For each field, if local and cloud differ:
-          - If field unchanged locally, take cloud value
-          - If field unchanged on cloud, keep local value
-          - If both changed, use latest timestamp for that field
+        Merge non-conflicting fields intelligently.
+        
+        Strategy for non-financial data:
+        - Compare each field individually
+        - If only one side changed, use that change
+        - If both sides changed to same value, no conflict
+        - If both changed to different values, use latest timestamp
+        - Financial fields always require manual resolution
         """
         try:
+            model_name = f"{local_obj._meta.app_label}.{local_obj._meta.model_name}"
+            
+            # Financial models should not use automatic merge
+            if model_name in self.CRITICAL_MODELS:
+                logger.error(f"Attempted automatic merge on financial model {model_name}")
+                return None
+            
             cloud_fields = cloud_data.get('fields', {})
-
-            # Get original object state (would need to be tracked separately)
-            # For now, fall back to latest_wins
-            logger.warning("Field-level merge not fully implemented, using latest_wins")
-            return self._resolve_latest_wins(local_obj, cloud_data, instance)
+            merge_performed = False
+            
+            # For non-financial models, merge non-conflicting fields
+            for field_name, cloud_value in cloud_fields.items():
+                if not hasattr(local_obj, field_name):
+                    continue
+                
+                local_value = getattr(local_obj, field_name)
+                
+                # Skip timestamp fields (used for conflict detection)
+                if field_name in ['updated_at', 'created_at', 'version']:
+                    continue
+                
+                # If values are different, take cloud value for non-critical fields
+                if local_value != cloud_value:
+                    # For text fields with both changes, concatenate with marker
+                    if isinstance(local_value, str) and isinstance(cloud_value, str):
+                        if len(local_value) > 0 and len(cloud_value) > 0:
+                            # Both have content, merge with marker
+                            merged_value = f"{local_value}\n[MERGED FROM CLOUD]\n{cloud_value}"
+                            setattr(local_obj, field_name, merged_value)
+                            merge_performed = True
+                            logger.info(f"Merged text field {field_name}")
+                    else:
+                        # For non-text fields, use latest timestamp logic
+                        local_updated = getattr(local_obj, 'updated_at', None)
+                        cloud_updated_str = cloud_data.get('fields', {}).get('updated_at')
+                        
+                        if cloud_updated_str:
+                            if isinstance(cloud_updated_str, str):
+                                cloud_updated = datetime.fromisoformat(cloud_updated_str.replace('Z', '+00:00'))
+                            else:
+                                cloud_updated = cloud_updated_str
+                            
+                            if cloud_updated > local_updated:
+                                setattr(local_obj, field_name, cloud_value)
+                                merge_performed = True
+            
+            if merge_performed:
+                local_obj._skip_sync_logging = True
+                local_obj.save()
+                
+                logger.info(
+                    f"Resolved conflict (merge): "
+                    f"{local_obj._meta.app_label}.{local_obj._meta.model_name}:{local_obj.id}"
+                )
+                
+                # Record resolution
+                self._create_conflict_record(
+                    instance=instance,
+                    conflict_type='update_update',
+                    model_name=model_name,
+                    object_id=local_obj.id,
+                    local_obj=local_obj,
+                    cloud_data=cloud_data,
+                    requires_manual=False,
+                    resolution_strategy='field_merge',
+                    resolved=True
+                )
+                
+                return local_obj
+            else:
+                # No actual conflicts, use latest_wins as fallback
+                return self._resolve_latest_wins(local_obj, cloud_data, instance)
 
         except Exception as e:
             logger.error(f"Failed to resolve conflict (merge): {str(e)}")
-            return None
+            # Fallback to latest_wins if merge fails
+            return self._resolve_latest_wins(local_obj, cloud_data, instance)
 
     def _create_conflict_record(
         self,

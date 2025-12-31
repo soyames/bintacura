@@ -188,7 +188,7 @@ class PaymentReceipt(SyncMixin):  # Generates and stores payment receipts for tr
     platform_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, default='XOF')
     payment_method = models.CharField(max_length=50, default='cash', blank=True)
     payment_gateway = models.CharField(max_length=50, blank=True)
     transaction_reference = models.CharField(max_length=255, blank=True)
@@ -925,21 +925,26 @@ class TransactionFee(SyncMixin):  # Calculates and tracks fees for service trans
         ServiceTransaction, on_delete=models.CASCADE, related_name="fee_details"
     )
     
-    gross_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Gross amount in USD")
+    gross_amount_xof = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Gross amount in XOF (platform base currency)")
     gross_amount_local = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Gross amount in local currency")
-    currency_code = models.CharField(max_length=3, default='USD')
+    currency_code = models.CharField(max_length=3, default='XOF')
     exchange_rate_used = models.DecimalField(max_digits=12, decimal_places=6, default=1.0)
     
     gross_amount = models.DecimalField(max_digits=12, decimal_places=2)
     platform_fee_rate = models.DecimalField(max_digits=5, decimal_places=4, default=0.01)
-    platform_fee_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Commission in USD")
+    platform_fee_amount_xof = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Commission in XOF")
     platform_fee_amount_local = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Commission in local currency")
     platform_fee_amount = models.DecimalField(max_digits=12, decimal_places=2)
     
     tax_rate = models.DecimalField(max_digits=5, decimal_places=4, default=0.18)
-    tax_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, help_text="Tax in XOF")
+    tax_amount_xof = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, help_text="Tax in XOF")
     tax_amount_local = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, help_text="Tax in local currency")
     tax_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    # DEPRECATED: Legacy USD fields (kept for backward compatibility)
+    gross_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="DEPRECATED: Use gross_amount_xof")
+    platform_fee_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="DEPRECATED: Use platform_fee_amount_xof")
+    tax_amount_usd = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True, help_text="DEPRECATED: Use tax_amount_xof")
     
     total_fee_amount = models.DecimalField(max_digits=12, decimal_places=2)
     net_amount_to_provider = models.DecimalField(max_digits=12, decimal_places=2)
@@ -1373,7 +1378,7 @@ class VendorInvoice(SyncMixin):  # Tracks vendor invoices and payments (accounts
     tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
     amount_paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    currency = models.CharField(max_length=3, default='USD')
+    currency = models.CharField(max_length=3, default='XOF')
 
     # Status
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')

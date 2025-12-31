@@ -95,6 +95,14 @@ class InsuranceClaim(SyncMixin):  # Tracks insurance claims submitted by patient
     ]
 
     claim_number = models.CharField(max_length=100, unique=True)
+    idempotency_key = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Client-provided unique key to prevent duplicate claim submission"
+    )
     patient = models.ForeignKey(
         Participant, on_delete=models.CASCADE, related_name="insurance_claims"
     )

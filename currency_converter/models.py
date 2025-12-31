@@ -103,3 +103,76 @@ class CurrencyPair(SyncMixin):
     
     def __str__(self):
         return f"{self.base_currency}/{self.quote_currency}"
+
+
+class CurrencyConversionLog(SyncMixin):
+    """
+    Audit log for all currency conversions performed in transactions.
+    Provides traceability and compliance for multi-currency operations.
+    """
+    CONVERSION_TYPE_CHOICES = [
+        ('transaction', 'Transaction Payment'),
+        ('appointment', 'Appointment Booking'),
+        ('prescription', 'Prescription Fulfillment'),
+        ('service', 'Service Payment'),
+        ('payout', 'Provider Payout'),
+        ('refund', 'Refund Processing'),
+        ('other', 'Other'),
+    ]
+    
+    # Reference to the transaction/operation
+    transaction_id = models.UUIDField(db_index=True, help_text="UUID of related transaction")
+    conversion_type = models.CharField(max_length=20, choices=CONVERSION_TYPE_CHOICES, default='transaction')
+    
+    # Participant info
+    participant = models.ForeignKey(
+        'core.Participant',
+        on_delete=models.CASCADE,
+        related_name='currency_conversions',
+        help_text="Participant whose currency was converted"
+    )
+    
+    # Currency conversion details
+    from_currency = models.CharField(max_length=3, db_index=True, help_text="Source currency code")
+    to_currency = models.CharField(max_length=3, db_index=True, help_text="Target currency code")
+    from_amount = models.DecimalField(max_digits=18, decimal_places=2, help_text="Amount in source currency")
+    to_amount = models.DecimalField(max_digits=18, decimal_places=2, help_text="Amount in target currency")
+    exchange_rate = models.DecimalField(max_digits=18, decimal_places=8, help_text="Exchange rate used")
+    
+    # Geo-location data used for currency determination
+    participant_country = models.CharField(max_length=3, blank=True, help_text="ISO country code from phone/geo")
+    participant_phone_country = models.CharField(max_length=3, blank=True, help_text="Country from phone number")
+    resolved_via = models.CharField(
+        max_length=20,
+        choices=[('phone', 'Phone Number'), ('geo', 'Geolocation'), ('combined', 'Phone + Geo'), ('default', 'Default')],
+        default='default',
+        help_text="How currency was determined"
+    )
+    
+    # Rate source tracking
+    rate_source = models.CharField(
+        max_length=20,
+        choices=[('database', 'Database'), ('api', 'API'), ('static', 'Static Fallback')],
+        default='database',
+        help_text="Source of exchange rate"
+    )
+    rate_fetched_at = models.DateTimeField(null=True, blank=True, help_text="When rate was fetched")
+    
+    # Audit trail
+    converted_at = models.DateTimeField(auto_now_add=True, db_index=True, help_text="When conversion happened")
+    region_code = models.CharField(max_length=50, default="global", db_index=True)
+    
+    class Meta:
+        db_table = 'currency_conversion_logs'
+        ordering = ['-converted_at']
+        indexes = [
+            models.Index(fields=['transaction_id', '-converted_at']),
+            models.Index(fields=['participant', '-converted_at']),
+            models.Index(fields=['from_currency', 'to_currency', '-converted_at']),
+            models.Index(fields=['conversion_type', '-converted_at']),
+            models.Index(fields=['resolved_via', '-converted_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.from_amount} {self.from_currency} → {self.to_amount} {self.to_currency} @ {self.exchange_rate}"
+

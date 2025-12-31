@@ -18,12 +18,14 @@ class FedaPayWebhookHandler:
     """Handle FedaPay webhook events"""
     
     @staticmethod
+    @transaction.atomic
     def handle_webhook(event_data: dict) -> bool:
         """
         Process incoming webhook event with idempotency guarantee.
 
         ACID Compliance:
-        - Uses get_or_create() to prevent duplicate processing
+        - Wrapped in @transaction.atomic for full ACID guarantees
+        - Uses select_for_update() with get_or_create to prevent race conditions
         - Returns immediately if event already processed
         - Ensures each webhook is processed exactly once
         """
@@ -31,8 +33,8 @@ class FedaPayWebhookHandler:
         entity = event_data.get('entity', {})
         event_id = event_data.get('id')
 
-        # IDEMPOTENCY: Use get_or_create to prevent duplicate processing
-        webhook_event, created = FedaPayWebhookEvent.objects.get_or_create(
+        # IDEMPOTENCY: Use get_or_create with select_for_update to prevent duplicate processing
+        webhook_event, created = FedaPayWebhookEvent.objects.select_for_update().get_or_create(
             event_id=event_id,
             defaults={
                 'event_type': event_type,

@@ -42,6 +42,14 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
     ]
 
     region_code = models.CharField(max_length=50, default="global", db_index=True)
+    idempotency_key = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Client-provided unique key to prevent duplicate appointment creation"
+    )
     participants = models.JSONField(default=list)
     patient = models.ForeignKey(
         Participant,

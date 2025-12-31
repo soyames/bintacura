@@ -93,8 +93,10 @@ class PharmacyInventoryViewSet(viewsets.ModelViewSet):  # View for PharmacyInven
         })
 
     @action(detail=True, methods=['post'])
+    @transaction.atomic
     def restock(self, request, pk=None):
-        instance = self.get_object()
+        # Use select_for_update to prevent race conditions
+        instance = PharmacyInventory.objects.select_for_update().get(pk=pk)
         quantity = request.data.get('quantity', 0)
         batch_number = request.data.get('batch_number', '')
         expiry_date = request.data.get('expiry_date')
@@ -433,7 +435,8 @@ class PharmacySaleViewSet(viewsets.ModelViewSet):  # View for PharmacySaleSet op
             )
 
             for item_data in items_data:
-                inventory = PharmacyInventory.objects.get(id=item_data['inventory_item_id'])
+                # Use select_for_update to prevent race conditions on inventory
+                inventory = PharmacyInventory.objects.select_for_update().get(id=item_data['inventory_item_id'])
 
                 PharmacySaleItem.objects.create(
                     sale=sale,

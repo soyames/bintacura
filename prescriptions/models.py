@@ -62,6 +62,14 @@ class Prescription(SyncMixin):  # Represents medical prescriptions issued by doc
     ]
 
     region_code = models.CharField(max_length=50, default="global", db_index=True)
+    idempotency_key = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Client-provided unique key to prevent duplicate prescription creation"
+    )
     patient = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='prescriptions')
     doctor = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='prescribed_prescriptions')
     preferred_pharmacy = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='preferred_prescriptions')

@@ -65,7 +65,7 @@ class DoctorData(models.Model):  # Stores detailed doctor profile information in
     license_number = models.CharField(max_length=100, unique=True)
     years_of_experience = models.IntegerField(default=0)
     qualifications = models.JSONField(default=list)
-    consultation_fee = models.IntegerField(default=0)  # Stored in XOF cents
+    consultation_fee = models.IntegerField(default=0)  # Stored in XOF (major units, not cents)
     bio = models.TextField(blank=True)
     languages_spoken = models.JSONField(default=list)
     rating = models.FloatField(default=0.0)
