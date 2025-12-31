@@ -64,7 +64,7 @@ class QueueManagementService:
         default_consultation_fee_usd = Decimal(str(system_config.default_consultation_fee))
         
         # Get patient's local currency
-        patient_currency = CurrencyConverterService.get_patient_currency(patient)
+        patient_currency = CurrencyConverterService.get_participant_currency(patient)
         
         # Convert consultation fee to patient's local currency
         default_consultation_fee = CurrencyConverterService.get_consultation_fee_in_currency(

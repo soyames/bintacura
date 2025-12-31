@@ -229,7 +229,8 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
             )
 
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error(f"Error creating appointment: {str(e)}", exc_info=True)
+            return Response({"error": f"Impossible de créer le rendez-vous: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=["post"])
     def pay(self, request, pk=None):  # Pay
