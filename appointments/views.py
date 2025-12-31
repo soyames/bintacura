@@ -12,10 +12,13 @@ from doctor.models import DoctorData
 from core.models import Participant, Transaction
 from core.services import WalletService
 from communication.services import NotificationService
+import logging
 
 from currency_converter.services import CurrencyConverterService
 from .models import *
 from .serializers import *
+
+logger = logging.getLogger(__name__)
 
 
 class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet operations
@@ -98,12 +101,18 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
                 from django.conf import settings
                 consultation_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
 
-            patient_currency = CurrencyConverterService.get_participant_currency(patient)
-            consultation_fee = CurrencyConverterService.convert(
-                Decimal(str(consultation_fee_xof)),
-                'XOF',
-                patient_currency
-            )
+            try:
+                patient_currency = CurrencyConverterService.get_participant_currency(patient)
+                conversion_result = CurrencyConverterService.convert(
+                    Decimal(str(consultation_fee_xof)),
+                    'XOF',
+                    patient_currency
+                )
+                consultation_fee = conversion_result['converted_amount']
+            except Exception as currency_error:
+                logger.error(f"Currency conversion error: {str(currency_error)}")
+                patient_currency = 'XOF'
+                consultation_fee = Decimal(str(consultation_fee_xof))
 
             additional_services_total = Decimal('0.00')
             service_id = request.data.get("service_id")
@@ -119,13 +128,20 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
                         is_available=True,
                     )
                     if service.price:
-                        service_price_local = CurrencyConverterService.convert(
-                            Decimal(str(service.price)),
-                            'XOF',
-                            patient_currency
-                        )
-                        additional_services_total = service_price_local
-                        consultation_fee = consultation_fee + service_price_local
+                        try:
+                            service_conversion = CurrencyConverterService.convert(
+                                Decimal(str(service.price)),
+                                'XOF',
+                                patient_currency
+                            )
+                            service_price_local = service_conversion['converted_amount']
+                            additional_services_total = service_price_local
+                            consultation_fee = consultation_fee + service_price_local
+                        except Exception as conv_error:
+                            logger.error(f"Service price conversion error: {str(conv_error)}")
+                            service_price_local = Decimal(str(service.price))
+                            additional_services_total = service_price_local
+                            consultation_fee = consultation_fee + service_price_local
                 except DoctorService.DoesNotExist:
                     pass
 
