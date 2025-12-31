@@ -86,6 +86,33 @@ class FedaPayWebhookHandler:
         """Handle approved transaction - credit user wallet (NO FEES on wallet top-up)"""
         fedapay_txn_id = entity.get('id')
         
+        # First, try to find if this is a service payment (appointment, etc.)
+        try:
+            # Check CoreTransaction with FedaPay ID in metadata
+            core_txn = CoreTransaction.objects.filter(
+                metadata__fedapay_transaction_id=str(fedapay_txn_id),
+                status='pending'
+            ).first()
+            
+            if core_txn:
+                logger.info(f"Found pending CoreTransaction for FedaPay {fedapay_txn_id}")
+                core_txn.status = 'completed'
+                core_txn.completed_at = timezone.now()
+                core_txn.save()
+                
+                # Update related appointment if it exists
+                service_type = core_txn.metadata.get('service_type')
+                service_id = core_txn.metadata.get('service_id')
+                
+                if service_type == 'appointment' and service_id:
+                    FedaPayWebhookHandler._update_appointment_payment_status(service_id, core_txn)
+                    
+                logger.info(f"CoreTransaction {core_txn.transaction_ref} marked as completed")
+                return
+        except Exception as e:
+            logger.error(f"Error checking CoreTransaction: {e}")
+        
+        # Original wallet top-up logic
         try:
             fedapay_txn = FedaPayTransaction.objects.get(fedapay_transaction_id=fedapay_txn_id)
         except FedaPayTransaction.DoesNotExist:
@@ -335,6 +362,10 @@ class FedaPayWebhookHandler:
                 receipt = EnhancedReceiptService.create_receipt_from_service_transaction(service_txn)
                 logger.info(f"Receipt {receipt.receipt_number} created for service transaction {service_txn.id}")
 
+        # Handle appointment payments
+        if gateway_txn.transaction_type == 'appointment':
+            FedaPayWebhookHandler._handle_appointment_payment(gateway_txn)
+        
         # Handle pharmacy order payments
         if gateway_txn.transaction_type == 'pharmacy_order':
             FedaPayWebhookHandler._handle_pharmacy_order_payment(gateway_txn)
@@ -389,6 +420,149 @@ class FedaPayWebhookHandler:
             logger.info(f"Gateway transaction {gateway_txn.id} declined")
         except GatewayTransaction.DoesNotExist:
             logger.info(f"No GatewayTransaction found for FedaPay transaction {fedapay_txn_id}")
+
+    @staticmethod
+    @transaction.atomic
+    def _update_appointment_payment_status(appointment_id: str, core_txn: CoreTransaction):
+        """Update appointment payment status after successful payment"""
+        try:
+            from appointments.models import Appointment
+            from communication.notification_service import NotificationService
+
+            appointment = Appointment.objects.select_for_update().filter(id=appointment_id).first()
+            if not appointment:
+                logger.error(f"Appointment {appointment_id} not found")
+                return
+
+            if appointment.payment_status == 'paid':
+                logger.info(f"Appointment {appointment.id} already paid")
+                return
+
+            # Update appointment
+            appointment.payment_status = 'paid'
+            appointment.payment_method = 'online'
+            appointment.status = 'confirmed'
+            appointment.save()
+
+            # Notify patient
+            try:
+                NotificationService.send_notification(
+                    user=appointment.patient,
+                    title='✅ Paiement Confirmé',
+                    message=f'Votre paiement pour le rendez-vous avec {(appointment.doctor or appointment.hospital).full_name} a été confirmé. Rendez-vous: {appointment.appointment_date} à {appointment.appointment_time}.',
+                    notification_type='payment',
+                    priority='high',
+                    metadata={
+                        'appointment_id': str(appointment.id),
+                        'transaction_ref': core_txn.transaction_ref,
+                        'queue_number': appointment.queue_number
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to notify patient: {e}")
+
+            # Notify provider
+            try:
+                provider = appointment.doctor or appointment.hospital
+                NotificationService.send_notification(
+                    user=provider,
+                    title='💰 Paiement Reçu',
+                    message=f'Paiement confirmé pour le rendez-vous avec {appointment.patient.full_name} le {appointment.appointment_date} à {appointment.appointment_time}.',
+                    notification_type='payment',
+                    priority='normal',
+                    metadata={
+                        'appointment_id': str(appointment.id),
+                        'patient_id': str(appointment.patient.uid),
+                        'transaction_ref': core_txn.transaction_ref
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to notify provider: {e}")
+
+            logger.info(f"Appointment {appointment.id} payment confirmed via webhook")
+
+        except Exception as e:
+            logger.error(f"Error updating appointment payment status: {e}")
+            raise
+
+    @staticmethod
+    @transaction.atomic
+    def _handle_appointment_payment(gateway_txn):
+        """Handle approved appointment payment"""
+        try:
+            from appointments.models import Appointment
+            from communication.notification_service import NotificationService
+
+            # Get appointment from gateway transaction metadata or reference
+            appointment_id = gateway_txn.metadata.get('service_id') or gateway_txn.metadata.get('appointment_id') or gateway_txn.reference_id
+            if not appointment_id:
+                logger.warning(f"No appointment_id in gateway transaction {gateway_txn.id}")
+                return
+
+            appointment = Appointment.objects.select_for_update().filter(id=appointment_id).first()
+            if not appointment:
+                logger.error(f"Appointment {appointment_id} not found")
+                return
+
+            if appointment.payment_status == 'paid':
+                logger.info(f"Appointment {appointment.id} already paid")
+                return
+
+            # Update appointment payment status
+            appointment.payment_status = 'paid'
+            appointment.payment_method = 'online'
+            appointment.payment_reference = f"FEDAPAY-{gateway_txn.gateway_transaction_id}"
+            appointment.status = 'confirmed'
+            appointment.save()
+
+            # Update core transaction status
+            if appointment.payment_id:
+                try:
+                    core_txn = CoreTransaction.objects.get(id=appointment.payment_id)
+                    core_txn.status = 'completed'
+                    core_txn.completed_at = timezone.now()
+                    core_txn.save()
+                except CoreTransaction.DoesNotExist:
+                    pass
+
+            # Notify patient
+            try:
+                NotificationService.send_notification(
+                    user=appointment.patient,
+                    title='Paiement Confirmé - Rendez-vous',
+                    message=f'Votre paiement pour le rendez-vous avec {(appointment.doctor or appointment.hospital).full_name} le {appointment.appointment_date} à {appointment.appointment_time} a été confirmé.',
+                    notification_type='payment',
+                    priority='high',
+                    metadata={
+                        'appointment_id': str(appointment.id),
+                        'queue_number': appointment.queue_number
+                    }
+                )
+            except Exception as notif_error:
+                logger.error(f"Failed to send patient notification: {notif_error}")
+
+            # Notify provider
+            try:
+                provider = appointment.doctor or appointment.hospital
+                NotificationService.send_notification(
+                    user=provider,
+                    title='Paiement Reçu - Rendez-vous',
+                    message=f'Paiement reçu de {appointment.patient.full_name} pour le rendez-vous du {appointment.appointment_date} à {appointment.appointment_time}.',
+                    notification_type='payment',
+                    priority='high',
+                    metadata={
+                        'appointment_id': str(appointment.id),
+                        'patient_id': str(appointment.patient.uid)
+                    }
+                )
+            except Exception as notif_error:
+                logger.error(f"Failed to send provider notification: {notif_error}")
+
+            logger.info(f"Appointment {appointment.id} payment processed successfully via FedaPay")
+
+        except Exception as e:
+            logger.error(f"Error handling appointment payment: {str(e)}")
+            raise
 
     @staticmethod
     @transaction.atomic

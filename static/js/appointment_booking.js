@@ -505,13 +505,22 @@ class AppointmentBooking {
             const data = await response.json();
 
             if (response.ok && data.success) {
+                // If online payment, redirect to FedaPay
+                if (paymentMethod === 'online' && data.payment_url) {
+                    alert(`✅ Rendez-vous créé!\n\nVous allez être redirigé vers la page de paiement FedaPay.`);
+                    // Redirect to FedaPay payment page
+                    window.location.href = data.payment_url;
+                    return;
+                }
+                
+                // For cash payment, show confirmation
                 const queueInfo = data.queue_number ? 
                     `\n\nNuméro de file: ${data.queue_number}\nPosition: ${data.queue_position ? data.queue_position.people_ahead + ' personne(s) devant vous' : ''}\nTemps d'attente estimé: ${data.estimated_wait_time || 0} minutes` : '';
                 
                 const receiptMsg = data.receipt_download_url ? 
                     `\n\nReceipt: ${data.receipt_number}\nUn reçu sera téléchargé automatiquement.` : '';
                 
-                alert(`✅ Rendez-vous confirmé!${queueInfo}\n\nMéthode de paiement: ${paymentMethod === 'cash' ? 'Sur place (Cash)' : 'En ligne (FedaPay)'}${receiptMsg}`);
+                alert(`✅ Rendez-vous confirmé!${queueInfo}\n\nMéthode de paiement: Sur place (Cash)${receiptMsg}`);
                 
                 if (data.receipt_download_url) {
                     window.open(data.receipt_download_url, '_blank');
@@ -566,20 +575,27 @@ class AppointmentBooking {
             `;
             
             dialog.innerHTML = `
-                <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%;">
-                    <h3 style="margin-bottom: 20px; color: #2d3748;">Choisir le mode de paiement</h3>
+                <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%; position: relative;">
+                    <button onclick="this.closest('div').parentElement.parentElement.remove(); window.paymentChoice(null);" 
+                            style="position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; border: none; background: #f5f5f5; color: #666; border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                            onmouseover="this.style.background='#e0e0e0'" 
+                            onmouseout="this.style.background='#f5f5f5'"
+                            title="Fermer">
+                        ×
+                    </button>
+                    <h3 style="margin-bottom: 20px; color: #2d3748; padding-right: 40px;">Choisir le mode de paiement</h3>
                     <div style="display: flex; flex-direction: column; gap: 15px;">
-                        <button onclick="this.closest('div').parentElement.remove(); window.paymentChoice('online');" 
-                                style="padding: 15px; border: 2px solid #4CAF50; background: #4CAF50; color: white; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                        <button onclick="this.closest('div').parentElement.parentElement.remove(); window.paymentChoice('online');" 
+                                style="padding: 15px; border: 2px solid #4CAF50; background: #4CAF50; color: white; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.2s;"
+                                onmouseover="this.style.background='#45a049'" 
+                                onmouseout="this.style.background='#4CAF50'">
                             💳 Payer En ligne
                         </button>
-                        <button onclick="this.closest('div').parentElement.remove(); window.paymentChoice('cash');" 
-                                style="padding: 15px; border: 2px solid #2196F3; background: #2196F3; color: white; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                        <button onclick="this.closest('div').parentElement.parentElement.remove(); window.paymentChoice('cash');" 
+                                style="padding: 15px; border: 2px solid #2196F3; background: #2196F3; color: white; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.2s;"
+                                onmouseover="this.style.background='#0b7dda'" 
+                                onmouseout="this.style.background='#2196F3'">
                             💵 Payer sur place (Cash)
-                        </button>
-                        <button onclick="this.closest('div').parentElement.remove(); window.paymentChoice(null);" 
-                                style="padding: 15px; border: 2px solid #ccc; background: white; color: #666; border-radius: 8px; cursor: pointer;">
-                            Annuler
                         </button>
                     </div>
                 </div>

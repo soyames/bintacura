@@ -79,6 +79,7 @@ class BookAppointmentWithQueueView(APIView):
                 'queue_position': queue_position,
                 'estimated_wait_time': result['estimated_wait_time'],
                 'payment_method': data['payment_method'],
+                'payment_url': result.get('payment_url'),  # FedaPay payment URL for online payments
                 'invoice_url': f'/patient/view-invoice/?transaction_id={result.get("transaction_id", "")}' if result.get("transaction_id") else None
             }
             

@@ -14,7 +14,7 @@ class ServicePaymentService:
     
     @staticmethod
     @transaction.atomic
-    def process_wallet_payment(
+    def initiate_online_payment(
         patient: Participant,
         provider: Participant,
         amount: Decimal,
@@ -24,8 +24,8 @@ class ServicePaymentService:
         description: str
     ) -> dict:
         """
-        Process a service payment using wallet balance
-        Applies 1% BINTACURA platform fee + tax
+        Initiate an online payment via FedaPay gateway
+        Creates a pending transaction and returns FedaPay payment URL
         
         Args:
             patient: Patient making the payment
@@ -37,49 +37,38 @@ class ServicePaymentService:
             description: Payment description
             
         Returns:
-            dict with transaction details
+            dict with payment URL and transaction details
         """
-        # Get patient wallet
-        patient_wallet = Wallet.objects.select_for_update().get(participant=patient)
-        
-        # Check sufficient balance
-        if patient_wallet.balance < amount:
-            raise ValueError(f"Insufficient wallet balance. Available: {patient_wallet.balance}, Required: {amount}")
+        from .fedapay_webhook_handler import FedaPayWalletService
+        from django.conf import settings
         
         # Calculate fees (1% platform fee + tax)
         fee_calculation = FeeCalculationService.calculate_service_payment_fees(
             amount,
-            payment_method='wallet'
+            payment_method='online'
         )
         
-        # Get or create provider wallet
-        provider_wallet, _ = Wallet.objects.select_for_update().get_or_create(
-            participant=provider,
-            defaults={'currency': currency, 'balance': Decimal('0.00')}
-        )
+        # Create pending transaction
+        transaction_ref = f"ONLINE-{timezone.now().strftime('%Y%m%d%H%M%S')}-{service_id[:8]}"
         
-        # Debit patient wallet (full service amount)
-        patient_balance_before = patient_wallet.balance
-        patient_balance_after = patient_balance_before - amount
-        
-        # Create patient transaction (debit)
         patient_txn = CoreTransaction.objects.create(
-            transaction_ref=f"PAY-{timezone.now().strftime('%Y%m%d%H%M%S')}-{service_id[:8]}",
-            wallet=patient_wallet,
+            transaction_ref=transaction_ref,
+            wallet=None,  # No wallet involved for online payment
             transaction_type='payment',
             amount=amount,
             currency=currency,
-            status='completed',
-            payment_method='wallet',
+            status='pending',
+            payment_method='fedapay',
             description=description,
             recipient=provider,
-            balance_before=patient_balance_before,
-            balance_after=patient_balance_after,
-            completed_at=timezone.now(),
+            sender=patient,
+            balance_before=Decimal('0'),
+            balance_after=Decimal('0'),
             metadata={
                 'service_type': service_type,
                 'service_id': service_id,
-                'payment_method': 'wallet',
+                'payment_method': 'online',
+                'payment_gateway': 'fedapay',
                 'fee_calculation': {
                     'gross_amount': str(fee_calculation['gross_amount']),
                     'platform_fee': str(fee_calculation['platform_fee']),
@@ -90,61 +79,67 @@ class ServicePaymentService:
             }
         )
         
-        # Update patient wallet
-        patient_wallet.balance = patient_balance_after
-        patient_wallet.last_transaction_date = timezone.now()
-        patient_wallet.save()
+        # Initiate FedaPay transaction
+        callback_url = f"{settings.FRONTEND_URL}/api/payments/fedapay/callback/{service_type}/{service_id}/"
         
-        # Credit provider wallet (amount minus fees)
-        net_amount = fee_calculation['net_amount']
-        provider_balance_before = provider_wallet.balance
-        provider_balance_after = provider_balance_before + net_amount
-        
-        # Create provider transaction (credit)
-        provider_txn = CoreTransaction.objects.create(
-            transaction_ref=f"RCV-{timezone.now().strftime('%Y%m%d%H%M%S')}-{service_id[:8]}",
-            wallet=provider_wallet,
-            transaction_type='payment',
-            amount=net_amount,
+        fedapay_result = FedaPayWalletService.initiate_wallet_topup(
+            participant=patient,
+            amount=amount,
             currency=currency,
-            status='completed',
-            payment_method='wallet',
-            description=f"Payment received via BINTACURA Wallet - {description}",
-            sender=patient,
-            balance_before=provider_balance_before,
-            balance_after=provider_balance_after,
-            completed_at=timezone.now(),
-            metadata={
-                'service_type': service_type,
-                'service_id': service_id,
-                'payment_method': 'wallet',
-                'original_amount': str(amount),
-                'platform_fee_deducted': str(fee_calculation['platform_fee']),
-                'tax_deducted': str(fee_calculation['tax']),
-                'total_fee_deducted': str(fee_calculation['total_fee']),
-                'net_received': str(net_amount)
-            }
+            callback_url=callback_url
         )
         
-        # Update provider wallet
-        provider_wallet.balance = provider_balance_after
-        provider_wallet.last_transaction_date = timezone.now()
-        provider_wallet.save()
+        # Update transaction with FedaPay reference
+        patient_txn.metadata['fedapay_transaction_id'] = fedapay_result['fedapay_transaction_id']
+        patient_txn.metadata['payment_url'] = fedapay_result['payment_url']
+        patient_txn.save()
         
         logger.info(
-            f"Wallet payment processed: {amount} {currency} from {patient.email} to {provider.email}. "
-            f"Fee: {fee_calculation['total_fee']}, Net to provider: {net_amount}"
+            f"Online payment initiated: {amount} {currency} from {patient.email} to {provider.email}. "
+            f"FedaPay ID: {fedapay_result['fedapay_transaction_id']}"
         )
         
         return {
             'success': True,
             'patient_transaction': patient_txn,
-            'provider_transaction': provider_txn,
+            'payment_url': fedapay_result['payment_url'],
+            'payment_token': fedapay_result.get('payment_token'),
+            'fedapay_transaction_id': fedapay_result['fedapay_transaction_id'],
             'fee_calculation': fee_calculation,
-            'patient_new_balance': patient_balance_after,
-            'provider_new_balance': provider_balance_after
+            'transaction_ref': transaction_ref
         }
     
+    @staticmethod
+    @transaction.atomic
+    def process_wallet_payment(
+        patient: Participant,
+        provider: Participant,
+        amount: Decimal,
+        currency: str,
+        service_type: str,
+        service_id: str,
+        description: str
+    ) -> dict:
+        """
+        DEPRECATED: Wallet payments are not used in BINTACURA.
+        All online payments go through FedaPay.
+        Use initiate_online_payment() instead.
+        
+        This method redirects to online payment initiation.
+        """
+        logger.warning(
+            f"process_wallet_payment called but wallet payments not supported. "
+            f"Redirecting to online payment via FedaPay for {patient.email}"
+        )
+        return ServicePaymentService.initiate_online_payment(
+            patient=patient,
+            provider=provider,
+            amount=amount,
+            currency=currency,
+            service_type=service_type,
+            service_id=service_id,
+            description=description
+        )
     @staticmethod
     @transaction.atomic
     def record_onsite_payment(

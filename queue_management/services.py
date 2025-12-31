@@ -135,10 +135,17 @@ class QueueManagementService:
         
         # Process payment
         payment_result = None
+        payment_url = None
         if total_amount_with_fee > 0:
             try:
-                if payment_method == 'wallet':
-                    payment_result = ServicePaymentService.process_wallet_payment(
+                # Normalize payment method names
+                is_online_payment = payment_method in ['wallet', 'online', 'fedapay', 'card', 'mobile_money']
+                is_onsite_payment = payment_method in ['onsite', 'cash', 'onsite_cash']
+                
+                if is_online_payment:
+                    # For online payments, initiate FedaPay transaction
+                    # This returns a payment URL for the user to complete payment
+                    payment_result = ServicePaymentService.initiate_online_payment(
                         patient=patient,
                         provider=service_participant,
                         amount=subtotal,
@@ -148,7 +155,13 @@ class QueueManagementService:
                         description=f"Appointment booking - {appointment_type} with {service_participant.full_name}" + 
                                   (f" + {len(services_details)} additional service(s)" if services_details else "")
                     )
-                else:  # onsite
+                    # Online payment starts as pending until FedaPay confirms
+                    appointment.payment_status = 'pending'
+                    appointment.payment_method = 'online'
+                    payment_url = payment_result.get('payment_url')
+                    
+                elif is_onsite_payment:
+                    # For onsite payments, create a pending payment record
                     payment_result = ServicePaymentService.record_onsite_payment(
                         patient=patient,
                         provider=service_participant,
@@ -159,10 +172,14 @@ class QueueManagementService:
                         description=f"Appointment booking - {appointment_type} with {service_participant.full_name} (Pay on-site)" +
                                   (f" + {len(services_details)} additional service(s)" if services_details else "")
                     )
+                    appointment.payment_status = 'pending'
+                    appointment.payment_method = 'onsite'
+                else:
+                    raise ValueError(f"Unsupported payment method: {payment_method}")
                 
                 # Update appointment with payment info
-                appointment.payment_status = 'paid' if payment_method == 'wallet' else 'pending'
                 appointment.payment_id = payment_result['patient_transaction'].id
+                appointment.payment_reference = str(payment_result['patient_transaction'].transaction_ref)
                 appointment.status = 'confirmed'
                 appointment.save()
                 
@@ -230,6 +247,7 @@ class QueueManagementService:
             'queue_number': queue_entry.queue_number,
             'estimated_wait_time': queue_entry.estimated_wait_time,
             'payment_result': payment_result,
+            'payment_url': payment_url,  # FedaPay payment URL for online payments
             'transaction_id': str(payment_result['patient_transaction'].id) if payment_result else None,
             'queue_position': QueueManagementService.get_queue_position(queue_entry.id)
         }
