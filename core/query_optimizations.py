@@ -44,3 +44,35 @@ def optimize_health_records_query():
     from health_records.models import HealthRecord
 
     return HealthRecord.objects.select_related("patient", "doctor")
+
+
+def optimize_payment_query():
+    from payments.models import Payment
+    
+    return Payment.objects.select_related(
+        "participant", "service"
+    ).prefetch_related("refunds")
+
+
+def optimize_service_query():
+    from core.models import ParticipantService
+    
+    return ParticipantService.objects.select_related(
+        "participant", "category"
+    )
+
+
+def optimize_forum_post_query():
+    from communication.models import ForumPost
+    
+    return ForumPost.objects.select_related(
+        "author"
+    ).prefetch_related("likes", "comments")
+
+
+def optimize_refund_query():
+    from core.models import RefundRequest
+    
+    return RefundRequest.objects.select_related(
+        "patient", "payment", "approved_by"
+    )
