@@ -481,7 +481,7 @@ class AppointmentBooking {
             type: 'consultation',
             reason: document.querySelector('[name="reason"]').value,
             symptoms: document.querySelector('[name="notes"]').value || '',
-            payment_method: paymentMethod === 'cash' ? 'onsite' : 'wallet',
+            payment_method: paymentMethod === 'cash' ? 'onsite' : 'online',
             additional_service_ids: this.selectedServices.map(s => s.id).filter(id => id)
         };
 
@@ -511,7 +511,7 @@ class AppointmentBooking {
                 const receiptMsg = data.receipt_download_url ? 
                     `\n\nReceipt: ${data.receipt_number}\nUn reçu sera téléchargé automatiquement.` : '';
                 
-                alert(`✅ Rendez-vous confirmé!${queueInfo}\n\nMéthode de paiement: ${paymentMethod === 'cash' ? 'Sur place' : 'Wallet'}${receiptMsg}`);
+                alert(`✅ Rendez-vous confirmé!${queueInfo}\n\nMéthode de paiement: ${paymentMethod === 'cash' ? 'Sur place (Cash)' : 'En ligne (FedaPay)'}${receiptMsg}`);
                 
                 if (data.receipt_download_url) {
                     window.open(data.receipt_download_url, '_blank');
@@ -569,9 +569,9 @@ class AppointmentBooking {
                 <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%;">
                     <h3 style="margin-bottom: 20px; color: #2d3748;">Choisir le mode de paiement</h3>
                     <div style="display: flex; flex-direction: column; gap: 15px;">
-                        <button onclick="this.closest('div').parentElement.remove(); window.paymentChoice('wallet');" 
+                        <button onclick="this.closest('div').parentElement.remove(); window.paymentChoice('online');" 
                                 style="padding: 15px; border: 2px solid #4CAF50; background: #4CAF50; color: white; border-radius: 8px; cursor: pointer; font-size: 16px;">
-                            💳 Payer avec Wallet
+                            💳 Payer En ligne
                         </button>
                         <button onclick="this.closest('div').parentElement.remove(); window.paymentChoice('cash');" 
                                 style="padding: 15px; border: 2px solid #2196F3; background: #2196F3; color: white; border-radius: 8px; cursor: pointer; font-size: 16px;">

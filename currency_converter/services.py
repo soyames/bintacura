@@ -514,3 +514,18 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
     def get_currency_for_country(cls, country_code: str) -> str:
         """Get currency code for a given country code"""
         return cls.get_currency_from_country(country_code)
+    
+    @classmethod
+    def get_consultation_fee_in_currency(cls, base_fee_xof: Decimal, target_currency: str) -> Decimal:
+        """
+        Convert consultation fee from XOF to target currency.
+        Used for displaying fees in patient's local currency.
+        """
+        if not isinstance(base_fee_xof, Decimal):
+            base_fee_xof = Decimal(str(base_fee_xof))
+        
+        if target_currency == cls.BASE_CURRENCY:
+            return base_fee_xof
+        
+        result = cls.convert(base_fee_xof, cls.BASE_CURRENCY, target_currency)
+        return result['converted_amount']
