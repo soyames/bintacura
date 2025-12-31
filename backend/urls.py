@@ -18,6 +18,7 @@ urlpatterns = [
     path("api/health/", views.health_check, name="api_health_check"),
     path("set-language/", views.set_language, name="set_language"),
     path("superadmin/", include("core.admin_urls")),
+    path("super-admin/", include("super_admin.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",

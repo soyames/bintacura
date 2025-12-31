@@ -396,6 +396,9 @@
                             <button class="forum-action-btn" onclick="toggleComments('${post.id}')">
                                 💬 <span>${post.comments_count || 0}</span>
                             </button>
+                            <span class="forum-action-btn" style="cursor: default;">
+                                👁️ <span>${post.views_count || 0}</span>
+                            </span>
                         </footer>
                         <div class="comments-section" id="comments-${post.id}"></div>
                     </article>

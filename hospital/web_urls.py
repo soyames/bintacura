@@ -1,11 +1,18 @@
 from django.urls import path
 from core import views
 from hospital import views as hospital_views
+from hospital import service_views
 
 app_name = "hospital"
 
 urlpatterns = [
     path("dashboard/", views.HospitalDashboardView.as_view(), name="dashboard"),
+    
+    # Service management
+    path("services/create/", service_views.create_hospital_service, name="create_service"),
+    path("services/list/", service_views.list_hospital_services, name="list_services"),
+    path("services/<uuid:service_id>/edit/", service_views.edit_hospital_service, name="edit_service"),
+    path("services/<uuid:service_id>/delete/", service_views.delete_hospital_service, name="delete_service"),
     path("patients/", views.HospitalPatientsView.as_view(), name="patients"),
     path("admissions/", views.HospitalAdmissionsView.as_view(), name="admissions"),
     path("departments/", views.HospitalDepartmentsView.as_view(), name="departments"),

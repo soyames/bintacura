@@ -225,6 +225,19 @@ class ParticipantPaymentMethod(models.Model):
                 raise ValidationError({'mobile_money_provider': 'Le fournisseur mobile money est requis'})
             if not self.phone_number:
                 raise ValidationError({'phone_number': 'Le numéro de téléphone est requis pour mobile money'})
+            
+            # Validate phone number format for FedaPay compatibility
+            if not self.phone_number.startswith('+'):
+                raise ValidationError({'phone_number': 'Le numéro de téléphone doit commencer par + (format international)'})
+            
+            # Ensure phone belongs to participant's country
+            if hasattr(self.participant, 'country') and self.participant.country:
+                from currency_converter.services import CurrencyConverterService
+                phone_country = CurrencyConverterService.get_country_from_phone(self.phone_number)
+                if phone_country and phone_country != self.participant.country:
+                    raise ValidationError({
+                        'phone_number': f'Le numéro de téléphone doit appartenir à votre pays ({self.participant.country})'
+                    })
 
     def save(self, *args, **kwargs):
         # If setting as primary, remove primary flag from other methods

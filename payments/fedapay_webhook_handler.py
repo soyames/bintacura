@@ -260,6 +260,11 @@ class FedaPayWebhookHandler:
                 fedapay_payout.provider_payout.processed_at = timezone.now()
                 fedapay_payout.provider_payout.save()
             
+            # Handle refund completion if this is a refund payout
+            if 'refund_request_id' in fedapay_payout.custom_metadata:
+                from core.refund_webhook_service import RefundWebhookService
+                RefundWebhookService.complete_refund_on_webhook(fedapay_payout)
+            
             logger.info(f"Payout {fedapay_payout_id} sent successfully")
         except FedaPayPayout.DoesNotExist:
             logger.error(f"FedaPay payout {fedapay_payout_id} not found")
@@ -283,6 +288,11 @@ class FedaPayWebhookHandler:
             if fedapay_payout.provider_payout:
                 fedapay_payout.provider_payout.status = 'failed'
                 fedapay_payout.provider_payout.save()
+            
+            # Handle refund failure if this is a refund payout
+            if 'refund_request_id' in fedapay_payout.custom_metadata:
+                from core.refund_webhook_service import RefundWebhookService
+                RefundWebhookService.fail_refund_on_webhook(fedapay_payout)
             
             logger.info(f"Payout {fedapay_payout_id} failed")
         except FedaPayPayout.DoesNotExist:

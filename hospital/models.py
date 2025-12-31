@@ -3,6 +3,7 @@ from django.utils import timezone
 import uuid
 from core.models import Participant, Department
 from core.mixins import SyncMixin
+from hospital.service_models import HospitalService
 
 
 class HospitalData(models.Model):

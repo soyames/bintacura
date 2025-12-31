@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse, FileResponse
 from decimal import Decimal
 import json
+import logging
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from .models import *
 from .serializers import *
@@ -18,6 +19,8 @@ from .receipt_service import ReceiptPDFService
 from .service_payment_service import ServicePaymentService
 from core.models import Transaction as CoreTransaction, Participant
 from core.view_mixins import SafeQuerysetMixin
+
+logger = logging.getLogger(__name__)
 
 
 class FeeLedgerViewSet(SafeQuerysetMixin, viewsets.ModelViewSet):  # View for FeeLedgerSet operations
@@ -258,34 +261,52 @@ class WalletTopupView(APIView):
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@csrf_exempt
 def fedapay_webhook(request):
-    """Handle FedaPay webhook events"""
+    """Handle FedaPay webhook events with ACID compliance and idempotency"""
+    
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
     
     # Get signature from headers
     signature = request.META.get('HTTP_X_FEDAPAY_SIGNATURE', '')
     
-    # Verify signature
-    if signature:
-        payload = request.body.decode('utf-8')
-        if not fedapay_service.verify_webhook_signature(payload, signature):
-            return JsonResponse(
-                {"error": "Invalid signature"},
-                status=400
-            )
+    # CRITICAL: Always verify signature
+    if not signature:
+        logger.error("Webhook rejected: Missing X-FedaPay-Signature header")
+        return JsonResponse({"error": "Missing signature"}, status=401)
+    
+    # Verify signature before processing
+    payload = request.body.decode('utf-8')
+    if not fedapay_service.verify_webhook_signature(payload, signature):
+        logger.error("Webhook rejected: Invalid signature")
+        return JsonResponse({"error": "Invalid signature"}, status=401)
     
     try:
-        event_data = json.loads(request.body)
+        event_data = json.loads(payload)
+        
+        # Validate required fields
+        if 'entity' not in event_data or 'event' not in event_data:
+            logger.error(f"Webhook rejected: Missing required fields in payload")
+            return JsonResponse({"error": "Invalid payload structure"}, status=400)
+        
+        # Handle webhook with transaction safety
         success = FedaPayWebhookHandler.handle_webhook(event_data)
         
         if success:
-            return JsonResponse({"status": "processed"}, status=200)
+            return JsonResponse({"status": "success"}, status=200)
         else:
-            return JsonResponse({"status": "processing_error"}, status=500)
+            # Return 200 even on processing errors to prevent webhook disabling
+            logger.warning(f"Webhook processing warning for event {event_data.get('event')}")
+            return JsonResponse({"status": "acknowledged"}, status=200)
             
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        logger.error(f"Webhook rejected: Invalid JSON - {str(e)}")
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.error(f"Webhook processing error: {str(e)}", exc_info=True)
+        # Return 200 to acknowledge receipt, log for manual review
+        return JsonResponse({"status": "error_logged"}, status=200)
 
 
 @extend_schema(

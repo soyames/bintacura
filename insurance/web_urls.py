@@ -1,10 +1,17 @@
 from django.urls import path
 from core import views
+from insurance import service_views
 
 app_name = 'insurance_portal'
 
 urlpatterns = [
     path('dashboard/', views.InsuranceDashboardView.as_view(), name='dashboard'),
+    
+    # Service management
+    path('services/create/', service_views.create_insurance_service, name='create_service'),
+    path('services/list/', service_views.list_insurance_services, name='list_services'),
+    path('services/<uuid:service_id>/edit/', service_views.edit_insurance_service, name='edit_service'),
+    path('services/<uuid:service_id>/delete/', service_views.delete_insurance_service, name='delete_service'),
     path('services/', views.InsuranceServicesView.as_view(), name='services'),
     path('validation/', views.InsuranceValidationView.as_view(), name='validation'),
     path('claims/', views.InsuranceClaimsView.as_view(), name='claims'),

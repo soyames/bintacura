@@ -99,6 +99,17 @@ class PaymentOrchestrationService:
         Returns:
             dict with payment details and gateway info
         """
+        # SECURITY: Block payments to unverified providers
+        provider_roles = ['doctor', 'hospital', 'hospital_staff', 'pharmacy', 'pharmacy_staff', 
+                         'insurance_company', 'insurance_company_staff']
+        if payee_participant.role in provider_roles:
+            if not payee_participant.is_verified or not payee_participant.can_receive_payments:
+                raise ValueError(
+                    f"Le compte du destinataire n'est pas vérifié. "
+                    f"Les paiements vers des comptes non vérifiés sont bloqués pour votre sécurité. "
+                    f"Recipient account is not verified. Payments to unverified accounts are blocked for security."
+                )
+        
         amount_usd = Decimal(str(amount_usd))
         
         # Resolve payer's local currency

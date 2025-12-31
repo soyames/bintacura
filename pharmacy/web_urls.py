@@ -1,10 +1,17 @@
 from django.urls import path
 from core import views
+from pharmacy import service_views
 
 app_name = "pharmacy"
 
 urlpatterns = [
     path("dashboard/", views.PharmacyDashboardView.as_view(), name="dashboard"),
+    
+    # Service management
+    path("services/create/", service_views.create_pharmacy_service, name="create_service"),
+    path("services/list/", service_views.list_pharmacy_services, name="list_services"),
+    path("services/<uuid:service_id>/edit/", service_views.edit_pharmacy_service, name="edit_service"),
+    path("services/<uuid:service_id>/delete/", service_views.delete_pharmacy_service, name="delete_service"),
     path(
         "prescriptions/",
         views.PharmacyPrescriptionsView.as_view(),

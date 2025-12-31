@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Super Admin Dashboard" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4">{% trans "Tableau de Bord Super Admin" %}</h1>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                {% trans "Total Participants" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_participants }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                {% trans "En Attente de Vérification" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_verification }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                {% trans "Revenus Mensuels" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ monthly_revenue|floatformat:0 }} XOF</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                {% trans "Rendez-vous Actifs" %}
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_appointments }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participant Breakdown -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Répartition des Participants" %}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>{% trans "Patients:" %}</strong> {{ patients }}</p>
+                            <p><strong>{% trans "Médecins:" %}</strong> {{ doctors }}</p>
+                            <p><strong>{% trans "Hôpitaux:" %}</strong> {{ hospitals }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>{% trans "Pharmacies:" %}</strong> {{ pharmacies }}</p>
+                            <p><strong>{% trans "Assurances:" %}</strong> {{ insurance_companies }}</p>
+                            <p><strong>{% trans "Vérifiés:" %}</strong> {{ verified_providers }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Revenus" %}</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>{% trans "Aujourd'hui:" %}</strong> {{ daily_revenue|floatformat:0 }} XOF</p>
+                    <p><strong>{% trans "Cette Semaine:" %}</strong> {{ weekly_revenue|floatformat:0 }} XOF</p>
+                    <p><strong>{% trans "Ce Mois:" %}</strong> {{ monthly_revenue|floatformat:0 }} XOF</p>
+                    <p><strong>{% trans "Total:" %}</strong> {{ total_revenue|floatformat:0 }} XOF</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Actions Rapides" %}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'super_admin:verification_queue' %}" class="btn btn-warning btn-block">
+                                <i class="fas fa-check-circle"></i> {% trans "File de Vérification" %}
+                                {% if pending_verification > 0 %}
+                                    <span class="badge badge-light">{{ pending_verification }}</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'super_admin:participants_list' %}" class="btn btn-primary btn-block">
+                                <i class="fas fa-users"></i> {% trans "Tous les Participants" %}
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'super_admin:financial_reports' %}" class="btn btn-success btn-block">
+                                <i class="fas fa-chart-line"></i> {% trans "Rapports Financiers" %}
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-block">
+                                <i class="fas fa-cog"></i> {% trans "Django Admin" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Inscriptions Récentes" %}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Nom" %}</th>
+                                    <th>{% trans "Rôle" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for participant in recent_registrations %}
+                                <tr>
+                                    <td>{{ participant.get_full_name }}</td>
+                                    <td>{{ participant.get_role_display }}</td>
+                                    <td>{{ participant.date_joined|date:"d/m/Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">{% trans "Aucune inscription récente" %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "Paiements Récents" %}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Référence" %}</th>
+                                    <th>{% trans "Montant" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in recent_payments %}
+                                <tr>
+                                    <td>{{ payment.reference }}</td>
+                                    <td>{{ payment.amount|floatformat:0 }} XOF</td>
+                                    <td>{{ payment.created_at|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">{% trans "Aucun paiement récent" %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

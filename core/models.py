@@ -93,6 +93,14 @@ class Participant(AbstractBaseUser, PermissionsMixin):
         ("customer_service", "Customer Service"),
     ]
 
+    VERIFICATION_STATUS_CHOICES = [
+        ('pending', 'Pending Verification'),
+        ('under_review', 'Under Review'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+        ('suspended', 'Suspended'),
+    ]
+
     uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
@@ -101,9 +109,11 @@ class Participant(AbstractBaseUser, PermissionsMixin):
     is_verified = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
     has_blue_checkmark = models.BooleanField(default=False)
+    verification_status = models.CharField(max_length=20, choices=VERIFICATION_STATUS_CHOICES, default='pending', help_text="Account verification status for service providers")
     verified_at = models.DateTimeField(null=True, blank=True, help_text="When the account was verified by admin")
     verified_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_accounts', help_text="Admin who verified this account")
     verification_notes = models.TextField(blank=True, help_text="Admin notes about verification")
+    rejection_reason = models.TextField(blank=True, help_text="Reason for account rejection")
     can_receive_payments = models.BooleanField(default=False, help_text="Whether this participant can receive payments from patients")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
@@ -382,6 +392,14 @@ class RefundRequest(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    idempotency_key = models.CharField(
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Client-provided unique key to prevent duplicate refund requests"
+    )
     participant = models.ForeignKey(
         Participant, on_delete=models.CASCADE, related_name="refund_requests"
     )
@@ -392,9 +410,17 @@ class RefundRequest(models.Model):
         blank=True,
         related_name="refund_requests",
     )
+    insurance_claim = models.ForeignKey(
+        "insurance.InsuranceClaim",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="related_refund_requests",
+        help_text="Link to insurance claim if refund is related to insurance payment"
+    )
     request_type = models.CharField(max_length=50, choices=REQUEST_TYPE_CHOICES)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default="XAF")
+    currency = models.CharField(max_length=3, default="XOF")
     reason = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
 
@@ -425,7 +451,53 @@ class RefundRequest(models.Model):
             models.Index(fields=["participant", "status"]),
             models.Index(fields=["status", "created_at"]),
             models.Index(fields=["admin_reviewer"]),
+            models.Index(fields=["idempotency_key"]),
         ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0),
+                name='refund_amount_positive'
+            ),
+        ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.participant.role != 'patient':
+            raise ValidationError("Only patients can request refunds.")
+        if self.insurance_claim and self.transaction:
+            raise ValidationError("Refund cannot be linked to both insurance claim and transaction.")
+        if self.amount and self.transaction:
+            max_refund = self.get_max_refundable_amount()
+            if self.amount > max_refund:
+                raise ValidationError(f"Refund amount cannot exceed refundable amount of {max_refund} (transaction fees excluded).")
+    
+    def get_max_refundable_amount(self):
+        """Calculate maximum refundable amount excluding transaction fees"""
+        if not self.transaction:
+            return self.amount
+        
+        # Get the original transaction amount
+        original_amount = self.transaction.amount
+        
+        # Check if there's a linked FedaPay transaction with fees
+        try:
+            from payments.models import FedaPayTransaction
+            fedapay_txn = FedaPayTransaction.objects.filter(
+                core_transaction=self.transaction
+            ).first()
+            
+            if fedapay_txn and fedapay_txn.fees:
+                # Subtract gateway fees from refundable amount
+                return original_amount - fedapay_txn.fees
+        except Exception:
+            pass
+        
+        # If no gateway fees, return full amount
+        return original_amount
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):  # Returns string representation of refund request
         return f"Refund Request {self.id} - {self.participant.full_name} - {self.amount} {self.currency}"

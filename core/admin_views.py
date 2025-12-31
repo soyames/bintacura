@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.generic import TemplateView, ListView, DetailView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q, Count, Sum
+from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
@@ -312,75 +313,56 @@ class RefundDetailView(SuperAdminRequiredMixin, DetailView):
 
 
 class ApproveRefundView(SuperAdminRequiredMixin, View):
-    def post(self, request, refund_id):  # Approves refund request and deposits amount to participant wallet
-        refund = get_object_or_404(RefundRequest, id=refund_id)
+    @transaction.atomic
+    def post(self, request, refund_id):
+        """
+        Approves refund request with two options:
+        1. Via payment gateway (FedaPay) - sends mobile money to patient
+        2. To wallet - credits patient's internal wallet
+        """
+        from .refund_webhook_service import RefundWebhookService
+        
+        refund = get_object_or_404(RefundRequest.objects.select_for_update(), id=refund_id)
         admin_notes = request.POST.get("admin_notes", "")
+        refund_method = request.POST.get("refund_method", "wallet")  # 'gateway' or 'wallet'
 
         if refund.status != "pending":
             messages.error(request, "This refund request has already been processed.")
             return redirect("admin:refund_detail", refund_id=refund_id)
 
         try:
-            refund.status = "processing"
-            refund.admin_reviewer = request.user
             refund.admin_notes = admin_notes
-            refund.reviewed_at = timezone.now()
             refund.save()
+            
+            if refund_method == "gateway":
+                # Process via FedaPay - sends mobile money
+                result = RefundWebhookService.process_refund_via_gateway(refund, request.user)
+                messages.success(
+                    request,
+                    f"Refund payout of {refund.amount} {refund.currency} initiated via FedaPay. "
+                    "Will complete when webhook confirms delivery."
+                )
+            else:
+                # Process to wallet - immediate credit
+                result = RefundWebhookService.process_refund_to_wallet(refund, request.user)
+                messages.success(
+                    request,
+                    f"Refund of {refund.amount} {refund.currency} credited to participant's wallet. "
+                    f"New balance: {result['new_wallet_balance']} {refund.currency}"
+                )
 
-            refund_transaction = WalletService.deposit(
-                participant=refund.participant,
-                amount=refund.amount,
-                payment_method="refund",
-                description=f"Refund approved: {refund.reason[:100]}",
-                metadata={
-                    "refund_request_id": str(refund.id),
-                    "original_transaction_id": str(refund.transaction.id)
-                    if refund.transaction
-                    else None,
-                    "approved_by": request.user.email,
-                },
-            )
-
-            refund.refund_transaction = refund_transaction
-            refund.status = "completed"
-            refund.save()
-
-            ParticipantActivityLog.objects.create(
-                participant=refund.participant,
-                activity_type="refund_approved",
-                description=f"Refund of {refund.amount} {refund.currency} approved by {request.user.email}",
-            )
-
-            AuditLogEntry.objects.create(
-                participant=request.user,
-                action_type="update",
-                resource_type="refund_request",
-                resource_id=str(refund.id),
-                details={
-                    "action": "approve",
-                    "amount": float(refund.amount),
-                    "participant_email": refund.participant.email,
-                    "notes": admin_notes,
-                },
-                success=True,
-            )
-
-            messages.success(
-                request,
-                f"Refund request approved and {refund.amount} {refund.currency} credited to participant's wallet.",
-            )
-
+        except ValueError as e:
+            messages.error(request, str(e))
         except Exception as e:
-            refund.status = "pending"
-            refund.save()
             messages.error(request, f"Error processing refund: {str(e)}")
 
         return redirect("admin:refund_detail", refund_id=refund_id)
 
 
 class RejectRefundView(SuperAdminRequiredMixin, View):
+    @transaction.atomic
     def post(self, request, refund_id):  # Rejects refund request with admin notes and logs decision
-        refund = get_object_or_404(RefundRequest, id=refund_id)
+        refund = get_object_or_404(RefundRequest.objects.select_for_update(), id=refund_id)
         admin_notes = request.POST.get("admin_notes", "")
 
         if refund.status != "pending":

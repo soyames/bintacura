@@ -4,6 +4,7 @@ import uuid
 from core.models import Participant
 from core.mixins import SyncMixin
 from prescriptions.models import Medication
+from pharmacy.service_models import PharmacyService
 
 
 class PharmacyData(models.Model):

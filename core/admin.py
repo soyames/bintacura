@@ -260,7 +260,7 @@ class TransactionAdmin(admin.ModelAdmin):
 @admin.register(RefundRequest)
 class RefundRequestAdmin(admin.ModelAdmin):
     list_display = (
-        "provider",
+        "participant",
         "amount",
         "currency",
         "status",
@@ -269,7 +269,7 @@ class RefundRequestAdmin(admin.ModelAdmin):
         "admin_reviewer",
     )
     list_filter = ("status", "request_type", "currency", "created_at")
-    search_fields = ("provider__email", "provider__full_name", "reason", "admin_notes")
+    search_fields = ("participant__email", "participant__full_name", "reason", "admin_notes")
     readonly_fields = ("id", "created_at", "updated_at")
     date_hierarchy = "created_at"
 
@@ -278,7 +278,7 @@ class RefundRequestAdmin(admin.ModelAdmin):
             "Request Information",
             {
                 "fields": (
-                    "provider",
+                    "participant",
                     "request_type",
                     "amount",
                     "currency",

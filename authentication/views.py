@@ -36,8 +36,8 @@ def login_view(request):  # Login view
             if user is not None:
                 auth_login(request, user)
 
-                if user.is_superuser or (hasattr(user, "role") and user.role == "super_admin"):
-                    return redirect("/superadmin/dashboard/")
+                if user.is_superuser or (hasattr(user, "participant") and user.participant.role == "super_admin"):
+                    return redirect("/super-admin/dashboard/")
 
                 messages.success(request, f"Bienvenue {user.full_name}!")
                 return redirect_to_dashboard(user)

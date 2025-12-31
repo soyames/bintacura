@@ -12,6 +12,7 @@ import uuid
 import secrets
 import string
 from .models import HospitalStaff, Bed, Admission, DepartmentTask
+from .service_models import HospitalService
 from core.models import Department, Participant
 from .serializers import (
     HospitalStaffSerializer, BedSerializer, AdmissionSerializer,
@@ -369,3 +370,62 @@ class HospitalAnalyticsViewSet(viewsets.ViewSet):
             'insights': insights,
             'generated_at': timezone.now()
         })
+
+
+class HospitalServiceViewSet(viewsets.ModelViewSet):
+    """CRUD operations for hospital services with currency conversion"""
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        if self.request.user.role == 'hospital':
+            return HospitalService.objects.filter(hospital=self.request.user)
+        return HospitalService.objects.none()
+    
+    @transaction.atomic
+    def perform_create(self, serializer):
+        from currency_converter.utils import convert_to_xof
+        
+        hospital = self.request.user
+        if not hospital.is_verified:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Votre compte doit être vérifié pour créer des services")
+        
+        price_input = self.request.data.get('price', 0)
+        currency_input = self.request.data.get('currency', 'XOF')
+        
+        price_in_xof_cents = convert_to_xof(price_input, currency_input)
+        
+        serializer.save(
+            hospital=hospital,
+            price=price_in_xof_cents,
+            currency='XOF',
+            region_code=hospital.region_code or 'global'
+        )
+    
+    @transaction.atomic
+    def perform_update(self, serializer):
+        from currency_converter.utils import convert_to_xof
+        
+        if 'price' in self.request.data:
+            price_input = self.request.data.get('price', 0)
+            currency_input = self.request.data.get('currency', 'XOF')
+            price_in_xof_cents = convert_to_xof(price_input, currency_input)
+            serializer.save(price=price_in_xof_cents, currency='XOF')
+        else:
+            serializer.save()
+    
+    @action(detail=False, methods=['get'])
+    def by_category(self, request):
+        category = request.query_params.get('category')
+        if category:
+            services = self.get_queryset().filter(category=category, is_active=True)
+            from rest_framework.serializers import ModelSerializer
+            
+            class ServiceSerializer(ModelSerializer):
+                class Meta:
+                    model = HospitalService
+                    fields = '__all__'
+            
+            serializer = ServiceSerializer(services, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'category required'}, status=status.HTTP_400_BAD_REQUEST)

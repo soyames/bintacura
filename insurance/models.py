@@ -3,6 +3,7 @@ from django.utils import timezone
 import uuid
 from core.models import Participant
 from core.mixins import SyncMixin
+from insurance.service_models import InsuranceService
 
 
 class InsurancePackage(SyncMixin):  # Defines insurance coverage plans and premium details

@@ -327,6 +327,17 @@ class UniversalPaymentService:
     def _process_gateway_payment(service_type, service_object, patient, service_provider,
                                   amount, currency, payment_method, callback_url):
         """Process gateway payment (card/mobile money)"""
+        # SECURITY: Block payments to unverified providers
+        if service_provider:
+            provider_roles = ['doctor', 'hospital', 'hospital_staff', 'pharmacy', 'pharmacy_staff', 
+                             'insurance_company', 'insurance_company_staff']
+            if service_provider.role in provider_roles:
+                if not service_provider.is_verified or not service_provider.can_receive_payments:
+                    raise ValueError(
+                        f"Le prestataire n'est pas vérifié. Les paiements vers des comptes non vérifiés sont bloqués pour votre sécurité. "
+                        f"Provider is not verified. Payments to unverified providers are blocked for security."
+                    )
+        
         # Get patient phone
         patient_phone = patient.phone_number or patient.phone
 

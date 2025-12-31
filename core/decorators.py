@@ -73,6 +73,30 @@ def require_role(*allowed_roles):  # Decorator to restrict view access to specif
     return decorator
 
 
+def role_required(required_role):
+    """
+    Decorator to restrict view access to a specific participant role.
+    Redirects non-authenticated users to login with friendly French messages.
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                messages.warning(request, "Veuillez vous connecter pour accéder à cette page")
+                return redirect('authentication:login')
+            
+            participant = request.user.participant if hasattr(request.user, 'participant') else None
+            
+            if not participant or participant.role != required_role:
+                messages.error(request, f"Accès refusé. Cette page est réservée aux {required_role}s")
+                return redirect('core:home')
+            
+            return view_func(request, *args, **kwargs)
+        
+        return wrapper
+    return decorator
+
+
 def require_own_resource(resource_param="pk"):  # Decorator to ensure users can only access their own resources
     def decorator(view_func):  # Inner decorator that wraps the view function
         @wraps(view_func)

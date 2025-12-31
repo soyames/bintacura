@@ -17,6 +17,7 @@ from .models import (
     PharmacySale, PharmacySaleItem, PharmacyStaff, PharmacyCounter,
     DoctorPharmacyReferral, PharmacyBonusConfig, PharmacyStockMovement
 )
+from .service_models import PharmacyService
 from core.models import Participant
 from .serializers import (
     PharmacyInventorySerializer, PharmacyOrderSerializer,
@@ -1017,3 +1018,62 @@ def payment_processing(request, order_id):
     
     return render(request, 'pharmacy/staff/payment_processing.html', context)
 
+
+
+class PharmacyServiceViewSet(viewsets.ModelViewSet):
+    """CRUD operations for pharmacy services with currency conversion"""
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        if self.request.user.role == 'pharmacy':
+            return PharmacyService.objects.filter(pharmacy=self.request.user)
+        return PharmacyService.objects.none()
+    
+    @transaction.atomic
+    def perform_create(self, serializer):
+        from currency_converter.utils import convert_to_xof
+        
+        pharmacy = self.request.user
+        if not pharmacy.is_verified:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Votre compte doit être vérifié pour créer des services")
+        
+        price_input = self.request.data.get('price', 0)
+        currency_input = self.request.data.get('currency', 'XOF')
+        
+        price_in_xof_cents = convert_to_xof(price_input, currency_input)
+        
+        serializer.save(
+            pharmacy=pharmacy,
+            price=price_in_xof_cents,
+            currency='XOF',
+            region_code=pharmacy.region_code or 'global'
+        )
+    
+    @transaction.atomic
+    def perform_update(self, serializer):
+        from currency_converter.utils import convert_to_xof
+        
+        if 'price' in self.request.data:
+            price_input = self.request.data.get('price', 0)
+            currency_input = self.request.data.get('currency', 'XOF')
+            price_in_xof_cents = convert_to_xof(price_input, currency_input)
+            serializer.save(price=price_in_xof_cents, currency='XOF')
+        else:
+            serializer.save()
+    
+    @action(detail=False, methods=['get'])
+    def by_category(self, request):
+        category = request.query_params.get('category')
+        if category:
+            services = self.get_queryset().filter(category=category, is_active=True)
+            from rest_framework.serializers import ModelSerializer
+            
+            class ServiceSerializer(ModelSerializer):
+                class Meta:
+                    model = PharmacyService
+                    fields = '__all__'
+            
+            serializer = ServiceSerializer(services, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'category required'}, status=status.HTTP_400_BAD_REQUEST)

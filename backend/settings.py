@@ -140,6 +140,146 @@ PAYMENT_CONFIGURATION = {
     'PLATFORM_TAX_RATE': 0.18,
 }
 
+# Regional Pricing Configuration
+REGIONAL_PRICING = {
+    'BJ': {  # Benin
+        'country_code': 'BJ',
+        'currency': 'XOF',
+        'default_consultation_fee': 3500,
+        'database': 'default',
+    },
+    'TG': {  # Togo
+        'country_code': 'TG',
+        'currency': 'XOF',
+        'default_consultation_fee': 3500,
+        'database': 'default',
+    },
+    'CI': {  # Côte d'Ivoire
+        'country_code': 'CI',
+        'currency': 'XOF',
+        'default_consultation_fee': 4000,
+        'database': 'default',
+    },
+    'SN': {  # Senegal
+        'country_code': 'SN',
+        'currency': 'XOF',
+        'default_consultation_fee': 4500,
+        'database': 'default',
+    },
+    'ML': {  # Mali
+        'country_code': 'ML',
+        'currency': 'XOF',
+        'default_consultation_fee': 3000,
+        'database': 'default',
+    },
+    'BF': {  # Burkina Faso
+        'country_code': 'BF',
+        'currency': 'XOF',
+        'default_consultation_fee': 3000,
+        'database': 'default',
+    },
+    'NE': {  # Niger
+        'country_code': 'NE',
+        'currency': 'XOF',
+        'default_consultation_fee': 3000,
+        'database': 'default',
+    },
+    'GW': {  # Guinea-Bissau
+        'country_code': 'GW',
+        'currency': 'XOF',
+        'default_consultation_fee': 2500,
+        'database': 'default',
+    },
+    'CM': {  # Cameroon
+        'country_code': 'CM',
+        'currency': 'XAF',
+        'default_consultation_fee': 3500,
+        'database': 'default',
+    },
+    'GA': {  # Gabon
+        'country_code': 'GA',
+        'currency': 'XAF',
+        'default_consultation_fee': 5000,
+        'database': 'default',
+    },
+    'CG': {  # Congo
+        'country_code': 'CG',
+        'currency': 'XAF',
+        'default_consultation_fee': 4000,
+        'database': 'default',
+    },
+    'CF': {  # Central African Republic
+        'country_code': 'CF',
+        'currency': 'XAF',
+        'default_consultation_fee': 3000,
+        'database': 'default',
+    },
+    'TD': {  # Chad
+        'country_code': 'TD',
+        'currency': 'XAF',
+        'default_consultation_fee': 3500,
+        'database': 'default',
+    },
+    'GN': {  # Guinea
+        'country_code': 'GN',
+        'currency': 'GNF',
+        'default_consultation_fee': 35000,
+        'database': 'default',
+    },
+    'NG': {  # Nigeria
+        'country_code': 'NG',
+        'currency': 'NGN',
+        'default_consultation_fee': 5000,
+        'database': 'default',
+    },
+    'GH': {  # Ghana
+        'country_code': 'GH',
+        'currency': 'GHS',
+        'default_consultation_fee': 50,
+        'database': 'default',
+    },
+    'ZA': {  # South Africa
+        'country_code': 'ZA',
+        'currency': 'ZAR',
+        'default_consultation_fee': 500,
+        'database': 'default',
+    },
+    'DE': {  # Germany (Frankfurt)
+        'country_code': 'DE',
+        'currency': 'EUR',
+        'default_consultation_fee': 50,
+        'database': 'frankfurt' if ENABLE_MULTI_REGION else 'default',
+    },
+    'FR': {  # France
+        'country_code': 'FR',
+        'currency': 'EUR',
+        'default_consultation_fee': 45,
+        'database': 'frankfurt' if ENABLE_MULTI_REGION else 'default',
+    },
+    'BE': {  # Belgium
+        'country_code': 'BE',
+        'currency': 'EUR',
+        'default_consultation_fee': 45,
+        'database': 'frankfurt' if ENABLE_MULTI_REGION else 'default',
+    },
+    'US': {  # United States
+        'country_code': 'US',
+        'currency': 'USD',
+        'default_consultation_fee': 50,
+        'database': 'default',
+    },
+}
+
+# Helper function to get regional config
+def get_regional_config(country_code):
+    """Get regional pricing configuration for a country"""
+    return REGIONAL_PRICING.get(country_code, {
+        'country_code': country_code,
+        'currency': DEFAULT_CURRENCY,
+        'default_consultation_fee': DEFAULT_CONSULTATION_FEE_XOF,
+        'database': 'default',
+    })
+
 RESCHEDULE_FEE = PAYMENT_CONFIGURATION['RESCHEDULE_FEE']
 DEFAULT_CONSULTATION_FEE_XOF = PAYMENT_CONFIGURATION['DEFAULT_CONSULTATION_FEE_XOF']
 PLATFORM_FEE_RATE = PAYMENT_CONFIGURATION['PLATFORM_FEE_RATE']
@@ -195,6 +335,7 @@ INSTALLED_APPS = [
     "ai",
     "qrcode_generator",
     "sync",  # Offline-first synchronization for business instances
+    "super_admin",  # Super admin dashboard and verification system
 ]
 
 MIDDLEWARE = [

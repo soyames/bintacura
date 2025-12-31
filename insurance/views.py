@@ -10,6 +10,7 @@ from datetime import timedelta, date
 from dateutil.relativedelta import relativedelta
 import uuid
 from .models import *
+from .service_models import InsuranceService
 from .serializers import *
 from core.services import WalletService
 from communication.notification_service import NotificationService
@@ -451,9 +452,27 @@ class InsuranceClaimViewSet(viewsets.ModelViewSet):  # View for InsuranceClaimSe
             ).select_related('patient', 'insurance_card', 'insurance_package').order_by('-submission_date')
         return InsuranceClaim.objects.filter(patient=self.request.user).order_by('-submission_date')
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):  # Create
         try:
             data = request.data
+            
+            # Check for idempotency
+            idempotency_key = request.META.get('HTTP_IDEMPOTENCY_KEY') or data.get('idempotency_key')
+            if idempotency_key:
+                existing_claim = InsuranceClaim.objects.filter(idempotency_key=idempotency_key).first()
+                if existing_claim:
+                    serializer = self.get_serializer(existing_claim)
+                    return Response(
+                        {
+                            'success': True,
+                            'message': 'Claim already exists',
+                            'claim_number': existing_claim.claim_number,
+                            **serializer.data
+                        },
+                        status=status.HTTP_200_OK
+                    )
+            
             insurance_card_id = data.get('insurance_card_id')
 
             try:
@@ -481,6 +500,7 @@ class InsuranceClaimViewSet(viewsets.ModelViewSet):  # View for InsuranceClaimSe
             
             claim = InsuranceClaim.objects.create(
                 claim_number=f"CLM-{uuid.uuid4().hex[:10].upper()}",
+                idempotency_key=idempotency_key,
                 patient=request.user,
                 insurance_card=insurance_card,
                 insurance_package=insurance_card.insurance_package,
@@ -629,6 +649,7 @@ class InsuranceClaimViewSet(viewsets.ModelViewSet):  # View for InsuranceClaimSe
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
+    @transaction.atomic
     def mark_paid(self, request, pk=None):  # Mark paid
         if request.user.role != 'insurance_company':
             raise PermissionDenied("Only insurance companies can mark claims as paid")
@@ -641,6 +662,18 @@ class InsuranceClaimViewSet(viewsets.ModelViewSet):  # View for InsuranceClaimSe
             if claim.status != 'approved':
                 return Response(
                     {'error': 'Claim must be approved before marking as paid'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check for conflicting refunds
+            from core.models import RefundRequest
+            conflicting_refunds = RefundRequest.objects.filter(
+                insurance_claim=claim,
+                status__in=['completed', 'processing', 'approved']
+            )
+            if conflicting_refunds.exists():
+                return Response(
+                    {'error': 'Cannot pay claim - a refund request is already processed or in progress for this claim'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
@@ -1047,3 +1080,72 @@ class HealthcarePartnerNetworkViewSet(viewsets.ModelViewSet):  # View for managi
 
         serializer = self.get_serializer(partner)
         return Response(serializer.data)
+
+
+class InsuranceServiceViewSet(viewsets.ModelViewSet):
+    """CRUD operations for insurance services with currency conversion"""
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        if self.request.user.role == 'insurance_company':
+            return InsuranceService.objects.filter(insurance_company=self.request.user)
+        return InsuranceService.objects.none()
+    
+    @transaction.atomic
+    def perform_create(self, serializer):
+        from currency_converter.utils import convert_to_xof
+        
+        insurance_company = self.request.user
+        if not insurance_company.is_verified:
+            raise PermissionDenied("Votre compte doit être vérifié pour créer des services")
+        
+        premium_input = self.request.data.get('premium_amount', 0)
+        coverage_input = self.request.data.get('coverage_limit', 0)
+        currency_input = self.request.data.get('currency', 'XOF')
+        
+        premium_in_xof_cents = convert_to_xof(premium_input, currency_input)
+        coverage_in_xof_cents = convert_to_xof(coverage_input, currency_input) if coverage_input else None
+        
+        serializer.save(
+            insurance_company=insurance_company,
+            premium_amount=premium_in_xof_cents,
+            coverage_limit=coverage_in_xof_cents,
+            currency='XOF',
+            region_code=insurance_company.region_code or 'global'
+        )
+    
+    @transaction.atomic
+    def perform_update(self, serializer):
+        from currency_converter.utils import convert_to_xof
+        
+        if 'premium_amount' in self.request.data or 'coverage_limit' in self.request.data:
+            premium_input = self.request.data.get('premium_amount', 0)
+            coverage_input = self.request.data.get('coverage_limit', 0)
+            currency_input = self.request.data.get('currency', 'XOF')
+            
+            premium_in_xof_cents = convert_to_xof(premium_input, currency_input)
+            coverage_in_xof_cents = convert_to_xof(coverage_input, currency_input) if coverage_input else None
+            
+            serializer.save(
+                premium_amount=premium_in_xof_cents,
+                coverage_limit=coverage_in_xof_cents,
+                currency='XOF'
+            )
+        else:
+            serializer.save()
+    
+    @action(detail=False, methods=['get'])
+    def by_category(self, request):
+        category = request.query_params.get('category')
+        if category:
+            services = self.get_queryset().filter(category=category, is_active=True)
+            from rest_framework.serializers import ModelSerializer
+            
+            class ServiceSerializer(ModelSerializer):
+                class Meta:
+                    model = InsuranceService
+                    fields = '__all__'
+            
+            serializer = ServiceSerializer(services, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'category required'}, status=status.HTTP_400_BAD_REQUEST)
