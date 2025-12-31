@@ -350,7 +350,7 @@ class EnhancedReceiptService:
         <para align=center>
         <font size=9 color='#888888'>
         Ce reçu a été généré automatiquement.<br/>
-        Pour toute question, contactez support@BINTACURA.com<br/>
+        Pour toute question, contactez {settings.CONTACT_EMAIL}<br/>
         Merci d'utiliser BINTACURA!
         </font>
         </para>

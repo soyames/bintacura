@@ -52,7 +52,7 @@ Veuillez effectuer le paiement dès que possible pour éviter toute interruption
 Cordialement,
 L'équipe BINTACURA
 ''',
-                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        from_email=settings.NO_REPLY_EMAIL,
                         recipient_list=[patient.email],
                         fail_silently=True,
                     )

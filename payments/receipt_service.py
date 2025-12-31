@@ -470,7 +470,7 @@ class ReceiptPDFService:
         Please arrive 15 minutes before your appointment time.<br/>
         Present this receipt at the reception desk.<br/>
         {'Cash payment will be collected upon arrival.<br/>' if transaction and transaction.payment_method == 'cash' else ''}
-        For any changes or cancellations, contact us at support@BINTACURA.com<br/>
+        For any changes or cancellations, contact us at {settings.CONTACT_EMAIL}<br/>
         <b>Thank you for choosing BINTACURA!</b>
         </font>
         </para>

@@ -15,6 +15,8 @@ def platform_settings(request):
     return {
         'DEFAULT_CURRENCY': default_currency,
         'DEFAULT_CONSULTATION_FEE': default_fee,
+        'CONTACT_EMAIL': getattr(settings, 'CONTACT_EMAIL', 'contacts@bintacura.org'),
+        'NO_REPLY_EMAIL': getattr(settings, 'NO_REPLY_EMAIL', 'no-reply@bintacura.org'),
     }
 
 

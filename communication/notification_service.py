@@ -172,7 +172,7 @@ Toutes vos données personnelles, y compris:
 
 ont été définitivement supprimées de nos systèmes.
 
-Si vous n'avez pas effectué cette action, veuillez contacter immédiatement notre service support à {settings.DEFAULT_FROM_EMAIL}.
+Si vous n'avez pas effectué cette action, veuillez contacter immédiatement notre service support à {settings.CONTACT_EMAIL}.
 
 Merci d'avoir utilisé BINTACURA.
 
@@ -184,7 +184,7 @@ L'équipe BINTACURA
             send_mail(
                 subject,
                 message,
-                settings.DEFAULT_FROM_EMAIL,
+                settings.NO_REPLY_EMAIL,
                 [user.email],
                 fail_silently=False,
             )

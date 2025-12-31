@@ -470,7 +470,7 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):  # ViewSet for viewing 
     <div class="footer">
         <p>BINTACURA - Plateforme de Santé Numérique</p>
         <p>Ce document constitue un reçu officiel de votre transaction.</p>
-        <p>Pour toute question, contactez support@BINTACURA.com</p>
+        <p>Pour toute question, contactez {settings.CONTACT_EMAIL}</p>
     </div>
 </body>
 </html>
@@ -4325,7 +4325,7 @@ Date: {timezone.now().strftime('%d/%m/%Y à %H:%M')}
             send_mail(
                 notification_subject,
                 notification_message,
-                settings.DEFAULT_FROM_EMAIL,
+                settings.CONTACT_EMAIL,
                 ['contacts@digitalconcordia.com'],
                 fail_silently=False,
             )
@@ -4352,7 +4352,7 @@ Pour toute question, contactez-nous à contacts@digitalconcordia.com
             send_mail(
                 confirmation_subject,
                 confirmation_message,
-                settings.DEFAULT_FROM_EMAIL,
+                settings.NO_REPLY_EMAIL,
                 [email],
                 fail_silently=True,
             )

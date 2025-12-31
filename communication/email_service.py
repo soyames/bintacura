@@ -33,7 +33,7 @@ class EmailService:  # Service class for Email operations
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=html_content,
-                from_email=settings.EMAIL_HOST_USER,
+                from_email=settings.NO_REPLY_EMAIL,
                 to=[to_email],
             )
             email.attach_alternative(html_content, "text/html")
