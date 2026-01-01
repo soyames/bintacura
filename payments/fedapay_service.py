@@ -227,8 +227,30 @@ class FedaPayService:
                         # Find customer with matching email
                         for customer in customers:
                             if customer.get('email') == participant.email:
-                                logger.info(f"✅ Found existing customer with ID: {customer.get('id')}")
-                                return customer
+                                customer_id = customer.get('id')
+                                logger.info(f"✅ Found existing customer with ID: {customer_id}")
+                                
+                                # Update customer with latest info (especially phone number)
+                                try:
+                                    update_data = {
+                                        'firstname': firstname.strip(),
+                                        'lastname': lastname.strip(),
+                                        'email': participant.email,
+                                    }
+                                    if phone_data:
+                                        update_data['phone_number'] = phone_data
+                                    
+                                    logger.info(f"🔄 Updating customer {customer_id} with latest data")
+                                    update_response = self._make_request('PUT', f'customers/{customer_id}', update_data)
+                                    
+                                    if 'v1/customer' in update_response:
+                                        logger.info(f"✅ Customer updated successfully")
+                                        return update_response['v1/customer']
+                                    
+                                    return update_response
+                                except Exception as update_error:
+                                    logger.warning(f"⚠️  Failed to update customer, using existing: {update_error}")
+                                    return customer
                     
                     # If not found in search, create with unique email
                     import uuid
