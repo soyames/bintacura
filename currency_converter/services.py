@@ -478,7 +478,8 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
             logger.debug(f"Using base currency XOF for transaction: {amount_xof}")
             return amount_xof, local_currency
         
-        converted_amount = cls.convert(amount_xof, cls.BASE_CURRENCY, local_currency)
+        conversion_result = cls.convert(amount_xof, cls.BASE_CURRENCY, local_currency)
+        converted_amount = conversion_result['converted_amount']
         logger.debug(f"Converted {amount_xof} XOF to {converted_amount} {local_currency}")
         return converted_amount, local_currency
     
@@ -491,7 +492,8 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
         if local_currency == cls.BASE_CURRENCY:
             return Decimal(str(amount_local)) if not isinstance(amount_local, Decimal) else amount_local
         
-        return cls.convert(amount_local, local_currency, cls.BASE_CURRENCY)
+        conversion_result = cls.convert(amount_local, local_currency, cls.BASE_CURRENCY)
+        return conversion_result['converted_amount']
     
     @classmethod
     def get_country_from_phone(cls, phone_number: str):
