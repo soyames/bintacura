@@ -146,14 +146,14 @@ class PaymentOrchestrationService:
             recipient=payee_participant,
             
             # Dual currency
-            amount_usd=amount_xof,
+            amount_xof=amount_xof,
             amount_local=amount_local,
             currency_code=currency_code,
             exchange_rate_used=exchange_rate,
             conversion_timestamp=timezone.now(),
             
             # Commission
-            commission_amount_usd=commission_xof,
+            commission_amount_xof=commission_xof,
             commission_amount_local=commission_local,
             tax_amount=tax_amount,
             

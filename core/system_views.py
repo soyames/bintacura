@@ -143,11 +143,17 @@ class GetParticipantServicesView(APIView):
                 
                 patient_currency = CurrencyConverterService.get_participant_currency(request.user)
                 for service in services:
-                    price_in_patient_currency = CurrencyConverterService.convert_amount(
-                        Decimal(str(service.price)),
-                        'XOF',
-                        patient_currency
-                    )
+                    # Convert from XOF to patient's currency
+                    price_xof = Decimal(str(service.price))
+                    if patient_currency == 'XOF':
+                        price_in_patient_currency = price_xof
+                    else:
+                        price_in_patient_currency = CurrencyConverterService.convert_amount(
+                            price_xof,
+                            'XOF',
+                            patient_currency
+                        )
+                    
                     services_data.append({
                         'id': str(service.id),
                         'name': service.name,

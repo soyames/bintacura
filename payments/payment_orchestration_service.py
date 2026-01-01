@@ -66,7 +66,7 @@ class PaymentOrchestrationService:
                     service_id=service_details.get('service_id'),
                     service_description=service_details.get('description', ''),
                     
-                    amount_usd=amount_xof,
+                    amount_xof=amount_xof,
                     amount_local=amount_local,
                     currency_code=local_currency,
                     exchange_rate_used=exchange_rate,
@@ -115,7 +115,7 @@ class PaymentOrchestrationService:
         TransactionFee.objects.create(
             service_transaction=service_transaction,
             
-            gross_amount_usd=amount_xof,
+            gross_amount_xof=amount_xof,
             gross_amount_local=amount_local,
             currency_code=local_currency,
             exchange_rate_used=exchange_rate,
@@ -123,12 +123,12 @@ class PaymentOrchestrationService:
             gross_amount=amount_local,
             
             platform_fee_rate=cls.PLATFORM_COMMISSION_RATE,
-            platform_fee_amount_usd=commission_xof,
+            platform_fee_amount_xof=commission_xof,
             platform_fee_amount_local=commission_local,
             platform_fee_amount=commission_local,
             
             tax_rate=cls.TAX_RATE,
-            tax_amount_usd=tax_xof,
+            tax_amount_xof=tax_xof,
             tax_amount_local=tax_local,
             tax_amount=tax_local,
             
@@ -165,7 +165,7 @@ class PaymentOrchestrationService:
                 service_provider=service_transaction.service_provider,
                 patient_phone=patient_phone,
                 
-                amount_usd=service_transaction.amount_usd,
+                amount_xof=service_transaction.amount_xof,
                 amount_local=service_transaction.amount_local,
                 currency_code=service_transaction.currency_code,
                 exchange_rate_used=service_transaction.exchange_rate_used,
