@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from decimal import Decimal
+import logging
 from currency_converter.services import CurrencyConverterService
 from .models import (
     InsurancePackage,
@@ -12,6 +13,8 @@ from .models import (
     InsuranceCoverageEnquiry,
     InsuranceStaff,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class InsurancePackageSerializer(serializers.ModelSerializer):  # Serializer for InsurancePackage data
@@ -80,10 +83,7 @@ class InsurancePackageSerializer(serializers.ModelSerializer):  # Serializer for
         if base_currency != user_currency:
             try:
                 conversion_result = CurrencyConverterService.convert(amount_xof, base_currency, user_currency)
-                if isinstance(conversion_result, dict):
-                    converted_amount = conversion_result.get('converted_amount', amount_xof)
-                else:
-                    converted_amount = conversion_result
+                converted_amount = conversion_result.get('converted_amount', amount_xof)
             except Exception as e:
                 logger.error(f"Currency conversion error: {e}")
                 converted_amount = amount_xof
@@ -124,10 +124,7 @@ class InsurancePackageSerializer(serializers.ModelSerializer):  # Serializer for
         if base_currency != user_currency:
             try:
                 conversion_result = CurrencyConverterService.convert(amount_xof, base_currency, user_currency)
-                if isinstance(conversion_result, dict):
-                    converted_amount = conversion_result.get('converted_amount', amount_xof)
-                else:
-                    converted_amount = conversion_result
+                converted_amount = conversion_result.get('converted_amount', amount_xof)
             except Exception as e:
                 logger.error(f"Currency conversion error: {e}")
                 converted_amount = amount_xof
@@ -202,10 +199,7 @@ class InsuranceSubscriptionSerializer(serializers.ModelSerializer):  # Serialize
         if base_currency != patient_currency:
             try:
                 conversion_result = CurrencyConverterService.convert(amount_xof, base_currency, patient_currency)
-                if isinstance(conversion_result, dict):
-                    converted_amount = conversion_result.get('converted_amount', amount_xof)
-                else:
-                    converted_amount = conversion_result
+                converted_amount = conversion_result.get('converted_amount', amount_xof)
             except Exception as e:
                 logger.error(f"Currency conversion error: {e}")
                 converted_amount = amount_xof
@@ -251,10 +245,7 @@ class InsuranceInvoiceSerializer(serializers.ModelSerializer):  # Serializer for
         if base_currency != patient_currency:
             try:
                 conversion_result = CurrencyConverterService.convert(amount_xof, base_currency, patient_currency)
-                if isinstance(conversion_result, dict):
-                    converted_amount = conversion_result.get('converted_amount', amount_xof)
-                else:
-                    converted_amount = conversion_result
+                converted_amount = conversion_result.get('converted_amount', amount_xof)
             except Exception as e:
                 logger.error(f"Currency conversion error: {e}")
                 converted_amount = amount_xof
