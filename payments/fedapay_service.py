@@ -64,7 +64,21 @@ class FedaPayService:
             if response.status_code >= 400:
                 error_text = response.text
                 logger.error(f"   ❌ Error response: {error_text}")
-                response.raise_for_status()
+                
+                # Parse error details before raising
+                try:
+                    error_data = response.json()
+                    error_message = error_data.get('message', 'Unknown error')
+                    error_details = error_data.get('errors', {})
+                    
+                    # Create detailed error with parseable data
+                    raise requests.exceptions.HTTPError(
+                        f"{response.status_code} {response.reason}",
+                        response=response
+                    )
+                except ValueError:
+                    # If JSON parsing fails, raise generic error
+                    response.raise_for_status()
             
             result = response.json() if response.text else {}
             logger.info(f"   ✅ Response data received successfully")
@@ -72,13 +86,19 @@ class FedaPayService:
             
         except requests.exceptions.HTTPError as e:
             logger.error(f"❌ FedaPay HTTP Error: {str(e)}")
+            error_data = None
             if hasattr(e, 'response') and e.response is not None:
                 try:
                     error_data = e.response.json()
                     logger.error(f"   Error details: {error_data}")
                 except:
                     logger.error(f"   Error text: {e.response.text}")
-            raise Exception(f"FedaPay API error: {e.response.status_code} {e.response.reason}")
+            
+            # Create exception with error data attached
+            exc = Exception(f"FedaPay API error: {e.response.status_code} {e.response.reason}")
+            exc.error_data = error_data
+            exc.status_code = e.response.status_code
+            raise exc
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ FedaPay API request failed: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
@@ -145,16 +165,9 @@ class FedaPayService:
                 }
             return None
     
-    def create_customer(self, participant) -> Dict:
-        """Create or retrieve a FedaPay customer"""
-        logger.error(f"🔍 =============== FEDAPAY CUSTOMER CREATION DEBUG ===============")
-        logger.error(f"   Participant Type: {type(participant)}")
-        logger.error(f"   Email: {participant.email}")
-        logger.error(f"   Full name: {participant.full_name}")
-        logger.error(f"   Role: {participant.role}")
-        logger.error(f"   UID: {participant.uid}")
-        logger.error(f"   Phone: {participant.phone_number}")
-        logger.error(f"=================================================================")
+    def create_or_get_customer(self, participant) -> Dict:
+        """Create or retrieve a FedaPay customer - handles existing customers"""
+        logger.info(f"🔍 Creating/Getting FedaPay customer for: {participant.email}")
         
         # Split full name into first and last name
         name_parts = participant.full_name.split() if participant.full_name else ['User']
@@ -173,15 +186,14 @@ class FedaPayService:
             'email': participant.email,
         }
         
-        # Add phone number if available
+        # Add phone number if available and valid
         phone_data = self._format_phone_for_fedapay(participant.phone_number)
         if phone_data:
             data['phone_number'] = phone_data
         
         try:
-            logger.info(f"Creating FedaPay customer with data: {data}")
+            logger.info(f"Attempting to create FedaPay customer with data: {data}")
             response = self._make_request('POST', 'customers', data)
-            logger.info(f"FedaPay customer creation response: {response}")
             
             # FedaPay returns: {"v1/customer": {...}}
             if 'v1/customer' in response:
@@ -189,14 +201,56 @@ class FedaPayService:
                 logger.info(f"✅ Customer created successfully with ID: {customer.get('id')}")
                 return customer
             
-            # Fallback for different response format
-            logger.info(f"✅ Customer created (alternate format)")
             return response
+            
         except Exception as e:
-            logger.error(f"❌ Failed to create FedaPay customer: {str(e)}")
-            logger.error(f"   Participant: {participant.email} - {participant.full_name}")
-            logger.error(f"   Phone: {participant.phone_number}")
+            error_str = str(e)
+            
+            # Check if customer already exists (email not available)
+            has_email_error = False
+            if hasattr(e, 'error_data') and e.error_data:
+                errors = e.error_data.get('errors', {})
+                if 'email' in errors:
+                    has_email_error = True
+                    logger.info(f"ℹ️  Customer email already exists in FedaPay")
+            elif "n'est pas disponible" in error_str or ("email" in error_str.lower() and "400" in error_str):
+                has_email_error = True
+            
+            if has_email_error:
+                logger.info(f"ℹ️  Searching for existing customer...")
+                try:
+                    # Search for existing customer by email
+                    search_response = self._make_request('GET', 'customers/search')
+                    
+                    if 'v1/customers' in search_response:
+                        customers = search_response['v1/customers']
+                        # Find customer with matching email
+                        for customer in customers:
+                            if customer.get('email') == participant.email:
+                                logger.info(f"✅ Found existing customer with ID: {customer.get('id')}")
+                                return customer
+                    
+                    # If not found in search, create with unique email
+                    import uuid
+                    unique_suffix = str(uuid.uuid4())[:8]
+                    data['email'] = f"{participant.email.split('@')[0]}.{unique_suffix}@{participant.email.split('@')[1]}"
+                    logger.warning(f"Creating customer with modified email: {data['email']}")
+                    response = self._make_request('POST', 'customers', data)
+                    
+                    if 'v1/customer' in response:
+                        return response['v1/customer']
+                    return response
+                    
+                except Exception as search_error:
+                    logger.error(f"Failed to search/create customer: {search_error}")
+                    raise
+            
+            logger.error(f"❌ Failed to create FedaPay customer: {error_str}")
             raise
+    
+    def create_customer(self, participant) -> Dict:
+        """Alias for create_or_get_customer"""
+        return self.create_or_get_customer(participant)
     
     def create_transaction(
         self,
@@ -243,12 +297,15 @@ class FedaPayService:
     def generate_payment_token(self, transaction_id: int) -> Dict:
         """Generate payment token and URL for a transaction"""
         try:
+            logger.info(f"🔑 Generating payment token for transaction ID: {transaction_id}")
             response = self._make_request('POST', f'transactions/{transaction_id}/token')
             
+            logger.info(f"✅ Token response: {response}")
             # Response format: {"token": "...", "url": "..."}
             return response
         except Exception as e:
-            logger.error(f"Failed to generate payment token: {str(e)}")
+            logger.error(f"❌ Failed to generate payment token for txn {transaction_id}: {str(e)}")
+            logger.exception("Full token generation error:")
             raise
     
     def get_transaction(self, transaction_id: int) -> Dict:

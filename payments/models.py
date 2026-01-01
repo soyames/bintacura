@@ -489,7 +489,7 @@ class FedaPayTransaction(SyncMixin):  # Tracks FedaPay payment gateway transacti
     ]
 
     TRANSACTION_TYPE_CHOICES = [
-        ("wallet_topup", "Wallet Top-up"),
+        ("service_payment", "Service Payment"),
         ("service_payment", "Service Payment"),
         ("refund", "Refund"),
         ("payout", "Payout"),

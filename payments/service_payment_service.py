@@ -80,31 +80,60 @@ class ServicePaymentService:
         )
         
         # Initiate FedaPay transaction
-        callback_url = f"{settings.FRONTEND_URL}/api/payments/fedapay/callback/{service_type}/{service_id}/"
+        from .fedapay_service import FedaPayService
         
-        fedapay_result = FedaPayWalletService.initiate_wallet_topup(
-            participant=patient,
+        # Get webhook URL based on environment
+        fedapay_env = getattr(settings, 'FEDAPAY_ENVIRONMENT', 'sandbox')
+        
+        if fedapay_env == 'sandbox':
+            callback_url = getattr(settings, 'FEDAPAY_WEBHOOK_SANDBOX', 'http://127.0.0.1:8080/api/v1/payments/fedapay/webhook/')
+        else:
+            callback_url = getattr(settings, 'FEDAPAY_WEBHOOK_LIVE', 'https://bintacura.org/api/v1/payments/fedapay/webhook/')
+        
+        logger.info(f"🔔 Using FedaPay webhook URL ({fedapay_env}): {callback_url}")
+        
+        fedapay_service = FedaPayService()
+        
+        # Create or get customer first
+        customer_result = fedapay_service.create_or_get_customer(participant=patient)
+        
+        # Create transaction
+        fedapay_result = fedapay_service.create_transaction(
             amount=amount,
             currency=currency,
-            callback_url=callback_url
+            description=description,
+            customer_id=customer_result['id'],
+            callback_url=callback_url,
+            custom_metadata={
+                'participant_id': str(patient.uid),
+                'transaction_type': 'service_payment',
+                'service_transaction_id': str(patient_txn.id)
+            },
+            merchant_reference=f"SVC-{patient_txn.transaction_ref}"
         )
         
+        # Generate payment token
+        transaction_id = fedapay_result['id']
+        token_result = fedapay_service.generate_payment_token(transaction_id)
+        
         # Update transaction with FedaPay reference
-        patient_txn.metadata['fedapay_transaction_id'] = fedapay_result['fedapay_transaction_id']
-        patient_txn.metadata['payment_url'] = fedapay_result['payment_url']
+        patient_txn.metadata['fedapay_transaction_id'] = transaction_id
+        patient_txn.metadata['fedapay_reference'] = fedapay_result.get('reference')
+        patient_txn.metadata['payment_url'] = token_result.get('url')
+        patient_txn.metadata['payment_token'] = token_result.get('token')
         patient_txn.save()
         
         logger.info(
             f"Online payment initiated: {amount} {currency} from {patient.email} to {provider.email}. "
-            f"FedaPay ID: {fedapay_result['fedapay_transaction_id']}"
+            f"FedaPay ID: {transaction_id}"
         )
         
         return {
             'success': True,
             'patient_transaction': patient_txn,
-            'payment_url': fedapay_result['payment_url'],
-            'payment_token': fedapay_result.get('payment_token'),
-            'fedapay_transaction_id': fedapay_result['fedapay_transaction_id'],
+            'payment_url': token_result.get('url'),
+            'payment_token': token_result.get('token'),
+            'fedapay_transaction_id': transaction_id,
             'fee_calculation': fee_calculation,
             'transaction_ref': transaction_ref
         }

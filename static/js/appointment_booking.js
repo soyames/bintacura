@@ -583,13 +583,24 @@ class AppointmentBooking {
                             title="Fermer">
                         ×
                     </button>
-                    <h3 style="margin-bottom: 20px; color: #2d3748; padding-right: 40px;">Choisir le mode de paiement</h3>
+                    <h3 style="margin-bottom: 15px; color: #2d3748; padding-right: 40px;">Choisir le mode de paiement</h3>
+                    
+                    <!-- Fee Information Notice -->
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; color: #856404;">
+                        <strong>ℹ️ Informations sur les frais :</strong>
+                        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                            <li>Frais de plateforme: <strong>1% du montant</strong></li>
+                            <li>Paiement en ligne: <strong>Des frais de passerelle supplémentaires peuvent s'appliquer</strong></li>
+                            <li>Paiement sur place: <strong>Aucun frais supplémentaire</strong></li>
+                        </ul>
+                    </div>
+                    
                     <div style="display: flex; flex-direction: column; gap: 15px;">
                         <button onclick="this.closest('div').parentElement.parentElement.remove(); window.paymentChoice('online');" 
                                 style="padding: 15px; border: 2px solid #4CAF50; background: #4CAF50; color: white; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.2s;"
                                 onmouseover="this.style.background='#45a049'" 
                                 onmouseout="this.style.background='#4CAF50'">
-                            💳 Payer En ligne
+                            💳 Payer En ligne (avec FedaPay)
                         </button>
                         <button onclick="this.closest('div').parentElement.parentElement.remove(); window.paymentChoice('cash');" 
                                 style="padding: 15px; border: 2px solid #2196F3; background: #2196F3; color: white; border-radius: 8px; cursor: pointer; font-size: 16px; transition: all 0.2s;"

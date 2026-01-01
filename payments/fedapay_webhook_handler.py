@@ -138,7 +138,7 @@ class FedaPayWebhookHandler:
         webhook_event.fedapay_transaction = fedapay_txn
         
         # For wallet top-ups, credit the user's wallet with FULL amount (no BINTACURA fees)
-        if fedapay_txn.transaction_type == 'wallet_topup':
+        if fedapay_txn.transaction_type == 'service_payment':
             wallet = Wallet.objects.select_for_update().get(participant=fedapay_txn.participant)
             
             # Create core transaction - NO BINTACURA FEES ON TOP-UPS
@@ -230,7 +230,7 @@ class FedaPayWebhookHandler:
             webhook_event.fedapay_transaction = fedapay_txn
             
             # If this was a wallet top-up, debit the wallet
-            if fedapay_txn.transaction_type == 'wallet_topup' and fedapay_txn.core_transaction:
+            if fedapay_txn.transaction_type == 'service_payment' and fedapay_txn.core_transaction:
                 wallet = Wallet.objects.select_for_update().get(participant=fedapay_txn.participant)
                 
                 balance_before = wallet.balance
@@ -632,75 +632,10 @@ class FedaPayWebhookHandler:
 
 
 class FedaPayWalletService:
-    """Service for wallet operations with FedaPay"""
+    """Service for FedaPay operations - wallet functionality removed"""
     
-    @staticmethod
-    @transaction.atomic
-    def initiate_wallet_topup(participant: Participant, amount: Decimal, currency: str, callback_url: str) -> dict:
-        """Initiate wallet top-up via FedaPay"""
-        
-        logger.error(f"🔍 ========== INITIATE WALLET TOPUP DEBUG ==========")
-        logger.error(f"   Participant Email: {participant.email}")
-        logger.error(f"   Participant Name: {participant.full_name}")
-        logger.error(f"   Participant UID: {participant.uid}")
-        logger.error(f"===================================================")
-        
-        # Get or create FedaPay customer
-        try:
-            fedapay_customer = FedaPayCustomer.objects.get(participant=participant)
-        except FedaPayCustomer.DoesNotExist:
-            customer_data = fedapay_service.create_customer(participant)
-            fedapay_customer = FedaPayCustomer.objects.create(
-                participant=participant,
-                fedapay_customer_id=customer_data['id'],
-                email=customer_data['email'],
-                phone_number=customer_data.get('phone_number', {}).get('number', '')
-            )
-        
-        # Create transaction
-        description = f"BINTACURA wallet top-up - {amount} {currency}"
-        
-        txn_data = fedapay_service.create_transaction(
-            amount=amount,
-            currency=currency,
-            description=description,
-            customer_id=fedapay_customer.fedapay_customer_id,
-            callback_url=callback_url,
-            custom_metadata={
-                'participant_id': str(participant.uid),
-                'transaction_type': 'wallet_topup'
-            }
-        )
-        
-        # Generate payment token
-        token_data = fedapay_service.generate_payment_token(txn_data['id'])
-        
-        # Store in database
-        fedapay_txn = FedaPayTransaction.objects.create(
-            fedapay_transaction_id=txn_data['id'],
-            fedapay_reference=txn_data['reference'],
-            participant=participant,
-            fedapay_customer=fedapay_customer,
-            transaction_type='wallet_topup',
-            amount=amount,
-            currency=currency,
-            description=description,
-            payment_token=token_data.get('token', ''),
-            payment_url=token_data.get('url', ''),
-            callback_url=callback_url,
-            custom_metadata={
-                'participant_id': str(participant.uid)
-            }
-        )
-        
-        return {
-            'transaction_id': str(fedapay_txn.id),
-            'fedapay_transaction_id': txn_data['id'],
-            'payment_url': token_data.get('url', ''),
-            'payment_token': token_data.get('token', ''),
-            'amount': amount,
-            'currency': currency
-        }
+    # This class is deprecated - use fedapay_service.create_appointment_payment() instead
+    pass
     
     @staticmethod
     def get_transaction_status(fedapay_transaction_id: int) -> dict:

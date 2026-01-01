@@ -72,6 +72,12 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env.bool('DEBUG')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
+# Site URL for callbacks and webhooks
+if _is_local:
+    SITE_URL = config('LOCAL_SITE_URL', default='http://127.0.0.1:8080')
+else:
+    SITE_URL = config('SITE_URL', default='https://bintacura.org')
+
 if DEBUG:
     CSRF_TRUSTED_ORIGINS = [
         'https://bintacura.org/',
@@ -668,6 +674,13 @@ STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
 HUGGINGFACE_API_KEY = config("HUGGINGFACE_API_KEY", default="")
 
 LOGIN_URL = "/auth/login/"
+
+# Site URL configuration
+if DEBUG:
+    SITE_URL = config("SITE_URL", default="http://127.0.0.1:8080")
+else:
+    SITE_URL = config("SITE_URL", default="https://bintacura.org")
+
 LOGIN_REDIRECT_URL = "/dashboard/patient/"
 LOGOUT_REDIRECT_URL = "/auth/login/"
 

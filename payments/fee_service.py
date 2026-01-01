@@ -9,7 +9,7 @@ class FeeCalculationService:
     TAX_RATE = Decimal('0.18')  # 18% VAT (adjust based on your country)
     
     # Transaction types that incur fees
-    FEE_EXEMPT_TYPES = ['wallet_topup', 'deposit']
+    FEE_EXEMPT_TYPES = ['deposit']
     
     @staticmethod
     def calculate_fees(amount: Decimal, transaction_type: str, include_tax: bool = True) -> dict:

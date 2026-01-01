@@ -360,12 +360,16 @@ class UniversalPaymentService:
             }
         )
 
-        # Initiate Fedapay transaction
-        result = FedaPayWalletService.initiate_wallet_topup(
-            participant=patient,
+        # Initiate FedaPay payment for service
+        description = f"Payment for {service_type}"
+        if hasattr(service_object, 'get_service_description'):
+            description = service_object.get_service_description()
+        
+        result = fedapay_service.create_appointment_payment(
+            patient=patient,
             amount=amount,
-            currency=currency,
-            callback_url=callback_url
+            description=description,
+            appointment_id=str(service_object.id) if service_object else None
         )
 
         # Update gateway transaction

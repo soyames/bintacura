@@ -99,9 +99,16 @@ class QueueManagementService:
         # Total amount = default consultation + additional services
         subtotal = default_consultation_fee + additional_services_total
         
-        # Add 1% transaction fee to patient's total (not deducted from provider)
+        # Add 1% platform fee to patient's total (not deducted from provider)
+        # Calculate 1% transaction fee (this is our platform fee)
         transaction_fee = subtotal * Decimal('0.01')
         total_amount_with_fee = subtotal + transaction_fee
+        
+        logger.info(f"💰 Fee Calculation:")
+        logger.info(f"   Subtotal: {subtotal} {patient_currency}")
+        logger.info(f"   Transaction Fee (1%): {transaction_fee} {patient_currency}")
+        logger.info(f"   Total (with transaction fee): {total_amount_with_fee} {patient_currency}")
+        logger.info(f"   ⚠️  Note: Additional gateway fees may apply for online payments")
         
         # Create appointment (pending until payment)
         appointment = Appointment.objects.create(
@@ -143,17 +150,18 @@ class QueueManagementService:
                 is_onsite_payment = payment_method in ['onsite', 'cash', 'onsite_cash']
                 
                 if is_online_payment:
-                    # For online payments, initiate FedaPay transaction
+                    # For online payments, initiate FedaPay transaction (includes 1% platform fee)
                     # This returns a payment URL for the user to complete payment
                     payment_result = ServicePaymentService.initiate_online_payment(
                         patient=patient,
                         provider=service_participant,
-                        amount=subtotal,
+                        amount=total_amount_with_fee,  # Total includes 1% platform fee
                         currency=patient_currency,
                         service_type='appointment',
                         service_id=str(appointment.id),
                         description=f"Appointment booking - {appointment_type} with {service_participant.full_name}" + 
-                                  (f" + {len(services_details)} additional service(s)" if services_details else "")
+                                  (f" + {len(services_details)} additional service(s)" if services_details else "") +
+                                  f" (includes 1% platform fee. Note: Additional gateway fees may apply)"
                     )
                     # Online payment starts as pending until FedaPay confirms
                     appointment.payment_status = 'pending'
@@ -161,16 +169,17 @@ class QueueManagementService:
                     payment_url = payment_result.get('payment_url')
                     
                 elif is_onsite_payment:
-                    # For onsite payments, create a pending payment record
+                    # For onsite payments, create a pending payment record (includes 1% platform fee)
                     payment_result = ServicePaymentService.record_onsite_payment(
                         patient=patient,
                         provider=service_participant,
-                        amount=subtotal,
+                        amount=total_amount_with_fee,  # Total includes 1% platform fee
                         currency=patient_currency,
                         service_type='appointment',
                         service_id=str(appointment.id),
                         description=f"Appointment booking - {appointment_type} with {service_participant.full_name} (Pay on-site)" +
-                                  (f" + {len(services_details)} additional service(s)" if services_details else "")
+                                  (f" + {len(services_details)} additional service(s)" if services_details else "") +
+                                  f" (includes 1% platform fee)"
                     )
                     appointment.payment_status = 'pending'
                     appointment.payment_method = 'onsite'
@@ -221,8 +230,8 @@ class QueueManagementService:
                 'currency': patient_currency,
                 'additional_services_total': str(additional_services_total),
                 'subtotal': str(subtotal),
-                'transaction_fee': str(transaction_fee),
-                'transaction_fee_percentage': '1%',
+                'platform_fee': str(transaction_fee),  # Using transaction_fee as our 1% platform fee
+                'platform_fee_percentage': '1%',
                 'total_amount': str(total_amount_with_fee),
                 'services_count': len(services_details),
                 'services': [
