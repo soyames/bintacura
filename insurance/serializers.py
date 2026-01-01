@@ -60,33 +60,42 @@ class InsurancePackageSerializer(serializers.ModelSerializer):  # Serializer for
 
     def get_premium_amount_local(self, obj):
         """Convert premium amount to user's local currency"""
-        base_currency = 'USD'  # Insurance prices in USD cents
+        base_currency = 'XOF'  # Insurance prices in XOF cents
         user = self.context.get('request').user if self.context.get('request') else None
 
         if not user or not user.is_authenticated:
             # Return in base currency if no user context
-            # Convert from USD cents to USD dollars
-            amount_usd = Decimal(str(obj.premium_amount)) / 100
+            # Convert from XOF cents to XOF
+            amount_xof = Decimal(str(obj.premium_amount)) / 100
             return {
-                'amount': float(amount_usd),
+                'amount': float(amount_xof),
                 'currency': base_currency,
-                'formatted': CurrencyConverterService.format_amount(amount_usd, base_currency),
+                'formatted': CurrencyConverterService.format_amount(amount_xof, base_currency),
             }
 
         user_currency = CurrencyConverterService.get_participant_currency(user)
-        # Convert from USD cents to USD dollars
-        amount_usd = Decimal(str(obj.premium_amount)) / 100
+        # Convert from XOF cents to XOF (note: premium_amount already in cents)
+        amount_xof = Decimal(str(obj.premium_amount)) / 100
 
         if base_currency != user_currency:
-            converted_amount = CurrencyConverterService.convert(amount_usd, base_currency, user_currency)
+            try:
+                conversion_result = CurrencyConverterService.convert(amount_xof, base_currency, user_currency)
+                if isinstance(conversion_result, dict):
+                    converted_amount = conversion_result.get('converted_amount', amount_xof)
+                else:
+                    converted_amount = conversion_result
+            except Exception as e:
+                logger.error(f"Currency conversion error: {e}")
+                converted_amount = amount_xof
+                user_currency = base_currency
         else:
-            converted_amount = amount_usd
+            converted_amount = amount_xof
 
         return {
             'amount': float(converted_amount),
             'currency': user_currency,
             'formatted': CurrencyConverterService.format_amount(converted_amount, user_currency),
-            'original_amount': float(amount_usd),
+            'original_amount': float(amount_xof),
             'original_currency': base_currency,
             'needs_conversion': base_currency != user_currency
         }
@@ -96,32 +105,41 @@ class InsurancePackageSerializer(serializers.ModelSerializer):  # Serializer for
         if not obj.max_coverage_amount:
             return None
 
-        base_currency = 'USD'
+        base_currency = 'XOF'
         user = self.context.get('request').user if self.context.get('request') else None
 
         if not user or not user.is_authenticated:
-            # Convert from USD cents to USD dollars
-            amount_usd = Decimal(str(obj.max_coverage_amount)) / 100
+            # Convert from XOF cents to XOF
+            amount_xof = Decimal(str(obj.max_coverage_amount)) / 100
             return {
-                'amount': float(amount_usd),
+                'amount': float(amount_xof),
                 'currency': base_currency,
-                'formatted': CurrencyConverterService.format_amount(amount_usd, base_currency),
+                'formatted': CurrencyConverterService.format_amount(amount_xof, base_currency),
             }
 
         user_currency = CurrencyConverterService.get_participant_currency(user)
-        # Convert from USD cents to USD dollars
-        amount_usd = Decimal(str(obj.max_coverage_amount)) / 100
+        # Convert from XOF cents to XOF
+        amount_xof = Decimal(str(obj.max_coverage_amount)) / 100
 
         if base_currency != user_currency:
-            converted_amount = CurrencyConverterService.convert(amount_usd, base_currency, user_currency)
+            try:
+                conversion_result = CurrencyConverterService.convert(amount_xof, base_currency, user_currency)
+                if isinstance(conversion_result, dict):
+                    converted_amount = conversion_result.get('converted_amount', amount_xof)
+                else:
+                    converted_amount = conversion_result
+            except Exception as e:
+                logger.error(f"Currency conversion error: {e}")
+                converted_amount = amount_xof
+                user_currency = base_currency
         else:
-            converted_amount = amount_usd
+            converted_amount = amount_xof
 
         return {
             'amount': float(converted_amount),
             'currency': user_currency,
             'formatted': CurrencyConverterService.format_amount(converted_amount, user_currency),
-            'original_amount': float(amount_usd),
+            'original_amount': float(amount_xof),
             'original_currency': base_currency,
             'needs_conversion': base_currency != user_currency
         }
@@ -176,21 +194,30 @@ class InsuranceSubscriptionSerializer(serializers.ModelSerializer):  # Serialize
 
     def get_premium_amount_local(self, obj):
         """Convert premium amount to patient's local currency"""
-        base_currency = 'USD'
+        base_currency = 'XOF'
         patient_currency = CurrencyConverterService.get_participant_currency(obj.patient)
-        # Convert from USD cents to USD dollars
-        amount_usd = Decimal(str(obj.premium_amount)) / 100
+        # Convert from XOF cents to XOF
+        amount_xof = Decimal(str(obj.premium_amount)) / 100
 
         if base_currency != patient_currency:
-            converted_amount = CurrencyConverterService.convert(amount_usd, base_currency, patient_currency)
+            try:
+                conversion_result = CurrencyConverterService.convert(amount_xof, base_currency, patient_currency)
+                if isinstance(conversion_result, dict):
+                    converted_amount = conversion_result.get('converted_amount', amount_xof)
+                else:
+                    converted_amount = conversion_result
+            except Exception as e:
+                logger.error(f"Currency conversion error: {e}")
+                converted_amount = amount_xof
+                patient_currency = base_currency
         else:
-            converted_amount = amount_usd
+            converted_amount = amount_xof
 
         return {
             'amount': float(converted_amount),
             'currency': patient_currency,
             'formatted': CurrencyConverterService.format_amount(converted_amount, patient_currency),
-            'original_amount': float(amount_usd),
+            'original_amount': float(amount_xof),
             'original_currency': base_currency,
             'needs_conversion': base_currency != patient_currency
         }
@@ -216,21 +243,30 @@ class InsuranceInvoiceSerializer(serializers.ModelSerializer):  # Serializer for
 
     def get_amount_local(self, obj):
         """Convert invoice amount to patient's local currency"""
-        base_currency = 'USD'  # Insurance invoices in USD cents
+        base_currency = 'XOF'  # Insurance invoices in XOF cents
         patient_currency = CurrencyConverterService.get_participant_currency(obj.patient)
-        # Convert from USD cents to USD dollars
-        amount_usd = Decimal(str(obj.amount)) / 100
+        # Convert from XOF cents to XOF
+        amount_xof = Decimal(str(obj.amount)) / 100
 
         if base_currency != patient_currency:
-            converted_amount = CurrencyConverterService.convert(amount_usd, base_currency, patient_currency)
+            try:
+                conversion_result = CurrencyConverterService.convert(amount_xof, base_currency, patient_currency)
+                if isinstance(conversion_result, dict):
+                    converted_amount = conversion_result.get('converted_amount', amount_xof)
+                else:
+                    converted_amount = conversion_result
+            except Exception as e:
+                logger.error(f"Currency conversion error: {e}")
+                converted_amount = amount_xof
+                patient_currency = base_currency
         else:
-            converted_amount = amount_usd
+            converted_amount = amount_xof
 
         return {
             'amount': float(converted_amount),
             'currency': patient_currency,
             'formatted': CurrencyConverterService.format_amount(converted_amount, patient_currency),
-            'original_amount': float(amount_usd),
+            'original_amount': float(amount_xof),
             'original_currency': base_currency,
             'needs_conversion': base_currency != patient_currency
         }

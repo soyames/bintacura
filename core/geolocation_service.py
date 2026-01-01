@@ -48,7 +48,7 @@ class GeolocationService:
         "MT": "EUR",
         "CY": "EUR",
         "GB": "GBP",
-        "US": "USD",
+        "US": "XOF",
         "CA": "CAD",
         "AU": "AUD",
         "NZ": "NZD",
@@ -100,7 +100,7 @@ class GeolocationService:
                 data = response.json()
                 country_code = data.get("countryCode")
                 if country_code:
-                    return cls.COUNTRY_TO_CURRENCY.get(country_code, "USD")
+                    return cls.COUNTRY_TO_CURRENCY.get(country_code, "XOF")
         except Exception:
             pass
 

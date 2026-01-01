@@ -95,7 +95,8 @@ class TransportRequestSerializer(serializers.ModelSerializer):
 
         # Convert to patient's currency if needed
         if base_currency != patient_currency:
-            converted_amount = CurrencyConverterService.convert(amount, base_currency, patient_currency)
+            conversion_result = CurrencyConverterService.convert(amount, base_currency, patient_currency)
+            converted_amount = conversion_result['converted_amount']
         else:
             converted_amount = amount
 
@@ -119,7 +120,8 @@ class TransportRequestSerializer(serializers.ModelSerializer):
 
         # Convert to patient's currency if needed
         if base_currency != patient_currency:
-            converted_amount = CurrencyConverterService.convert(amount, base_currency, patient_currency)
+            conversion_result = CurrencyConverterService.convert(amount, base_currency, patient_currency)
+            converted_amount = conversion_result['converted_amount']
         else:
             converted_amount = amount
 
@@ -220,7 +222,8 @@ class RideShareQuoteSerializer(serializers.ModelSerializer):
 
         # Convert to patient's currency if needed
         if obj.currency != patient_currency:
-            converted_amount = CurrencyConverterService.convert(obj.total_fare, obj.currency, patient_currency)
+            conversion_result = CurrencyConverterService.convert(obj.total_fare, obj.currency, patient_currency)
+            converted_amount = conversion_result['converted_amount']
             exchange_rate = CurrencyConverterService.get_rate(obj.currency, patient_currency)
         else:
             converted_amount = obj.total_fare

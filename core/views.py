@@ -3734,8 +3734,16 @@ class HospitalAppointmentsAPIView(APIView):  # Class for hospitalappointmentsapi
                 
                 # Convert consultation fee to patient currency
                 from currency_converter.services import CurrencyConverterService
-                if patient_currency != 'USD':
-                    converted_fee = CurrencyConverterService.convert(consultation_fee, 'USD', patient_currency)
+                if patient_currency != 'XOF':
+                    try:
+                        conversion_result = CurrencyConverterService.convert(consultation_fee, 'XOF', patient_currency)
+                        if isinstance(conversion_result, dict):
+                            converted_fee = conversion_result.get('converted_amount', consultation_fee)
+                        else:
+                            converted_fee = conversion_result
+                    except Exception as e:
+                        logger.error(f"Currency conversion error: {e}")
+                        converted_fee = consultation_fee
                 else:
                     converted_fee = consultation_fee
                 

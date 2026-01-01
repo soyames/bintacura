@@ -32,7 +32,7 @@ class PaymentOrchestrationService:
     TAX_RATE = Decimal('0.18')
     
     @classmethod
-    def create_payment_intent(cls, patient, service_provider, service_details, amount_usd):
+    def create_payment_intent(cls, patient, service_provider, service_details, amount_xof):
         """
         Create payment intent for ANY payment type through BintaCura.
         
@@ -40,7 +40,7 @@ class PaymentOrchestrationService:
             patient: Participant (payer)
             service_provider: Participant (payee)
             service_details: dict with service_type, service_id, description
-            amount_usd: Decimal amount in USD (base currency)
+            amount_xof: Decimal amount in XOF (base currency)
         
         Returns:
             ServiceTransaction with dual currency tracking
@@ -48,12 +48,12 @@ class PaymentOrchestrationService:
         try:
             local_currency = CurrencyConverterService.get_participant_currency(patient)
             amount_local, _ = CurrencyConverterService.convert_to_local_currency(
-                amount_usd, patient
+                amount_xof, patient
             )
-            exchange_rate = CurrencyConverterService.get_rate('USD', local_currency)
+            exchange_rate = CurrencyConverterService.get_rate('XOF', local_currency)
             
             logger.info(
-                f"Payment intent: {amount_usd} USD = {amount_local} {local_currency} "
+                f"Payment intent: {amount_xof} XOF = {amount_local} {local_currency} "
                 f"(rate: {exchange_rate})"
             )
             
@@ -66,7 +66,7 @@ class PaymentOrchestrationService:
                     service_id=service_details.get('service_id'),
                     service_description=service_details.get('description', ''),
                     
-                    amount_usd=amount_usd,
+                    amount_usd=amount_xof,
                     amount_local=amount_local,
                     currency_code=local_currency,
                     exchange_rate_used=exchange_rate,
@@ -79,7 +79,7 @@ class PaymentOrchestrationService:
                     metadata=service_details.get('metadata', {})
                 )
                 
-                cls._calculate_and_store_fees(service_transaction, amount_usd, amount_local, local_currency, exchange_rate)
+                cls._calculate_and_store_fees(service_transaction, amount_xof, amount_local, local_currency, exchange_rate)
                 
                 logger.info(f"Payment intent created: {service_transaction.transaction_ref}")
                 return service_transaction
@@ -89,18 +89,18 @@ class PaymentOrchestrationService:
             raise
     
     @classmethod
-    def _calculate_and_store_fees(cls, service_transaction, amount_usd, amount_local, local_currency, exchange_rate):
+    def _calculate_and_store_fees(cls, service_transaction, amount_xof, amount_local, local_currency, exchange_rate):
         """
-        Calculate commission and tax in both USD and local currency.
+        Calculate commission and tax in both XOF and local currency.
         
-        CRITICAL: Commission is calculated on USD amount, then converted to local currency.
+        CRITICAL: Commission is calculated on XOF amount, then converted to local currency.
         This ensures consistency across all instances and audit trails.
         """
-        commission_usd = amount_usd * cls.PLATFORM_COMMISSION_RATE
-        commission_local = commission_usd * exchange_rate
+        commission_xof = amount_xof * cls.PLATFORM_COMMISSION_RATE
+        commission_local = commission_xof * exchange_rate
         
-        tax_usd = amount_usd * cls.TAX_RATE
-        tax_local = tax_usd * exchange_rate
+        tax_xof = amount_xof * cls.TAX_RATE
+        tax_local = tax_xof * exchange_rate
         
         if local_currency in ['XOF', 'XAF', 'NGN', 'KES']:
             commission_local = commission_local.quantize(Decimal('1'))
@@ -115,7 +115,7 @@ class PaymentOrchestrationService:
         TransactionFee.objects.create(
             service_transaction=service_transaction,
             
-            gross_amount_usd=amount_usd,
+            gross_amount_usd=amount_xof,
             gross_amount_local=amount_local,
             currency_code=local_currency,
             exchange_rate_used=exchange_rate,
@@ -123,12 +123,12 @@ class PaymentOrchestrationService:
             gross_amount=amount_local,
             
             platform_fee_rate=cls.PLATFORM_COMMISSION_RATE,
-            platform_fee_amount_usd=commission_usd,
+            platform_fee_amount_usd=commission_xof,
             platform_fee_amount_local=commission_local,
             platform_fee_amount=commission_local,
             
             tax_rate=cls.TAX_RATE,
-            tax_amount_usd=tax_usd,
+            tax_amount_usd=tax_xof,
             tax_amount_local=tax_local,
             tax_amount=tax_local,
             

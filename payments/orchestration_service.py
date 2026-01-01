@@ -24,7 +24,7 @@ class PaymentOrchestrationService:
         Resolve participant's local currency using phone country code + geolocation.
         Returns: (currency_code, country_code, resolution_method)
         """
-        currency_code = "USD"  # Default fallback
+        currency_code = "XOF"  # Default fallback
         country_code = None
         resolution_method = "default"
         
@@ -68,7 +68,7 @@ class PaymentOrchestrationService:
         
         except Exception as e:
             logger.error(f"Error resolving currency for {participant.email}: {e}")
-            currency_code = "USD"
+            currency_code = "XOF"
             resolution_method = "error_fallback"
         
         return currency_code, country_code, resolution_method
@@ -78,7 +78,7 @@ class PaymentOrchestrationService:
     def initiate_payment(
         payer_participant,
         payee_participant,
-        amount_usd,
+        amount_xof,
         payment_context="patient_service",
         description="",
         apply_tax=False,
@@ -90,7 +90,7 @@ class PaymentOrchestrationService:
         Args:
             payer_participant: Participant making payment
             payee_participant: Participant receiving payment
-            amount_usd: Amount in USD (reference currency)
+            amount_xof: Amount in XOF (base currency)
             payment_context: patient_service/b2b_supplier/payroll
             description: Payment description
             apply_tax: Whether to apply 18% tax
@@ -110,17 +110,17 @@ class PaymentOrchestrationService:
                     f"Recipient account is not verified. Payments to unverified accounts are blocked for security."
                 )
         
-        amount_usd = Decimal(str(amount_usd))
+        amount_xof = Decimal(str(amount_xof))
         
         # Resolve payer's local currency
         currency_code, country_code, resolution_method = PaymentOrchestrationService.resolve_participant_currency(
             payer_participant
         )
         
-        # Convert USD to local currency
+        # Convert XOF to local currency
         conversion_result = CurrencyConverterService.convert(
-            amount_usd,
-            "USD",
+            amount_xof,
+            "XOF",
             currency_code
         )
         
@@ -128,7 +128,7 @@ class PaymentOrchestrationService:
         exchange_rate = conversion_result['rate']
         
         # Calculate commission (1%)
-        commission_usd = amount_usd * PaymentOrchestrationService.BINTACURA_COMMISSION_RATE
+        commission_xof = amount_xof * PaymentOrchestrationService.BINTACURA_COMMISSION_RATE
         commission_local = amount_local * PaymentOrchestrationService.BINTACURA_COMMISSION_RATE
         
         # Calculate tax if applicable
@@ -146,14 +146,14 @@ class PaymentOrchestrationService:
             recipient=payee_participant,
             
             # Dual currency
-            amount_usd=amount_usd,
+            amount_usd=amount_xof,
             amount_local=amount_local,
             currency_code=currency_code,
             exchange_rate_used=exchange_rate,
             conversion_timestamp=timezone.now(),
             
             # Commission
-            commission_amount_usd=commission_usd,
+            commission_amount_usd=commission_xof,
             commission_amount_local=commission_local,
             tax_amount=tax_amount,
             
@@ -182,13 +182,13 @@ class PaymentOrchestrationService:
             f"Payment initiated: {txn.transaction_ref} | "
             f"Payer={payer_participant.email} | "
             f"Payee={payee_participant.email} | "
-            f"Amount={amount_usd} USD ({amount_local} {currency_code})"
+            f"Amount={amount_xof} XOF ({amount_local} {currency_code})"
         )
         
         return {
             "transaction_ref": txn.transaction_ref,
             "transaction_id": str(txn.id),
-            "amount_usd": float(amount_usd),
+            "amount_usd": float(amount_xof),
             "amount_local": float(total_local),
             "currency_code": currency_code,
             "commission_local": float(commission_local),
@@ -285,7 +285,7 @@ class PaymentOrchestrationService:
             return False
     
     @staticmethod
-    def get_participant_ledger_balance(participant, currency_code="USD"):
+    def get_participant_ledger_balance(participant, currency_code="XOF"):
         """
         Get computed ledger balance for participant (no stored balance).
         
@@ -322,8 +322,8 @@ class PaymentOrchestrationService:
         balance_usd = received_usd - sent_usd
         
         # Convert to requested currency if not USD
-        if currency_code != "USD":
-            conversion = CurrencyConverterService.convert(balance_usd, "USD", currency_code)
+        if currency_code != "XOF":
+            conversion = CurrencyConverterService.convert(balance_usd, "XOF", currency_code)
             return conversion['converted_amount']
         
         return balance_usd
