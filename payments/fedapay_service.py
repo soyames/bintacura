@@ -13,24 +13,39 @@ class FedaPayService:
     """Service for integrating with FedaPay payment gateway"""
     
     def __init__(self):  # Initialize instance
-        self.api_key = getattr(settings, 'FEDAPAY_API_KEY', os.getenv('FEDAPAY_API_KEY'))
+        self.api_key = getattr(settings, 'FEDAPAY_API_KEY', os.getenv('FEDAPAY_SK_SANDBOX'))
         self.environment = getattr(settings, 'FEDAPAY_ENVIRONMENT', os.getenv('FEDAPAY_ENVIRONMENT', 'sandbox'))
+        
+        if not self.api_key:
+            logger.error("FEDAPAY_API_KEY is not configured!")
+            logger.error(f"Environment: {self.environment}")
+            logger.error("Please set FEDAPAY_SK_SANDBOX or FEDAPAY_SK_LIVE in your .env file")
+            raise ValueError("FedaPay API key is required")
         
         if self.environment == 'sandbox':
             self.base_url = 'https://sandbox-api.fedapay.com/v1'
         else:
             self.base_url = 'https://api.fedapay.com/v1'
         
+        # FedaPay uses the Secret Key (SK) for API authentication
+        # Format: Authorization: Bearer sk_sandbox_xxx or sk_live_xxx
         self.headers = {
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
         }
+        
+        logger.info(f"✅ FedaPay initialized in {self.environment} mode")
+        logger.info(f"   Base URL: {self.base_url}")
+        logger.info(f"   API Key: {self.api_key[:15]}... (masked)")
     
     def _make_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict:
         """Make HTTP request to FedaPay API"""
         url = f'{self.base_url}/{endpoint}'
         
         try:
+            logger.info(f"🔵 FedaPay {method} request to: {url}")
+            logger.info(f"   Request data: {data}")
+            
             if method == 'GET':
                 response = requests.get(url, headers=self.headers, params=data)
             elif method == 'POST':
@@ -42,29 +57,105 @@ class FedaPayService:
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
             
+            logger.info(f"   Response status: {response.status_code}")
+            
             response.raise_for_status()
-            return response.json() if response.text else {}
+            result = response.json() if response.text else {}
+            logger.info(f"   Response data: {result}")
+            return result
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"FedaPay API request failed: {str(e)}")
+            logger.error(f"❌ FedaPay API request failed: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response text: {e.response.text}")
             raise Exception(f"FedaPay API error: {str(e)}")
+    
+    def _format_phone_for_fedapay(self, phone_number: str) -> Optional[Dict]:
+        """
+        Format phone number for FedaPay API
+        FedaPay expects: {"number": "97000001", "country": "BJ"}
+        - No + prefix
+        - No country code
+        - Just the local number digits
+        
+        Country code mapping:
+        +229 -> BJ (Benin) - 8 digits
+        +226 -> BF (Burkina Faso) - 8 digits
+        +243 -> CD (DRC) - 9 digits
+        +225 -> CI (Côte d'Ivoire) - 10 digits
+        +228 -> TG (Togo) - 8 digits
+        """
+        if not phone_number:
+            return None
+        
+        # Clean phone number - remove all non-digits
+        phone = ''.join(filter(str.isdigit, phone_number))
+        
+        # Country code mapping
+        country_codes = {
+            '229': ('BJ', 8),  # Benin
+            '226': ('BF', 8),  # Burkina Faso
+            '243': ('CD', 9),  # DRC
+            '225': ('CI', 10), # Côte d'Ivoire
+            '228': ('TG', 8),  # Togo
+        }
+        
+        country = 'BJ'  # Default to Benin
+        expected_length = 8
+        
+        # Try to extract country code
+        for code, (iso, length) in country_codes.items():
+            if phone.startswith(code):
+                country = iso
+                expected_length = length
+                phone = phone[len(code):]  # Remove country code
+                break
+        
+        # Remove leading zeros
+        phone = phone.lstrip('0')
+        
+        # Validate length
+        if len(phone) == expected_length:
+            return {
+                'number': phone,
+                'country': country
+            }
+        else:
+            logger.warning(f"Invalid phone number: {phone_number} -> {phone} (expected {expected_length} digits for {country})")
+            # Try to use it anyway if we have some digits
+            if len(phone) >= 8:
+                return {
+                    'number': phone[:expected_length],
+                    'country': country
+                }
+            return None
     
     def create_customer(self, participant) -> Dict:
         """Create or retrieve a FedaPay customer"""
+        # Split full name into first and last name
+        name_parts = participant.full_name.split() if participant.full_name else ['User']
+        firstname = name_parts[0]
+        lastname = ' '.join(name_parts[1:]) if len(name_parts) > 1 else 'BINTACURA'
+        
         data = {
-            'firstname': participant.full_name.split()[0] if participant.full_name else 'User',
-            'lastname': ' '.join(participant.full_name.split()[1:]) if participant.full_name and len(participant.full_name.split()) > 1 else 'BINTACURA',
+            'firstname': firstname,
+            'lastname': lastname,
             'email': participant.email,
         }
         
-        if participant.phone_number:
-            data['phone_number'] = {
-                'number': participant.phone_number,
-                'country': participant.country[:2] if participant.country else 'BJ'
-            }
+        # Add phone number if available
+        phone_data = self._format_phone_for_fedapay(participant.phone_number)
+        if phone_data:
+            data['phone_number'] = phone_data
         
         try:
-            return self._make_request('POST', 'customers', data)
+            response = self._make_request('POST', 'customers', data)
+            
+            # FedaPay returns: {"v1/customer": {...}}
+            if 'v1/customer' in response:
+                return response['v1/customer']
+            
+            return response
         except Exception as e:
             logger.error(f"Failed to create FedaPay customer: {str(e)}")
             raise
@@ -76,16 +167,19 @@ class FedaPayService:
         description: str,
         customer_id: int,
         callback_url: str,
-        custom_metadata: Optional[Dict] = None
+        custom_metadata: Optional[Dict] = None,
+        merchant_reference: Optional[str] = None
     ) -> Dict:
         """Create a payment transaction"""
         
-        amount_in_minor_units = int(amount * 100)
+        # FedaPay expects amount as integer (whole units)
+        # For XOF: 3500 XOF = 3500 (no decimal places)
+        amount_in_units = int(amount)
         
         data = {
             'description': description,
-            'amount': amount_in_minor_units,
-            'currency': {'iso': currency},
+            'amount': amount_in_units,
+            'currency': {'iso': currency.upper()},
             'callback_url': callback_url,
             'customer': {'id': customer_id}
         }
@@ -93,16 +187,28 @@ class FedaPayService:
         if custom_metadata:
             data['custom_metadata'] = custom_metadata
         
+        if merchant_reference:
+            data['merchant_reference'] = merchant_reference
+        
         try:
-            return self._make_request('POST', 'transactions', data)
+            response = self._make_request('POST', 'transactions', data)
+            
+            # FedaPay returns: {"v1/transaction": {...}}
+            if 'v1/transaction' in response:
+                return response['v1/transaction']
+            
+            return response
         except Exception as e:
             logger.error(f"Failed to create FedaPay transaction: {str(e)}")
             raise
     
     def generate_payment_token(self, transaction_id: int) -> Dict:
-        """Generate payment token for a transaction"""
+        """Generate payment token and URL for a transaction"""
         try:
-            return self._make_request('POST', f'transactions/{transaction_id}/token')
+            response = self._make_request('POST', f'transactions/{transaction_id}/token')
+            
+            # Response format: {"token": "...", "url": "..."}
+            return response
         except Exception as e:
             logger.error(f"Failed to generate payment token: {str(e)}")
             raise
@@ -110,7 +216,13 @@ class FedaPayService:
     def get_transaction(self, transaction_id: int) -> Dict:
         """Retrieve a transaction by ID"""
         try:
-            return self._make_request('GET', f'transactions/{transaction_id}')
+            response = self._make_request('GET', f'transactions/{transaction_id}')
+            
+            # FedaPay returns: {"v1/transaction": {...}}
+            if 'v1/transaction' in response:
+                return response['v1/transaction']
+            
+            return response
         except Exception as e:
             logger.error(f"Failed to retrieve transaction: {str(e)}")
             raise
@@ -141,13 +253,14 @@ class FedaPayService:
     
     def start_payout(self, payout_id: int, phone_number: Optional[str] = None) -> Dict:
         """Start/execute a payout"""
-        data = [{'id': payout_id}]
+        payout_data = {'id': payout_id}
         
         if phone_number:
-            data[0]['phone_number'] = {
-                'number': phone_number,
-                'country': 'BJ'
-            }
+            phone_formatted = self._format_phone_for_fedapay(phone_number)
+            if phone_formatted:
+                payout_data['phone_number'] = phone_formatted
+        
+        data = {'payouts': [payout_data]}
         
         try:
             return self._make_request('PUT', 'payouts/start', data)

@@ -286,9 +286,17 @@ PLATFORM_FEE_RATE = PAYMENT_CONFIGURATION['PLATFORM_FEE_RATE']
 PLATFORM_TAX_RATE = PAYMENT_CONFIGURATION['PLATFORM_TAX_RATE']
 
 # FedaPay Configuration
-FEDAPAY_API_KEY = env('FEDAPAY_API_KEY', default='')
 FEDAPAY_ENVIRONMENT = env('FEDAPAY_ENVIRONMENT', default='sandbox')  # 'sandbox' or 'live'
-FEDAPAY_WEBHOOK_SECRET = env('FEDAPAY_WEBHOOK_SECRET', default='')
+
+# Select the correct API key based on environment
+if FEDAPAY_ENVIRONMENT == 'live':
+    FEDAPAY_API_KEY = env('FEDAPAY_SK_LIVE', default='')
+    FEDAPAY_PUBLIC_KEY = env('FEDAPAY_PK_LIVE', default='')
+    FEDAPAY_WEBHOOK_SECRET = env('FEDAPAY_WEBHOOK_LIVE', default='')
+else:  # sandbox
+    FEDAPAY_API_KEY = env('FEDAPAY_SK_SANDBOX', default='')
+    FEDAPAY_PUBLIC_KEY = env('FEDAPAY_PK_SANDBOX', default='')
+    FEDAPAY_WEBHOOK_SECRET = env('FEDAPAY_WEBHOOK_SANDBOX', default='')
 
 # Currency Configuration
 DEFAULT_CURRENCY = 'XOF'
@@ -605,11 +613,11 @@ MANAGERS = ADMINS
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:8000")
 
 # Payment Provider Configuration
-# Central/Default Payment Providers
-FEDAPAY_API_KEY = config("FEDAPAY_API_KEY", default="")
-FEDAPAY_API_SECRET = config("FEDAPAY_API_SECRET", default="")
+# Stripe Configuration
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
+
+# Note: FedaPay configuration is at line ~288-298 above
 
 # Regional Payment Provider Configuration (uncomment when deploying to specific regions)
 # Mali

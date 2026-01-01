@@ -1,4 +1,7 @@
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,6 +10,7 @@ from .models import PatientData, DependentProfile
 from .serializers import PatientDataSerializer, DependentProfileSerializer
 from prescriptions.models import Prescription
 from prescriptions.serializers import PrescriptionSerializer
+from appointments.models import Appointment
 
 
 class PatientDataViewSet(viewsets.ModelViewSet):
@@ -70,4 +74,33 @@ class PrescriptionsAPIView(APIView):
 
         serializer = PrescriptionSerializer(prescriptions, many=True, context={'request': request})
         return Response({'results': serializer.data}, status=status.HTTP_200_OK)
+
+
+@method_decorator(login_required, name='dispatch')
+class MyAppointmentsView(TemplateView):
+    """
+    View for displaying patient's appointments
+    """
+    template_name = 'patient/my_appointments.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get appointments for the current patient
+        appointments = Appointment.objects.filter(
+            patient_id=self.request.user.uid
+        ).select_related(
+            'doctor', 'facility'
+        ).order_by('-appointment_date', '-appointment_time')
+        
+        context['appointments'] = appointments
+        context['upcoming_appointments'] = appointments.filter(
+            status__in=['scheduled', 'confirmed']
+        )
+        context['past_appointments'] = appointments.filter(
+            status__in=['completed', 'cancelled']
+        )
+        
+        return context
+
 

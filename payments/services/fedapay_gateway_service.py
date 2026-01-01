@@ -26,7 +26,9 @@ class FedaPayGatewayService:  # Service class for FedaPayGateway operations
                 return fedapay_customer
 
             customer_data = fedapay_service.create_customer(participant)
-            customer_id = customer_data.get('v1', customer_data).get('id')
+            # FedaPay returns: {"v1/customer": {...}} 
+            customer_info = customer_data.get('v1/customer', customer_data)
+            customer_id = customer_info.get('id')
 
             fedapay_customer = FedaPayCustomer.objects.create(
                 participant=participant,
@@ -105,14 +107,34 @@ class FedaPayGatewayService:  # Service class for FedaPayGateway operations
                 }
             )
 
-            payment_token_data = fedapay_service.generate_payment_token(
-                transaction_data['v1']['id']
-            )
+            # FedaPay returns transaction data
+            # Response can be either direct or wrapped in v1/transaction
+            txn_data = transaction_data if 'id' in transaction_data else transaction_data.get('v1/transaction', transaction_data)
+            
+            if 'id' not in txn_data:
+                logger.error(f"FedaPay response missing 'id': {transaction_data}")
+                raise ValueError(f"Invalid FedaPay response: {transaction_data}")
+
+            # Generate payment token and URL
+            # FedaPay API requires calling /transactions/{id}/token to get payment link
+            payment_url = txn_data.get('payment_url', '')
+            payment_token = txn_data.get('payment_token', '')
+            
+            # If payment_url not in response, generate token
+            if not payment_url:
+                try:
+                    token_data = fedapay_service.generate_payment_token(txn_data['id'])
+                    payment_token = token_data.get('token', '')
+                    payment_url = token_data.get('url', '')
+                    logger.info(f"✅ Generated payment token for transaction {txn_data['id']}")
+                except Exception as e:
+                    logger.error(f"Failed to generate payment token: {str(e)}")
+                    # Continue without payment URL - webhook will handle status updates
 
             gateway_txn = GatewayTransaction.objects.create(
                 gateway_provider='fedapay',
-                gateway_transaction_id=str(transaction_data['v1']['id']),
-                gateway_reference=transaction_data['v1'].get('reference', ''),
+                gateway_transaction_id=str(txn_data['id']),
+                gateway_reference=txn_data.get('reference', ''),
                 transaction_type='payment_collection',
                 patient=patient,
                 service_provider=service_provider,
@@ -121,8 +143,8 @@ class FedaPayGatewayService:  # Service class for FedaPayGateway operations
                 amount=service_transaction.amount,
                 currency=service_transaction.currency,
                 status='pending',
-                payment_url=payment_token_data['v1']['url'],
-                payment_token=payment_token_data['v1']['token'],
+                payment_url=payment_url,
+                payment_token=payment_token,
                 metadata={
                     'service_transaction_id': str(service_transaction.id),
                     'provider_fedapay_customer_id': provider_fedapay.fedapay_customer_id,
@@ -137,8 +159,8 @@ class FedaPayGatewayService:  # Service class for FedaPayGateway operations
             return {
                 'success': True,
                 'gateway_transaction_id': str(gateway_txn.id),
-                'payment_url': payment_token_data['v1']['url'],
-                'payment_token': payment_token_data['v1']['token'],
+                'payment_url': payment_url,
+                'payment_token': payment_token,
                 'transaction_ref': service_transaction.transaction_ref,
             }
 

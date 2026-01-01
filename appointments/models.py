@@ -35,7 +35,10 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
     PAYMENT_METHOD_CHOICES = [
         # NO WALLET - BINTACURA does not store money
         ('cash', 'Cash'),
+        ('onsite', 'On-site Cash'),
         ('onsite_cash', 'On-site Cash'),
+        ('online', 'Online Payment'),
+        ('fedapay', 'FedaPay'),
         ('card', 'Card'),
         ('mobile_money', 'Mobile Money'),
         ('insurance', 'Insurance'),

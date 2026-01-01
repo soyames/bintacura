@@ -158,6 +158,14 @@ class AppointmentBookingSerializer(serializers.Serializer):
     reason = serializers.CharField(required=False, allow_blank=True)
     symptoms = serializers.CharField(required=False, allow_blank=True)
     payment_method = serializers.ChoiceField(
-        choices=[('wallet', 'Wallet'), ('onsite', 'On-site/Cash')],
-        default='wallet'
+        choices=[
+            ('wallet', 'Wallet'),
+            ('onsite', 'On-site/Cash'),
+            ('cash', 'Cash'),
+            ('online', 'Online Payment'),
+            ('fedapay', 'FedaPay'),
+            ('card', 'Credit/Debit Card'),
+            ('mobile_money', 'Mobile Money')
+        ],
+        default='onsite'
     )
