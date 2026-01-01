@@ -50,7 +50,7 @@ class GetConsultationFeeView(APIView):
             if patient_currency == 'XOF':
                 fee_in_local_currency = Decimal(str(base_fee_xof))
             else:
-                fee_in_local_currency = CurrencyConverterService.convert(
+                fee_in_local_currency = CurrencyConverterService.convert_amount(
                     Decimal(str(base_fee_xof)),
                     'XOF',
                     patient_currency
@@ -143,7 +143,7 @@ class GetParticipantServicesView(APIView):
                 
                 patient_currency = CurrencyConverterService.get_participant_currency(request.user)
                 for service in services:
-                    price_in_patient_currency = CurrencyConverterService.convert(
+                    price_in_patient_currency = CurrencyConverterService.convert_amount(
                         Decimal(str(service.price)),
                         'XOF',
                         patient_currency

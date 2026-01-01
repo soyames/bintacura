@@ -60,7 +60,7 @@ class InsurancePaymentService:
         
         # Notify patient about new invoice
         patient_currency = CurrencyConverterService.get_participant_currency(subscription.patient)
-        display_amount = CurrencyConverterService.convert(
+        display_amount = CurrencyConverterService.convert_amount(
             Decimal(str(invoice.amount)) / 100,
             'USD',  # Invoice amount is in USD
             patient_currency
@@ -154,7 +154,7 @@ class InsurancePaymentService:
             
             # Notify patient
             patient_currency = CurrencyConverterService.get_participant_currency(patient)
-            patient_amount = CurrencyConverterService.convert(
+            patient_amount = CurrencyConverterService.convert_amount(
                 Decimal(str(invoice.amount)) / 100,
                 'USD',
                 patient_currency
@@ -170,7 +170,7 @@ class InsurancePaymentService:
             
             # Notify insurance company
             company_currency = CurrencyConverterService.get_participant_currency(subscription.insurance_package.company)
-            company_amount = CurrencyConverterService.convert(
+            company_amount = CurrencyConverterService.convert_amount(
                 Decimal(str(invoice.amount)) / 100,
                 'USD',
                 company_currency
@@ -290,7 +290,7 @@ class InsurancePaymentService:
             
             # Notify patient
             patient_currency = CurrencyConverterService.get_participant_currency(claim.patient)
-            display_amount = CurrencyConverterService.convert(
+            display_amount = CurrencyConverterService.convert_amount(
                 Decimal(str(approved_amount)) / 100,
                 'USD',
                 patient_currency
@@ -343,7 +343,7 @@ class InsurancePaymentService:
                 
                 # Notify patient
                 patient_currency = CurrencyConverterService.get_participant_currency(invoice.patient)
-                display_amount = CurrencyConverterService.convert(
+                display_amount = CurrencyConverterService.convert_amount(
                     Decimal(str(invoice.amount)) / 100,
                     'USD',
                     patient_currency
@@ -362,7 +362,7 @@ class InsurancePaymentService:
             elif days_overdue > 7:
                 # Send reminder notification
                 patient_currency = CurrencyConverterService.get_participant_currency(invoice.patient)
-                display_amount = CurrencyConverterService.convert(
+                display_amount = CurrencyConverterService.convert_amount(
                     Decimal(str(invoice.amount)) / 100,
                     'USD',
                     patient_currency

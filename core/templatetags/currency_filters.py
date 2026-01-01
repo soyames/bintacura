@@ -12,7 +12,7 @@ def convert_currency(amount, currencies):
     try:
         from_currency, to_currency = currencies.split(':')
         amount_decimal = Decimal(str(amount))
-        converted = CurrencyConverterService.convert(amount_decimal, from_currency.strip(), to_currency.strip())
+        converted = CurrencyConverterService.convert_amount(amount_decimal, from_currency.strip(), to_currency.strip())
         return converted
     except Exception:
         return amount
@@ -46,7 +46,7 @@ def user_currency(amount, user):
 
     try:
         amount_decimal = Decimal(str(amount))
-        converted = CurrencyConverterService.convert(amount_decimal, base_currency, currency)
+        converted = CurrencyConverterService.convert_amount(amount_decimal, base_currency, currency)
         return CurrencyConverterService.format_amount(converted, currency)
     except Exception:
         return f"{amount} {base_currency}"
@@ -69,7 +69,7 @@ def convert_and_format(amount, from_currency='EUR', to_currency=None, user=None)
 
     try:
         amount_decimal = Decimal(str(amount))
-        converted = CurrencyConverterService.convert(amount_decimal, from_currency, to_currency)
+        converted = CurrencyConverterService.convert_amount(amount_decimal, from_currency, to_currency)
         return CurrencyConverterService.format_amount(converted, to_currency)
     except Exception:
         return f"{amount} {from_currency}"

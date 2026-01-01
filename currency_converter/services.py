@@ -234,6 +234,9 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
         """
         Convert amount between currencies.
         Returns dict with conversion details for audit trail.
+        
+        IMPORTANT: This returns a dict. If you just need the converted amount,
+        use convert_amount() instead.
         """
         if not isinstance(amount, Decimal):
             amount = Decimal(str(amount))
@@ -253,6 +256,17 @@ class CurrencyConverterService:  # Service class for CurrencyConverter operation
             'to_currency': to_currency,
             'rate': rate,
         }
+    
+    @classmethod
+    def convert_amount(cls, amount, from_currency: str, to_currency: str) -> Decimal:
+        """
+        Convert amount between currencies - returns just the converted amount as Decimal.
+        This is a convenience method that extracts 'converted_amount' from convert().
+        
+        Use this when you just need the number without audit details.
+        """
+        result = cls.convert(amount, from_currency, to_currency)
+        return result['converted_amount']
     
     @classmethod
     def convert_and_log(cls, amount, from_currency: str, to_currency: str, 

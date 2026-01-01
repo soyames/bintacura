@@ -103,7 +103,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
 
             try:
                 patient_currency = CurrencyConverterService.get_participant_currency(patient)
-                conversion_result = CurrencyConverterService.convert(
+                conversion_result = CurrencyConverterService.convert_amount(
                     Decimal(str(consultation_fee_xof)),
                     'XOF',
                     patient_currency
@@ -129,7 +129,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
                     )
                     if service.price:
                         try:
-                            service_conversion = CurrencyConverterService.convert(
+                            service_conversion = CurrencyConverterService.convert_amount(
                                 Decimal(str(service.price)),
                                 'XOF',
                                 patient_currency

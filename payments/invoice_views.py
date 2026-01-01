@@ -157,7 +157,7 @@ class InvoiceListView(LoginRequiredMixin, TemplateView):
                 invoice_currency = invoice['currency'] or 'XOF'
                 invoice_amount = invoice['amount'] or Decimal('0')
                 if invoice_currency != participant_currency:
-                    converted_amount = CurrencyConverterService.convert(
+                    converted_amount = CurrencyConverterService.convert_amount(
                         invoice_amount,
                         invoice_currency,
                         participant_currency
@@ -170,7 +170,7 @@ class InvoiceListView(LoginRequiredMixin, TemplateView):
         for invoice in all_invoices:
             invoice_currency = invoice['currency'] or 'XOF'
             if invoice_currency != participant_currency:
-                invoice['converted_total_amount'] = CurrencyConverterService.convert(
+                invoice['converted_total_amount'] = CurrencyConverterService.convert_amount(
                     invoice['amount'] or Decimal('0'),
                     invoice_currency,
                     participant_currency
@@ -250,7 +250,7 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
             for item in receipt.line_items:
                 item_amount = Decimal(str(item.get('amount', 0)))
                 if receipt_currency != participant_currency:
-                    converted_amount = CurrencyConverterService.convert(
+                    converted_amount = CurrencyConverterService.convert_amount(
                         item_amount,
                         receipt_currency,
                         participant_currency
@@ -269,32 +269,32 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
 
         # Convert main amounts
         if receipt_currency != participant_currency:
-            receipt.converted_total_amount = CurrencyConverterService.convert(
+            receipt.converted_total_amount = CurrencyConverterService.convert_amount(
                 receipt.total_amount or Decimal('0'),
                 receipt_currency,
                 participant_currency
             )
-            receipt.converted_subtotal = CurrencyConverterService.convert(
+            receipt.converted_subtotal = CurrencyConverterService.convert_amount(
                 receipt.subtotal or Decimal('0'),
                 receipt_currency,
                 participant_currency
             )
-            receipt.converted_amount = CurrencyConverterService.convert(
+            receipt.converted_amount = CurrencyConverterService.convert_amount(
                 receipt.amount or Decimal('0'),
                 receipt_currency,
                 participant_currency
             )
-            receipt.converted_tax_amount = CurrencyConverterService.convert(
+            receipt.converted_tax_amount = CurrencyConverterService.convert_amount(
                 receipt.tax_amount or Decimal('0'),
                 receipt_currency,
                 participant_currency
             ) if receipt.tax_amount else None
-            receipt.converted_platform_fee = CurrencyConverterService.convert(
+            receipt.converted_platform_fee = CurrencyConverterService.convert_amount(
                 receipt.platform_fee or Decimal('0'),
                 receipt_currency,
                 participant_currency
             ) if receipt.platform_fee else None
-            receipt.converted_discount_amount = CurrencyConverterService.convert(
+            receipt.converted_discount_amount = CurrencyConverterService.convert_amount(
                 receipt.discount_amount or Decimal('0'),
                 receipt_currency,
                 participant_currency

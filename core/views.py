@@ -2639,7 +2639,7 @@ class TransactionsView(LoginRequiredMixin, TemplateView):  # Class for transacti
                     original_currency = txn.currency or 'XOF'
 
                     try:
-                        converted_amount = CurrencyConverterService.convert(
+                        converted_amount = CurrencyConverterService.convert_amount(
                             Decimal(str(original_amount)),
                             original_currency,
                             display_currency
@@ -2675,7 +2675,7 @@ class TransactionsView(LoginRequiredMixin, TemplateView):  # Class for transacti
                     original_currency = 'XOF'  # Default currency for appointments
 
                     try:
-                        converted_amount = CurrencyConverterService.convert(
+                        converted_amount = CurrencyConverterService.convert_amount(
                             original_amount,
                             original_currency,
                             display_currency
@@ -2790,7 +2790,7 @@ class PatientWalletView(PatientRequiredMixin, TemplateView):  # Class for patien
 
             if txn.currency != display_currency:
                 try:
-                    txn.display_amount = CurrencyConverterService.convert(
+                    txn.display_amount = CurrencyConverterService.convert_amount(
                         txn.amount, txn.currency, display_currency
                     )
                     txn.display_currency = display_currency
@@ -2812,7 +2812,7 @@ class PatientWalletView(PatientRequiredMixin, TemplateView):  # Class for patien
 
         if display_currency != "XOF" and total_paid > 0:
             try:
-                total_paid = CurrencyConverterService.convert(
+                total_paid = CurrencyConverterService.convert_amount(
                     Decimal(str(total_paid)), "XOF", display_currency
                 )
             except:
@@ -2832,7 +2832,7 @@ class PatientWalletView(PatientRequiredMixin, TemplateView):  # Class for patien
 
         if display_currency != "XOF" and total_earned > 0:
             try:
-                total_earned = CurrencyConverterService.convert(
+                total_earned = CurrencyConverterService.convert_amount(
                     total_earned, "XOF", display_currency
                 )
             except:
@@ -3737,11 +3737,7 @@ class HospitalAppointmentsAPIView(APIView):  # Class for hospitalappointmentsapi
                 from currency_converter.services import CurrencyConverterService
                 if patient_currency != 'XOF':
                     try:
-                        conversion_result = CurrencyConverterService.convert(consultation_fee, 'XOF', patient_currency)
-                        if isinstance(conversion_result, dict):
-                            converted_fee = conversion_result.get('converted_amount', consultation_fee)
-                        else:
-                            converted_fee = conversion_result
+                        converted_fee = CurrencyConverterService.convert_amount(consultation_fee, 'XOF', patient_currency)
                     except Exception as e:
                         logger.error(f"Currency conversion error: {e}")
                         converted_fee = consultation_fee
