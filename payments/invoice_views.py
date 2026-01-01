@@ -292,16 +292,14 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
                     from django.http import Http404
                     raise Http404("Invoice not found")
                 
-                # Find receipt linked to this appointment via ServiceTransaction
-                from financial.models import ServiceTransaction
-                service_transaction = ServiceTransaction.objects.filter(
-                    appointment_id=appointment.id
+                # Find receipt linked to this appointment via Transaction
+                from core.models import Transaction
+                service_transaction = Transaction.objects.filter(
+                    service_id=str(appointment.id)
                 ).first()
                 
-                if service_transaction:
-                    receipt = PaymentReceipt.objects.filter(
-                        service_transaction_id=service_transaction.id
-                    ).first()
+                if service_transaction and hasattr(service_transaction, 'receipt'):
+                    receipt = service_transaction.receipt
                 else:
                     receipt = None
                 
@@ -311,6 +309,10 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
         else:
             from django.http import Http404
             raise Http404("Invoice not found")
+        
+        if not receipt:
+            from django.http import Http404
+            raise Http404("Receipt could not be generated for this appointment")
         
         if receipt.issued_to != self.request.user and receipt.issued_by != self.request.user:
             from django.core.exceptions import PermissionDenied

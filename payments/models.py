@@ -159,6 +159,7 @@ class PaymentReceipt(SyncMixin):  # Generates and stores payment receipts for tr
         ('FAILED', 'Failed'),
         ('REFUNDED', 'Refunded'),
     ]
+    uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True, null=False)
     region_code = models.CharField(max_length=50, default="global", db_index=True)
     transaction = models.OneToOneField(
         CoreTransaction, on_delete=models.CASCADE, related_name="receipt", null=True, blank=True

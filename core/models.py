@@ -668,6 +668,7 @@ class Transaction(SyncMixin):
         ("other", "Other"),
     ]
 
+    uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True, null=False)
     transaction_ref = models.CharField(max_length=50, unique=True)
     wallet = models.ForeignKey(
         Wallet, on_delete=models.CASCADE, related_name="core_transactions",
