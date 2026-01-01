@@ -48,6 +48,9 @@ class ServicePaymentService:
             payment_method='online'
         )
         
+        # Use gross_amount which includes the 1% platform fee
+        total_amount_with_fee = fee_calculation['gross_amount']
+        
         # Create pending transaction
         transaction_ref = f"ONLINE-{timezone.now().strftime('%Y%m%d%H%M%S')}-{service_id[:8]}"
         
@@ -55,7 +58,7 @@ class ServicePaymentService:
             transaction_ref=transaction_ref,
             wallet=None,  # No wallet involved for online payment
             transaction_type='payment',
-            amount=amount,
+            amount=total_amount_with_fee,  # Store the total amount including fee
             currency=currency,
             status='pending',
             payment_method='fedapay',
@@ -69,6 +72,7 @@ class ServicePaymentService:
                 'service_id': service_id,
                 'payment_method': 'online',
                 'payment_gateway': 'fedapay',
+                'base_amount': str(amount),  # Original amount without fee
                 'fee_calculation': {
                     'gross_amount': str(fee_calculation['gross_amount']),
                     'platform_fee': str(fee_calculation['platform_fee']),
@@ -97,9 +101,9 @@ class ServicePaymentService:
         # Create or get customer first
         customer_result = fedapay_service.create_or_get_customer(participant=patient)
         
-        # Create transaction
+        # Create transaction with total amount including fee
         fedapay_result = fedapay_service.create_transaction(
-            amount=amount,
+            amount=total_amount_with_fee,  # Send the amount WITH the 1% platform fee
             currency=currency,
             description=description,
             customer_id=customer_result['id'],
@@ -124,7 +128,8 @@ class ServicePaymentService:
         patient_txn.save()
         
         logger.info(
-            f"Online payment initiated: {amount} {currency} from {patient.email} to {provider.email}. "
+            f"💰 Online payment initiated: {amount} {currency} (base) + {fee_calculation['platform_fee']} {currency} (1% fee) "
+            f"= {total_amount_with_fee} {currency} (total) from {patient.email} to {provider.email}. "
             f"FedaPay ID: {transaction_id}"
         )
         
