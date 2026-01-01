@@ -110,9 +110,10 @@ class WalletViewSet(viewsets.ModelViewSet):  # ViewSet for managing wallet opera
             balance_in_wallet_currency = wallet.balance
 
             if wallet.currency != user_currency:
-                converted_balance = CurrencyConverterService.convert(
+                conversion_result = CurrencyConverterService.convert(
                     balance_in_wallet_currency, wallet.currency, user_currency
                 )
+                converted_balance = conversion_result['converted_amount']
             else:
                 converted_balance = balance_in_wallet_currency
 
@@ -510,10 +511,10 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):  # ViewSet for viewing 
             txn_data = self.get_serializer(txn).data
 
             if txn.currency != user_currency:
-                converted_amount = CurrencyConverterService.convert(
+                conversion_result = CurrencyConverterService.convert(
                     Decimal(str(txn.amount)), txn.currency, user_currency
                 )
-                txn_data["converted_amount"] = float(converted_amount)
+                txn_data["converted_amount"] = float(conversion_result['converted_amount'])
                 txn_data["display_currency"] = user_currency
                 txn_data["original_amount"] = float(txn.amount)
                 txn_data["original_currency"] = txn.currency
