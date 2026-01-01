@@ -265,11 +265,26 @@ class ServicePaymentService:
             service_provider_role=service_provider_role
         )
         
-        issued_to = transaction.wallet.participant if transaction.wallet else transaction.sender
-        issued_by = transaction.recipient or transaction.sender
+        # Determine issued_to - the patient/payer
+        issued_to = None
+        if transaction.wallet and transaction.wallet.participant:
+            issued_to = transaction.wallet.participant
+        elif transaction.sender:
+            issued_to = transaction.sender
+            
+        # Determine issued_by - the service provider
+        issued_by = None
+        if transaction.recipient:
+            issued_by = transaction.recipient
         
-        payment_status = 'PAID' if transaction.status == 'completed' and transaction.payment_method != 'cash' else 'PENDING'
-        if transaction.payment_method == 'cash' or transaction.payment_method == 'onsite_cash':
+        # Get issued_to name and address
+        issued_to_name = issued_to.full_name if issued_to else ''
+        issued_to_address = issued_to.address if issued_to else ''
+        issued_to_city = issued_to.city if issued_to else ''
+        issued_to_country = issued_to.country if issued_to else ''
+        
+        payment_status = 'PAID' if transaction.status == 'completed' and transaction.payment_method not in ['cash', 'onsite_cash'] else 'PENDING'
+        if transaction.payment_method in ['cash', 'onsite_cash', 'onsite']:
             payment_status = 'PENDING'
         
         receipt = PaymentReceipt.objects.create(
@@ -279,6 +294,10 @@ class ServicePaymentService:
             invoice_sequence=invoice_sequence,
             issued_to=issued_to,
             issued_by=issued_by,
+            issued_to_name=issued_to_name,
+            issued_to_address=issued_to_address,
+            issued_to_city=issued_to_city,
+            issued_to_country=issued_to_country,
             amount=transaction.amount,
             subtotal=transaction.amount,
             total_amount=transaction.amount,
@@ -286,6 +305,8 @@ class ServicePaymentService:
             payment_method=transaction.payment_method,
             payment_status=payment_status,
             transaction_reference=transaction.transaction_ref,
+            payment_gateway='',
+            gateway_transaction_id='',
             billing_date=transaction.created_at,
             payment_date=transaction.completed_at if payment_status == 'PAID' else None,
         )

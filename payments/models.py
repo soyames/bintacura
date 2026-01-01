@@ -166,42 +166,42 @@ class PaymentReceipt(SyncMixin):  # Generates and stores payment receipts for tr
     service_transaction = models.OneToOneField(
         'ServiceTransaction', on_delete=models.CASCADE, related_name="receipt", null=True, blank=True
     )
-    receipt_number = models.CharField(max_length=100, unique=True)
+    receipt_number = models.CharField(max_length=100, unique=True, null=False)
     invoice_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
     invoice_sequence = models.IntegerField(null=True, blank=True, db_index=True)
-    transaction_type = models.CharField(max_length=30, choices=TRANSACTION_TYPE_CHOICES, default='OTHER')
-    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PAID')
+    transaction_type = models.CharField(max_length=30, choices=TRANSACTION_TYPE_CHOICES, default='OTHER', null=False)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PENDING', null=False)
     issued_to = models.ForeignKey(
-        Participant, on_delete=models.CASCADE, related_name="receipts"
+        Participant, on_delete=models.CASCADE, related_name="receipts", null=False
     )
     issued_by = models.ForeignKey(
         Participant, on_delete=models.CASCADE, related_name="issued_receipts", null=True, blank=True
     )
-    issued_to_name = models.CharField(max_length=255, blank=True)
-    issued_to_address = models.TextField(blank=True)
-    issued_to_city = models.CharField(max_length=100, blank=True)
-    issued_to_country = models.CharField(max_length=100, blank=True)
-    amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    issued_to_name = models.CharField(max_length=255, default='', null=False)
+    issued_to_address = models.TextField(default='', null=False)
+    issued_to_city = models.CharField(max_length=100, default='', null=False)
+    issued_to_country = models.CharField(max_length=100, default='', null=False)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, null=False)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=18.00)
-    platform_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=False)
+    tax_rate = models.DecimalField(max_digits=6, decimal_places=4, default=18.0000, null=False)
+    platform_fee = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=False)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=False)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default='XOF')
-    payment_method = models.CharField(max_length=50, default='cash', blank=True)
-    payment_gateway = models.CharField(max_length=50, blank=True)
-    transaction_reference = models.CharField(max_length=255, blank=True)
-    gateway_transaction_id = models.CharField(max_length=255, blank=True)
-    pdf_url = models.URLField(blank=True)
+    payment_method = models.CharField(max_length=50, default='cash', null=False)
+    payment_gateway = models.CharField(max_length=50, default='', null=False)
+    transaction_reference = models.CharField(max_length=200, default='', null=False)
+    gateway_transaction_id = models.CharField(max_length=200, default='', null=False)
+    pdf_url = models.CharField(max_length=500, default='', null=False)
     pdf_file = models.FileField(upload_to='receipts/%Y/%m/', blank=True, null=True)
     qr_code = models.TextField(blank=True)
-    service_details = models.JSONField(default=dict, blank=True)
-    line_items = models.JSONField(default=list, blank=True)
+    service_details = models.JSONField(default=dict, null=False)
+    line_items = models.JSONField(default=list, null=False)
     billing_date = models.DateTimeField(null=True, blank=True)
     payment_date = models.DateTimeField(null=True, blank=True)
     issued_at = models.DateTimeField(default=timezone.now)
-    reminder_sent = models.BooleanField(default=False)
+    reminder_sent = models.BooleanField(default=False, null=False)
     reminded_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:  # Meta class implementation
@@ -825,7 +825,7 @@ class ServiceTransaction(SyncMixin):  # Records patient payments for healthcare 
         ('cancelled', 'Cancelled'),
     ]
     region_code = models.CharField(max_length=50, default="global", db_index=True)
-    transaction_ref = models.CharField(max_length=100, unique=True)
+    transaction_ref = models.CharField(max_length=100, unique=True, null=False)
     idempotency_key = models.CharField(
         max_length=255,
         unique=True,
@@ -838,15 +838,17 @@ class ServiceTransaction(SyncMixin):  # Records patient payments for healthcare 
         Participant,
         on_delete=models.CASCADE,
         related_name="patient_service_transactions",
-        limit_choices_to={'role': 'patient'}
+        limit_choices_to={'role': 'patient'},
+        null=False
     )
     service_provider = models.ForeignKey(
         Participant,
         on_delete=models.CASCADE,
         related_name="provider_service_transactions",
-        limit_choices_to={'role__in': ['doctor', 'hospital', 'pharmacy', 'insurance_company']}
+        limit_choices_to={'role__in': ['doctor', 'hospital', 'pharmacy', 'insurance_company']},
+        null=False
     )
-    service_provider_role = models.CharField(max_length=50)
+    service_provider_role = models.CharField(max_length=50, null=False)
     service_catalog_item = models.ForeignKey(
         ServiceCatalog,
         on_delete=models.SET_NULL,
@@ -854,9 +856,9 @@ class ServiceTransaction(SyncMixin):  # Records patient payments for healthcare 
         blank=True,
         related_name="transactions"
     )
-    service_type = models.CharField(max_length=50, choices=SERVICE_TYPE_CHOICES)
-    service_id = models.UUIDField(help_text="Reference to specific service instance")
-    service_description = models.TextField()
+    service_type = models.CharField(max_length=50, choices=SERVICE_TYPE_CHOICES, null=False)
+    service_id = models.UUIDField(help_text="Reference to specific service instance", null=False)
+    service_description = models.TextField(null=False)
     
     amount_usd = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Amount in USD (reference currency)")
     amount_local = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Amount in participant local currency")
@@ -864,9 +866,9 @@ class ServiceTransaction(SyncMixin):  # Records patient payments for healthcare 
     exchange_rate_used = models.DecimalField(max_digits=12, decimal_places=6, null=True, blank=True, help_text="Exchange rate at transaction time")
     conversion_timestamp = models.DateTimeField(null=True, blank=True, help_text="When currency conversion was performed")
     
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, null=False)
     currency = models.CharField(max_length=3, default="XOF")
-    payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES)
+    payment_method = models.CharField(max_length=50, choices=PAYMENT_METHOD_CHOICES, null=False)
     patient_phone = models.ForeignKey(
         ParticipantPhone,
         on_delete=models.SET_NULL,

@@ -41,7 +41,7 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
         ('insurance', 'Insurance'),
     ]
 
-    region_code = models.CharField(max_length=50, default="global", db_index=True)
+    region_code = models.CharField(max_length=50, default="global", null=False, db_index=True)
     idempotency_key = models.CharField(
         max_length=255,
         unique=True,
@@ -50,7 +50,7 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
         db_index=True,
         help_text="Client-provided unique key to prevent duplicate appointment creation"
     )
-    participants = models.JSONField(default=list)
+    participants = models.JSONField(default=list, null=False)
     patient = models.ForeignKey(
         Participant,
         on_delete=models.CASCADE,
@@ -79,13 +79,13 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
         blank=True,
     )
 
-    appointment_date = models.DateField()
-    appointment_time = models.TimeField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
-    type = models.CharField(max_length=50, choices=TYPE_CHOICES, default="consultation")
-    appointment_type = models.CharField(max_length=50, blank=True)
+    appointment_date = models.DateField(null=False)
+    appointment_time = models.TimeField(null=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", null=False)
+    type = models.CharField(max_length=50, choices=TYPE_CHOICES, default="consultation", null=False)
+    appointment_type = models.CharField(max_length=50, default='', blank=True, null=False)
 
-    is_hospital_appointment = models.BooleanField(default=False)
+    is_hospital_appointment = models.BooleanField(default=False, null=False)
     beneficiary = models.ForeignKey(
         "patient.DependentProfile",
         on_delete=models.SET_NULL,
@@ -94,41 +94,42 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
         blank=True,
     )
 
-    consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Base consultation fee in XOF")
-    currency = models.CharField(max_length=3, default='XOF', help_text="Currency code for all fees")
+    consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, help_text="Base consultation fee in XOF")
+    currency = models.CharField(max_length=3, default='XOF', null=False, help_text="Currency code for all fees")
     additional_services_total = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
         default=0,
+        null=False,
         help_text="Total cost of additional services selected"
     )
-    original_price = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="consultation_fee + additional_services_total")
-    final_price = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Total after discounts")
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    original_price = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, help_text="consultation_fee + additional_services_total")
+    final_price = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False, help_text="Total after discounts")
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=False)
     insurance_package_id = models.UUIDField(null=True, blank=True)
 
     queue_number = models.IntegerField(null=True, blank=True)
     payment_status = models.CharField(
-        max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending"
+        max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending", null=False
     )
     payment_method = models.CharField(
-        max_length=20, choices=PAYMENT_METHOD_CHOICES, default="wallet",
-        help_text="Payment method selected by patient"
+        max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cash",
+        null=False, help_text="Payment method selected by patient"
     )
-    payment_reference = models.CharField(max_length=100, blank=True, help_text="Payment transaction reference number")
+    payment_reference = models.CharField(max_length=100, default='', blank=True, help_text="Payment transaction reference number")
     payment_id = models.UUIDField(null=True, blank=True)
 
-    reason = models.TextField(blank=True)
-    notes = models.TextField(blank=True)
-    symptoms = models.TextField(blank=True)
+    reason = models.TextField(default='', blank=True, null=False)
+    notes = models.TextField(default='', blank=True, null=False)
+    symptoms = models.TextField(default='', blank=True, null=False)
 
     completed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
-    cancellation_reason = models.TextField(blank=True)
+    cancellation_reason = models.TextField(default='', blank=True, null=False)
 
-    reminder_sent = models.BooleanField(default=False)
+    reminder_sent = models.BooleanField(default=False, null=False)
     rating = models.IntegerField(null=True, blank=True)
-    review = models.TextField(blank=True)
+    review = models.TextField(default='', blank=True, null=False)
 
     class Meta:  # Meta class implementation
         db_table = "appointments"
@@ -171,16 +172,16 @@ class Availability(SyncMixin):  # Defines participant availability schedules for
 
 class AppointmentQueue(SyncMixin):  # Manages appointment queues and wait times for participants
     appointment = models.OneToOneField(
-        Appointment, on_delete=models.CASCADE, related_name="queue_entry"
+        Appointment, on_delete=models.CASCADE, related_name="queue_entry", null=False
     )
     participant = models.ForeignKey(
         Participant, on_delete=models.CASCADE, related_name="queue_entries"
     )
-    queue_number = models.IntegerField()
-    estimated_wait_time = models.IntegerField(default=0)
+    queue_number = models.IntegerField(null=False)
+    estimated_wait_time = models.IntegerField(default=0, null=False)
     actual_start_time = models.DateTimeField(null=True, blank=True)
     actual_end_time = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=20, default="waiting")
+    status = models.CharField(max_length=20, default="waiting", null=False)
 
     class Meta:  # Meta class implementation
         db_table = "appointment_queues"
