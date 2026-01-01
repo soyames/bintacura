@@ -4,6 +4,7 @@ Handles appointment booking with payment, queue assignment, and notifications
 
 This is the SINGLE source for queue management views.
 """
+import logging
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -16,6 +17,8 @@ from appointments.serializers import AppointmentBookingSerializer
 from queue_management.services import QueueManagementService
 from core.models import Participant, ProviderService, Transaction as CoreTransaction
 
+logger = logging.getLogger(__name__)
+
 
 
 class BookAppointmentWithQueueView(APIView):
@@ -26,6 +29,13 @@ class BookAppointmentWithQueueView(APIView):
     permission_classes = [IsAuthenticated]
     
     def post(self, request):  # Post
+        logger.error(f"🔍 =============== BOOK APPOINTMENT DEBUG ===============")
+        logger.error(f"   Logged-in user: {request.user.email}")
+        logger.error(f"   User full name: {request.user.full_name}")
+        logger.error(f"   User UID: {request.user.uid}")
+        logger.error(f"   User role: {request.user.role}")
+        logger.error(f"========================================================")
+        
         if request.user.role != 'patient':
             return Response(
                 {'error': 'Only patients can book appointments'},
@@ -89,13 +99,15 @@ class BookAppointmentWithQueueView(APIView):
             return Response(response_data, status=status.HTTP_201_CREATED)
             
         except Participant.DoesNotExist:
+            logger.exception("Healthcare participant not found")
             return Response(
                 {'error': 'Healthcare participant not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
+            logger.exception(f"Booking appointment failed: {str(e)}")
             return Response(
-                {'error': str(e)},
+                {'error': f'Booking failed: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

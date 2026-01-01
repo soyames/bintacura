@@ -639,6 +639,12 @@ class FedaPayWalletService:
     def initiate_wallet_topup(participant: Participant, amount: Decimal, currency: str, callback_url: str) -> dict:
         """Initiate wallet top-up via FedaPay"""
         
+        logger.error(f"🔍 ========== INITIATE WALLET TOPUP DEBUG ==========")
+        logger.error(f"   Participant Email: {participant.email}")
+        logger.error(f"   Participant Name: {participant.full_name}")
+        logger.error(f"   Participant UID: {participant.uid}")
+        logger.error(f"===================================================")
+        
         # Get or create FedaPay customer
         try:
             fedapay_customer = FedaPayCustomer.objects.get(participant=participant)

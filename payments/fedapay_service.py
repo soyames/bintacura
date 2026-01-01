@@ -45,25 +45,40 @@ class FedaPayService:
         try:
             logger.info(f"🔵 FedaPay {method} request to: {url}")
             logger.info(f"   Request data: {data}")
+            logger.info(f"   Headers: Authorization: Bearer {self.api_key[:20]}...")
             
             if method == 'GET':
-                response = requests.get(url, headers=self.headers, params=data)
+                response = requests.get(url, headers=self.headers, params=data, timeout=30)
             elif method == 'POST':
-                response = requests.post(url, headers=self.headers, json=data)
+                response = requests.post(url, headers=self.headers, json=data, timeout=30)
             elif method == 'PUT':
-                response = requests.put(url, headers=self.headers, json=data)
+                response = requests.put(url, headers=self.headers, json=data, timeout=30)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=self.headers)
+                response = requests.delete(url, headers=self.headers, timeout=30)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
             
-            logger.info(f"   Response status: {response.status_code}")
+            logger.info(f"   ✅ Response status: {response.status_code}")
             
-            response.raise_for_status()
+            # Check if request was successful
+            if response.status_code >= 400:
+                error_text = response.text
+                logger.error(f"   ❌ Error response: {error_text}")
+                response.raise_for_status()
+            
             result = response.json() if response.text else {}
-            logger.info(f"   Response data: {result}")
+            logger.info(f"   ✅ Response data received successfully")
             return result
             
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"❌ FedaPay HTTP Error: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    logger.error(f"   Error details: {error_data}")
+                except:
+                    logger.error(f"   Error text: {e.response.text}")
+            raise Exception(f"FedaPay API error: {e.response.status_code} {e.response.reason}")
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ FedaPay API request failed: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
@@ -132,14 +147,29 @@ class FedaPayService:
     
     def create_customer(self, participant) -> Dict:
         """Create or retrieve a FedaPay customer"""
+        logger.error(f"🔍 =============== FEDAPAY CUSTOMER CREATION DEBUG ===============")
+        logger.error(f"   Participant Type: {type(participant)}")
+        logger.error(f"   Email: {participant.email}")
+        logger.error(f"   Full name: {participant.full_name}")
+        logger.error(f"   Role: {participant.role}")
+        logger.error(f"   UID: {participant.uid}")
+        logger.error(f"   Phone: {participant.phone_number}")
+        logger.error(f"=================================================================")
+        
         # Split full name into first and last name
         name_parts = participant.full_name.split() if participant.full_name else ['User']
-        firstname = name_parts[0]
+        firstname = name_parts[0] if name_parts else 'User'
         lastname = ' '.join(name_parts[1:]) if len(name_parts) > 1 else 'BINTACURA'
         
+        # Ensure we have valid names
+        if not firstname or len(firstname.strip()) == 0:
+            firstname = 'User'
+        if not lastname or len(lastname.strip()) == 0:
+            lastname = 'BINTACURA'
+        
         data = {
-            'firstname': firstname,
-            'lastname': lastname,
+            'firstname': firstname.strip(),
+            'lastname': lastname.strip(),
             'email': participant.email,
         }
         
@@ -149,15 +179,23 @@ class FedaPayService:
             data['phone_number'] = phone_data
         
         try:
+            logger.info(f"Creating FedaPay customer with data: {data}")
             response = self._make_request('POST', 'customers', data)
+            logger.info(f"FedaPay customer creation response: {response}")
             
             # FedaPay returns: {"v1/customer": {...}}
             if 'v1/customer' in response:
-                return response['v1/customer']
+                customer = response['v1/customer']
+                logger.info(f"✅ Customer created successfully with ID: {customer.get('id')}")
+                return customer
             
+            # Fallback for different response format
+            logger.info(f"✅ Customer created (alternate format)")
             return response
         except Exception as e:
-            logger.error(f"Failed to create FedaPay customer: {str(e)}")
+            logger.error(f"❌ Failed to create FedaPay customer: {str(e)}")
+            logger.error(f"   Participant: {participant.email} - {participant.full_name}")
+            logger.error(f"   Phone: {participant.phone_number}")
             raise
     
     def create_transaction(
