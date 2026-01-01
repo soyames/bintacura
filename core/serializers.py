@@ -79,7 +79,7 @@ class DoctorDataSerializer(serializers.ModelSerializer):  # Serializer for Docto
     def get_services(self, obj):
         from core.models import ProviderService
         services = ProviderService.objects.filter(
-            provider=obj.participant, is_active=True, is_available=True
+            participant=obj.participant, is_active=True, is_available=True
         )
         return ProviderServiceSerializer(services, many=True).data
 
@@ -116,7 +116,7 @@ class ProviderDataSerializer(serializers.ModelSerializer):  # Serializer for Pro
     def get_services(self, obj):
         from core.models import ProviderService
         services = ProviderService.objects.filter(
-            provider=obj.participant, is_active=True, is_available=True
+            participant=obj.participant, is_active=True, is_available=True
         )
         return ProviderServiceSerializer(services, many=True).data
 

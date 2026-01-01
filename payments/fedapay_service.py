@@ -108,17 +108,22 @@ class FedaPayService:
     def _format_phone_for_fedapay(self, phone_number: str) -> Optional[Dict]:
         """
         Format phone number for FedaPay API
-        FedaPay expects: {"number": "97000001", "country": "BJ"}
+        FedaPay expects: {"number": "0197204431", "country": "BJ"}
         - No + prefix
-        - No country code
-        - Just the local number digits
+        - No country code in the number
+        - Just the local number (10 digits for Benin including leading 0)
         
-        Country code mapping:
-        +229 -> BJ (Benin) - 8 digits
+        Country code mapping (updated 2026):
+        +229 -> BJ (Benin) - 10 digits (including leading 0)
         +226 -> BF (Burkina Faso) - 8 digits
         +243 -> CD (DRC) - 9 digits
         +225 -> CI (Côte d'Ivoire) - 10 digits
         +228 -> TG (Togo) - 8 digits
+        
+        Example: +2290197204431
+        -> Remove +229 (country code)
+        -> Keep 0197204431 (10 digits including leading 0)
+        -> Result: 0197204431
         """
         if not phone_number:
             return None
@@ -126,17 +131,17 @@ class FedaPayService:
         # Clean phone number - remove all non-digits
         phone = ''.join(filter(str.isdigit, phone_number))
         
-        # Country code mapping
+        # Country code mapping (updated with 10 digits for Benin)
         country_codes = {
-            '229': ('BJ', 8),  # Benin
-            '226': ('BF', 8),  # Burkina Faso
-            '243': ('CD', 9),  # DRC
-            '225': ('CI', 10), # Côte d'Ivoire
-            '228': ('TG', 8),  # Togo
+            '229': ('BJ', 10),  # Benin - NOW 10 DIGITS
+            '226': ('BF', 8),   # Burkina Faso
+            '243': ('CD', 9),   # DRC
+            '225': ('CI', 10),  # Côte d'Ivoire
+            '228': ('TG', 8),   # Togo
         }
         
         country = 'BJ'  # Default to Benin
-        expected_length = 8
+        expected_length = 10  # Default to 10 digits
         
         # Try to extract country code
         for code, (iso, length) in country_codes.items():
@@ -146,21 +151,30 @@ class FedaPayService:
                 phone = phone[len(code):]  # Remove country code
                 break
         
-        # Remove leading zeros
-        phone = phone.lstrip('0')
+        # Do NOT remove leading zero - keep the full 10 digits
+        # FedaPay expects: 0197204431 (10 digits with leading 0)
         
         # Validate length
         if len(phone) == expected_length:
+            logger.info(f"✅ Phone formatted for FedaPay: {phone_number} -> {phone} ({country}, {expected_length} digits)")
             return {
                 'number': phone,
                 'country': country
             }
         else:
-            logger.warning(f"Invalid phone number: {phone_number} -> {phone} (expected {expected_length} digits for {country})")
-            # Try to use it anyway if we have some digits
-            if len(phone) >= 8:
+            logger.warning(f"⚠️  Phone number length mismatch: {phone_number} -> {phone} (expected {expected_length} digits for {country}, got {len(phone)})")
+            # If close enough, try to use it
+            if len(phone) >= expected_length - 2 and len(phone) <= expected_length + 2:
+                # Pad with leading zeros if too short
+                if len(phone) < expected_length:
+                    phone = phone.zfill(expected_length)
+                # Trim from the end if too long
+                elif len(phone) > expected_length:
+                    phone = phone[:expected_length]
+                
+                logger.info(f"   Adjusted to: {phone} ({len(phone)} digits)")
                 return {
-                    'number': phone[:expected_length],
+                    'number': phone,
                     'country': country
                 }
             return None

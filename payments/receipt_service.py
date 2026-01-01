@@ -355,9 +355,9 @@ class ReceiptPDFService:
         elements.append(receipt_title)
         elements.append(Spacer(1, 15))
         
-        receipt_number = f"APT-{appointment.id}"
+        receipt_number = f"APT-{appointment.uid}"
         if queue_entry:
-            receipt_number = f"APT-{queue_entry.queue_number}-{str(appointment.id)[:8]}"
+            receipt_number = f"APT-{queue_entry.queue_number}-{str(appointment.uid)[:8]}"
         
         receipt_no = Paragraph(f"<b>Confirmation No:</b> {receipt_number}", normal_style)
         elements.append(receipt_no)
@@ -451,11 +451,18 @@ class ReceiptPDFService:
             elements.append(payment_table)
             elements.append(Spacer(1, 20))
         
-        # Generate QR code using QRCodeService
-        qr_data = f"BINTACURA-APT:{appointment.id}:{receipt_number}:{appointment.patient.uid}"
-        qr_buffer = QRCodeService.generate_qr_code(qr_data)
+        # Generate QR code using payments QR service
+        from payments.qr_service import QRCodeService as PaymentQRService
+        qr_data = f"BINTACURA-APT:{appointment.uid}:{receipt_number}:{appointment.patient.uid}"
+        qr_image_base64 = PaymentQRService.generate_qr_code_image(qr_data)
         
-        qr_image = Image(qr_buffer, width=1.5*inch, height=1.5*inch)
+        if qr_image_base64 and qr_image_base64.startswith('data:image/png;base64,'):
+            import base64
+            qr_image_data = base64.b64decode(qr_image_base64.split(',')[1])
+            qr_buffer = BytesIO(qr_image_data)
+            qr_image = Image(qr_buffer, width=1.5*inch, height=1.5*inch)
+        else:
+            qr_image = Paragraph("<i>QR code unavailable</i>", styles['Normal'])
         qr_image.hAlign = 'CENTER'
         
         elements.append(Spacer(1, 10))

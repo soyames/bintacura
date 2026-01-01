@@ -1,0 +1,105 @@
+{% load i18n %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Facture Non Trouvée" %} - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard-common.css' %}">
+    <style>
+        .error-container {
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .error-icon {
+            font-size: 64px;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+        }
+        .error-title {
+            font-size: 24px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .error-message {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .error-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 30px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">📄❌</div>
+        <h1 class="error-title">{% trans "Facture Non Disponible" %}</h1>
+        
+        <div class="error-message">
+            {% trans "Cette facture n'est plus disponible dans notre système." %}
+        </div>
+
+        <div class="error-details">
+            <strong>{% trans "Raison possible:" %}</strong><br>
+            {% trans "Cette facture a été créée avant notre migration récente de données. Les anciennes factures peuvent ne plus être accessibles via cette méthode." %}
+            <br><br>
+            <small>ID: {{ invoice_id }}</small>
+        </div>
+
+        <div class="action-buttons">
+            <a href="/{{ portal }}/my-appointments/" class="btn btn-primary">
+                ← {% trans "Retour aux Rendez-vous" %}
+            </a>
+            <a href="/{{ portal }}/dashboard/" class="btn btn-secondary">
+                🏠 {% trans "Tableau de Bord" %}
+            </a>
+        </div>
+
+        <div style="margin-top: 40px; font-size: 14px; color: #999;">
+            {% trans "Besoin d'aide?" %} 
+            <a href="mailto:contacts@bintacura.org" style="color: #3498db;">contacts@bintacura.org</a>
+        </div>
+    </div>
+</body>
+</html>

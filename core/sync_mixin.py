@@ -61,13 +61,15 @@ class SyncMixin(models.Model):
 
     # Instance tracking (which local installation created/modified this)
     created_by_instance = models.UUIDField(
-        null=True,
+        null=False,
         blank=True,
+        default=uuid.uuid4,
         help_text="UUID of instance that created this record"
     )
     modified_by_instance = models.UUIDField(
-        null=True,
+        null=False,
         blank=True,
+        default=uuid.uuid4,
         help_text="UUID of instance that last modified this record"
     )
 

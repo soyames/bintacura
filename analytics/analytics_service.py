@@ -165,7 +165,7 @@ class DoctorAnalytics:  # DoctorAnalytics class implementation
         services_stats = {}
         from core.models import ProviderService
 
-        services = ProviderService.objects.filter(provider=doctor)
+        services = ProviderService.objects.filter(participant=doctor)
         for service in services:
             appointment_count = Appointment.objects.filter(
                 doctor=doctor, service=service, status="completed"
@@ -260,7 +260,7 @@ class HospitalAnalytics:  # HospitalAnalytics class implementation
         services_stats = {}
         from core.models import ProviderService
 
-        services = ProviderService.objects.filter(provider=hospital)
+        services = ProviderService.objects.filter(participant=hospital)
         for service in services:
             appointment_count = Appointment.objects.filter(
                 hospital=hospital, service=service, status="completed"
@@ -360,7 +360,7 @@ class PharmacyAnalytics:  # PharmacyAnalytics class implementation
         services_stats = {}
         from core.models import ProviderService
 
-        services = ProviderService.objects.filter(provider=pharmacy)
+        services = ProviderService.objects.filter(participant=pharmacy)
         for service in services:
             services_stats[service.name] = service.price
 

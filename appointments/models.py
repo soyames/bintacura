@@ -44,6 +44,7 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
         ('insurance', 'Insurance'),
     ]
 
+    uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, null=False, db_index=True)
     region_code = models.CharField(max_length=50, default="global", null=False, db_index=True)
     idempotency_key = models.CharField(
         max_length=255,
@@ -78,6 +79,8 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
         "core.ParticipantService",
         on_delete=models.SET_NULL,
         related_name="appointments",
+        to_field="uid",
+        db_column="service_id",
         null=True,
         blank=True,
     )

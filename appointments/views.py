@@ -595,14 +595,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        if appointment.payment_id:
-            from django.shortcuts import redirect
-            return redirect(f'/patient/view-invoice/{appointment.payment_id}/')
-        else:
-            return Response(
-                {"error": "Aucune facture disponible pour ce rendez-vous"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        # Use appointment ID to generate receipt
+        from django.shortcuts import redirect
+        return redirect(f'/patient/view-invoice/{appointment.id}/')
 
 
 class AvailabilityViewSet(viewsets.ModelViewSet):  # View for AvailabilitySet operations

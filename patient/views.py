@@ -88,9 +88,9 @@ class MyAppointmentsView(TemplateView):
         
         # Get appointments for the current patient
         appointments = Appointment.objects.filter(
-            patient_id=self.request.user.uid
+            patient=self.request.user
         ).select_related(
-            'doctor', 'facility'
+            'doctor', 'hospital'
         ).order_by('-appointment_date', '-appointment_time')
         
         context['appointments'] = appointments

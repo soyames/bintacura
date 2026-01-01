@@ -203,6 +203,71 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
     template_name = "payments/invoice_detail.html"
     login_url = "/auth/login/"
     
+    def get(self, request, *args, **kwargs):
+        """Override get to handle missing invoices gracefully"""
+        invoice_id = self.kwargs.get('invoice_id')
+        transaction_id = self.kwargs.get('transaction_id') or self.request.GET.get('transaction_id')
+        
+        # If invoice_id provided, check if it exists
+        if invoice_id and not transaction_id:
+            from payments.models import PaymentReceipt
+            from appointments.models import Appointment
+            from django.contrib import messages
+            from django.shortcuts import render
+            
+            # Check if receipt exists
+            if not PaymentReceipt.objects.filter(id=invoice_id).exists():
+                # Check if appointment exists in any database
+                appointment_exists = False
+                for db in ['default', 'frankfurt']:
+                    try:
+                        if Appointment.objects.using(db).filter(id=invoice_id).exists():
+                            appointment_exists = True
+                            break
+                    except Exception:
+                        pass
+                
+                if not appointment_exists:
+                    # Neither receipt nor appointment exists - show friendly error
+                    messages.warning(request, 
+                        "Cette facture n'est plus disponible. "
+                        "Cela peut être dû à une migration de données récente. "
+                        "Veuillez contacter le support si vous avez besoin d'une copie de cette facture."
+                    )
+                    return render(request, 'payments/invoice_not_found.html', {
+                        'invoice_id': invoice_id,
+                        'portal': request.path.split("/")[1] if len(request.path.split("/")) > 1 else 'patient'
+                    })
+        
+        return super().get(request, *args, **kwargs)
+    
+    def _generate_receipt_from_appointment(self, appointment):
+        """Generate a PaymentReceipt on-the-fly from appointment data"""
+        from payments.models import PaymentReceipt
+        from django.utils import timezone
+        
+        # Create receipt without saving to database (transient object)
+        receipt = PaymentReceipt(
+            id=appointment.id,  # Use appointment ID
+            receipt_number=f"APT-{str(appointment.id)[:8].upper()}",
+            issued_to=appointment.patient,
+            issued_by=appointment.doctor if appointment.doctor else appointment.hospital,
+            amount=appointment.final_price or appointment.consultation_fee or 0,
+            currency=appointment.currency or 'XOF',
+            payment_method=appointment.payment_method or 'onsite',
+            payment_status=appointment.payment_status or 'pending',
+            issued_at=appointment.created_at,
+            description=f"Consultation - {appointment.appointment_type or 'General'}",
+            metadata={
+                'appointment_id': str(appointment.id),
+                'appointment_date': str(appointment.appointment_date),
+                'appointment_time': str(appointment.appointment_time),
+                'doctor': appointment.doctor.full_name if appointment.doctor else 'N/A',
+                'generated_on_fly': True,
+            }
+        )
+        return receipt
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         invoice_id = self.kwargs.get('invoice_id')
@@ -214,7 +279,35 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
                 db_models.Q(service_transaction__id=transaction_id) | db_models.Q(transaction__id=transaction_id)
             )
         elif invoice_id:
-            receipt = get_object_or_404(PaymentReceipt, id=invoice_id)
+            # Try to find receipt by ID first
+            try:
+                receipt = PaymentReceipt.objects.get(id=invoice_id)
+            except PaymentReceipt.DoesNotExist:
+                # If not found, try to find by appointment ID
+                from appointments.models import Appointment
+                
+                try:
+                    appointment = Appointment.objects.get(id=invoice_id)
+                except Appointment.DoesNotExist:
+                    from django.http import Http404
+                    raise Http404("Invoice not found")
+                
+                # Find receipt linked to this appointment via ServiceTransaction
+                from financial.models import ServiceTransaction
+                service_transaction = ServiceTransaction.objects.filter(
+                    appointment_id=appointment.id
+                ).first()
+                
+                if service_transaction:
+                    receipt = PaymentReceipt.objects.filter(
+                        service_transaction_id=service_transaction.id
+                    ).first()
+                else:
+                    receipt = None
+                
+                if not receipt:
+                    # Generate receipt on-the-fly from appointment data
+                    receipt = self._generate_receipt_from_appointment(appointment)
         else:
             from django.http import Http404
             raise Http404("Invoice not found")

@@ -60,8 +60,17 @@ class FedaPayWebhookHandler:
             elif event_type == 'transaction.declined':
                 FedaPayWebhookHandler._handle_transaction_declined(entity, webhook_event)
                 FedaPayWebhookHandler._handle_gateway_transaction_declined(entity, webhook_event)
+            elif event_type == 'transaction.failed':
+                FedaPayWebhookHandler._handle_transaction_failed(entity, webhook_event)
+                FedaPayWebhookHandler._handle_gateway_transaction_failed(entity, webhook_event)
             elif event_type == 'transaction.refunded':
                 FedaPayWebhookHandler._handle_transaction_refunded(entity, webhook_event)
+            elif event_type == 'transaction.started':
+                FedaPayWebhookHandler._handle_transaction_started(entity, webhook_event)
+            elif event_type == 'transaction.pending':
+                FedaPayWebhookHandler._handle_transaction_pending(entity, webhook_event)
+            elif event_type == 'transaction.processing':
+                FedaPayWebhookHandler._handle_transaction_processing(entity, webhook_event)
             elif event_type == 'payout.sent':
                 FedaPayWebhookHandler._handle_payout_sent(entity, webhook_event)
             elif event_type == 'payout.failed':
@@ -423,19 +432,64 @@ class FedaPayWebhookHandler:
 
     @staticmethod
     @transaction.atomic
+    def _handle_transaction_failed(entity: dict, webhook_event):
+        """Handle failed transaction"""
+        fedapay_txn_id = entity.get('id')
+        
+        try:
+            fedapay_txn = FedaPayTransaction.objects.get(fedapay_transaction_id=fedapay_txn_id)
+            fedapay_txn.status = 'failed'
+            fedapay_txn.declined_at = timezone.now()
+            fedapay_txn.last_error_code = entity.get('last_error_code', '')
+            fedapay_txn.save()
+            
+            webhook_event.fedapay_transaction = fedapay_txn
+            
+            logger.info(f"Transaction {fedapay_txn_id} failed")
+        except FedaPayTransaction.DoesNotExist:
+            logger.error(f"FedaPay transaction {fedapay_txn_id} not found")
+    
+    @staticmethod
+    @transaction.atomic
+    def _handle_gateway_transaction_failed(entity: dict, webhook_event):
+        """Handle failed gateway transaction"""
+        from .models import GatewayTransaction, ServiceTransaction
+        
+        fedapay_txn_id = str(entity.get('id'))
+        
+        try:
+            gateway_txn = GatewayTransaction.objects.get(gateway_transaction_id=fedapay_txn_id)
+            gateway_txn.status = 'failed'
+            gateway_txn.declined_at = timezone.now()
+            gateway_txn.last_error_code = entity.get('last_error_code', '')
+            gateway_txn.last_error_message = entity.get('last_error_message', '')
+            gateway_txn.webhook_data.append(entity)
+            gateway_txn.save()
+            
+            ServiceTransaction.objects.filter(gateway_transaction=gateway_txn).update(
+                status='failed',
+                failed_at=timezone.now()
+            )
+            
+            logger.info(f"Gateway transaction {gateway_txn.id} failed")
+        except GatewayTransaction.DoesNotExist:
+            logger.info(f"No GatewayTransaction found for FedaPay transaction {fedapay_txn_id}")
+
+    @staticmethod
+    @transaction.atomic
     def _update_appointment_payment_status(appointment_id: str, core_txn: CoreTransaction):
         """Update appointment payment status after successful payment"""
         try:
             from appointments.models import Appointment
             from communication.notification_service import NotificationService
 
-            appointment = Appointment.objects.select_for_update().filter(id=appointment_id).first()
+            appointment = Appointment.objects.select_for_update().filter(uid=appointment_id).first()
             if not appointment:
                 logger.error(f"Appointment {appointment_id} not found")
                 return
 
             if appointment.payment_status == 'paid':
-                logger.info(f"Appointment {appointment.id} already paid")
+                logger.info(f"Appointment {appointment.uid} already paid")
                 return
 
             # Update appointment
@@ -453,7 +507,7 @@ class FedaPayWebhookHandler:
                     notification_type='payment',
                     priority='high',
                     metadata={
-                        'appointment_id': str(appointment.id),
+                        'appointment_id': str(appointment.uid),
                         'transaction_ref': core_txn.transaction_ref,
                         'queue_number': appointment.queue_number
                     }
@@ -471,7 +525,7 @@ class FedaPayWebhookHandler:
                     notification_type='payment',
                     priority='normal',
                     metadata={
-                        'appointment_id': str(appointment.id),
+                        'appointment_id': str(appointment.uid),
                         'patient_id': str(appointment.patient.uid),
                         'transaction_ref': core_txn.transaction_ref
                     }
@@ -479,7 +533,7 @@ class FedaPayWebhookHandler:
             except Exception as e:
                 logger.error(f"Failed to notify provider: {e}")
 
-            logger.info(f"Appointment {appointment.id} payment confirmed via webhook")
+            logger.info(f"Appointment {appointment.uid} payment confirmed via webhook")
 
         except Exception as e:
             logger.error(f"Error updating appointment payment status: {e}")
@@ -499,13 +553,13 @@ class FedaPayWebhookHandler:
                 logger.warning(f"No appointment_id in gateway transaction {gateway_txn.id}")
                 return
 
-            appointment = Appointment.objects.select_for_update().filter(id=appointment_id).first()
+            appointment = Appointment.objects.select_for_update().filter(uid=appointment_id).first()
             if not appointment:
                 logger.error(f"Appointment {appointment_id} not found")
                 return
 
             if appointment.payment_status == 'paid':
-                logger.info(f"Appointment {appointment.id} already paid")
+                logger.info(f"Appointment {appointment.uid} already paid")
                 return
 
             # Update appointment payment status
@@ -534,7 +588,7 @@ class FedaPayWebhookHandler:
                     notification_type='payment',
                     priority='high',
                     metadata={
-                        'appointment_id': str(appointment.id),
+                        'appointment_id': str(appointment.uid),
                         'queue_number': appointment.queue_number
                     }
                 )
@@ -551,14 +605,14 @@ class FedaPayWebhookHandler:
                     notification_type='payment',
                     priority='high',
                     metadata={
-                        'appointment_id': str(appointment.id),
+                        'appointment_id': str(appointment.uid),
                         'patient_id': str(appointment.patient.uid)
                     }
                 )
             except Exception as notif_error:
                 logger.error(f"Failed to send provider notification: {notif_error}")
 
-            logger.info(f"Appointment {appointment.id} payment processed successfully via FedaPay")
+            logger.info(f"Appointment {appointment.uid} payment processed successfully via FedaPay")
 
         except Exception as e:
             logger.error(f"Error handling appointment payment: {str(e)}")
@@ -629,6 +683,160 @@ class FedaPayWebhookHandler:
 
         except Exception as e:
             logger.error(f"Error handling pharmacy order payment: {e}", exc_info=True)
+
+    @staticmethod
+    @transaction.atomic
+    def _handle_transaction_started(entity: dict, webhook_event):
+        """Handle transaction started event - user initiated payment"""
+        fedapay_txn_id = entity.get('id')
+        
+        logger.info(f"💳 Transaction started: {fedapay_txn_id}")
+        
+        # Try to find CoreTransaction
+        try:
+            core_txn = CoreTransaction.objects.filter(
+                metadata__fedapay_transaction_id=str(fedapay_txn_id)
+            ).first()
+            
+            if core_txn and core_txn.status == 'pending':
+                # Update metadata to track that payment was initiated
+                if core_txn.metadata is None:
+                    core_txn.metadata = {}
+                core_txn.metadata['payment_started_at'] = str(timezone.now())
+                core_txn.metadata['last_status'] = 'started'
+                core_txn.save()
+                logger.info(f"   Updated CoreTransaction {core_txn.transaction_ref} - payment started")
+        except Exception as e:
+            logger.error(f"Error handling transaction started: {e}")
+        
+        # Try to find FedaPayTransaction (old wallet system)
+        try:
+            fedapay_txn = FedaPayTransaction.objects.filter(
+                fedapay_transaction_id=fedapay_txn_id
+            ).first()
+            
+            if fedapay_txn:
+                fedapay_txn.status = 'started'
+                fedapay_txn.save()
+                webhook_event.fedapay_transaction = fedapay_txn
+        except Exception as e:
+            logger.error(f"Error updating FedaPayTransaction: {e}")
+        
+        # Try to find GatewayTransaction
+        try:
+            from .models import GatewayTransaction
+            gateway_txn = GatewayTransaction.objects.filter(
+                gateway_transaction_id=str(fedapay_txn_id)
+            ).first()
+            
+            if gateway_txn:
+                gateway_txn.webhook_data.append(entity)
+                gateway_txn.save()
+                logger.info(f"   Updated GatewayTransaction {gateway_txn.id}")
+        except Exception as e:
+            logger.error(f"Error updating GatewayTransaction: {e}")
+    
+    @staticmethod
+    @transaction.atomic
+    def _handle_transaction_pending(entity: dict, webhook_event):
+        """Handle transaction pending event - waiting for user action"""
+        fedapay_txn_id = entity.get('id')
+        
+        logger.info(f"⏳ Transaction pending: {fedapay_txn_id}")
+        
+        # Try to find CoreTransaction
+        try:
+            core_txn = CoreTransaction.objects.filter(
+                metadata__fedapay_transaction_id=str(fedapay_txn_id)
+            ).first()
+            
+            if core_txn and core_txn.status == 'pending':
+                if core_txn.metadata is None:
+                    core_txn.metadata = {}
+                core_txn.metadata['last_status'] = 'pending'
+                core_txn.metadata['pending_at'] = str(timezone.now())
+                core_txn.save()
+                logger.info(f"   Updated CoreTransaction {core_txn.transaction_ref} - pending")
+        except Exception as e:
+            logger.error(f"Error handling transaction pending: {e}")
+        
+        # Try to find FedaPayTransaction (old wallet system)
+        try:
+            fedapay_txn = FedaPayTransaction.objects.filter(
+                fedapay_transaction_id=fedapay_txn_id
+            ).first()
+            
+            if fedapay_txn:
+                fedapay_txn.status = 'pending'
+                fedapay_txn.save()
+                webhook_event.fedapay_transaction = fedapay_txn
+        except Exception as e:
+            logger.error(f"Error updating FedaPayTransaction: {e}")
+        
+        # Try to find GatewayTransaction
+        try:
+            from .models import GatewayTransaction
+            gateway_txn = GatewayTransaction.objects.filter(
+                gateway_transaction_id=str(fedapay_txn_id)
+            ).first()
+            
+            if gateway_txn:
+                gateway_txn.webhook_data.append(entity)
+                gateway_txn.save()
+                logger.info(f"   Updated GatewayTransaction {gateway_txn.id}")
+        except Exception as e:
+            logger.error(f"Error updating GatewayTransaction: {e}")
+    
+    @staticmethod
+    @transaction.atomic
+    def _handle_transaction_processing(entity: dict, webhook_event):
+        """Handle transaction processing event - payment gateway is processing"""
+        fedapay_txn_id = entity.get('id')
+        
+        logger.info(f"⚙️  Transaction processing: {fedapay_txn_id}")
+        
+        # Try to find CoreTransaction
+        try:
+            core_txn = CoreTransaction.objects.filter(
+                metadata__fedapay_transaction_id=str(fedapay_txn_id)
+            ).first()
+            
+            if core_txn and core_txn.status == 'pending':
+                if core_txn.metadata is None:
+                    core_txn.metadata = {}
+                core_txn.metadata['last_status'] = 'processing'
+                core_txn.metadata['processing_at'] = str(timezone.now())
+                core_txn.save()
+                logger.info(f"   Updated CoreTransaction {core_txn.transaction_ref} - processing")
+        except Exception as e:
+            logger.error(f"Error handling transaction processing: {e}")
+        
+        # Try to find FedaPayTransaction (old wallet system)
+        try:
+            fedapay_txn = FedaPayTransaction.objects.filter(
+                fedapay_transaction_id=fedapay_txn_id
+            ).first()
+            
+            if fedapay_txn:
+                fedapay_txn.status = 'processing'
+                fedapay_txn.save()
+                webhook_event.fedapay_transaction = fedapay_txn
+        except Exception as e:
+            logger.error(f"Error updating FedaPayTransaction: {e}")
+        
+        # Try to find GatewayTransaction
+        try:
+            from .models import GatewayTransaction
+            gateway_txn = GatewayTransaction.objects.filter(
+                gateway_transaction_id=str(fedapay_txn_id)
+            ).first()
+            
+            if gateway_txn:
+                gateway_txn.webhook_data.append(entity)
+                gateway_txn.save()
+                logger.info(f"   Updated GatewayTransaction {gateway_txn.id}")
+        except Exception as e:
+            logger.error(f"Error updating GatewayTransaction: {e}")
 
 
 class FedaPayWalletService:

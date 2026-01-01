@@ -562,7 +562,7 @@ class Wallet(SyncMixin):
     participant = models.OneToOneField(
         Participant, on_delete=models.CASCADE, related_name="core_wallet"
     )
-    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True, help_text="DEPRECATED: Use computed ledger balance instead")
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=False, blank=True, help_text="DEPRECATED: Use computed ledger balance instead")
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="XOF")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     last_transaction_date = models.DateTimeField(null=True, blank=True)
@@ -881,7 +881,7 @@ class MedicalEquipment(SyncMixin):
         return f"{self.equipment_id} - {self.name}"
 
 
-class ParticipantService(SyncMixin):
+class ParticipantService(models.Model):
     SERVICE_CATEGORY_CHOICES = [
         ("consultation", "Consultation"),
         ("surgery", "Surgery"),
@@ -899,18 +899,31 @@ class ParticipantService(SyncMixin):
         ("other", "Other"),
     ]
 
+    id = models.BigAutoField(primary_key=True)
+    uid = models.UUIDField(editable=False, unique=True, db_index=True)
     participant = models.ForeignKey(
-        Participant, on_delete=models.CASCADE, related_name="services"
+        Participant, on_delete=models.CASCADE, related_name="services", db_column="participant_id", null=True, blank=True
     )
     name = models.CharField(max_length=255)
-    category = models.CharField(max_length=50, choices=SERVICE_CATEGORY_CHOICES)
-    description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default="XOF")
+    description = models.TextField(null=True, blank=True)
+    category = models.CharField(max_length=100, null=True, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    currency = models.CharField(max_length=3, default="XOF", null=True, blank=True)
     duration_minutes = models.IntegerField(null=True, blank=True)
-    is_active = models.BooleanField(default=True)
-    is_available = models.BooleanField(default=True)
-    region_code = models.CharField(max_length=50, default="global", db_index=True)
+    is_active = models.BooleanField(default=True, null=True, blank=True)
+    is_available = models.BooleanField(default=True, null=True, blank=True)
+    region_code = models.CharField(max_length=50, default="global", null=True, blank=True, db_index=True)
+    metadata = models.JSONField(default=dict, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
+    # SyncMixin fields - must match database constraints
+    version = models.IntegerField()
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    created_by_instance = models.UUIDField()
+    modified_by_instance = models.UUIDField()
+    is_deleted = models.BooleanField()
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "participant_services"
@@ -919,6 +932,22 @@ class ParticipantService(SyncMixin):
             models.Index(fields=["is_active", "is_available"]),
         ]
         ordering = ["category", "name"]
+
+    def save(self, *args, **kwargs):
+        # Handle NOT NULL fields that have no database defaults
+        if not self.pk:  # New record
+            if not self.version:
+                self.version = 1
+            if not self.created_by_instance:
+                self.created_by_instance = uuid.uuid4()
+            if not self.modified_by_instance:
+                self.modified_by_instance = uuid.uuid4()
+            if self.is_deleted is None:
+                self.is_deleted = False
+        else:  # Update existing record
+            if not self.modified_by_instance:
+                self.modified_by_instance = uuid.uuid4()
+        super().save(*args, **kwargs)
 
     def __str__(self):  # Returns service name with participant
         return f"{self.name} - {self.participant.full_name}"

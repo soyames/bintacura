@@ -616,7 +616,7 @@ class DoctorDashboardView(DoctorRequiredMixin, TemplateView):  # Main dashboard 
 
         context["total_today"] = context["today_appointments"].count()
 
-        services = ProviderService.objects.filter(provider=user, is_active=True)
+        services = ProviderService.objects.filter(participant=user, is_active=True)
         context["total_services"] = services.count()
         context["active_services"] = services.filter(is_available=True).count()
 
@@ -650,7 +650,7 @@ class HospitalDashboardView(HospitalRequiredMixin, TemplateView):  # Main dashbo
         today = date.today()
         user = self.request.user
 
-        services = ProviderService.objects.filter(provider=user, is_active=True)
+        services = ProviderService.objects.filter(participant=user, is_active=True)
         context["total_services"] = services.count()
         context["active_services"] = services.filter(is_available=True).count()
 
@@ -695,7 +695,7 @@ class PharmacyDashboardView(PharmacyRequiredMixin, TemplateView):  # Main dashbo
         from core.models import ProviderService
 
         user = self.request.user
-        services = ProviderService.objects.filter(provider=user, is_active=True)
+        services = ProviderService.objects.filter(participant=user, is_active=True)
         context["total_services"] = services.count()
         context["active_services"] = services.filter(is_available=True).count()
 
@@ -2583,6 +2583,7 @@ class TransactionsView(LoginRequiredMixin, TemplateView):  # Class for transacti
 
             from payments.models import ServiceTransaction, PaymentReceipt
             from appointments.models import Appointment
+            from core.models import Transaction as CoreTransaction
             from django.db.models import Q, Sum, Case, When, DecimalField
             from .geolocation_service import GeolocationService
             from currency_converter.services import CurrencyConverterService
@@ -2618,10 +2619,17 @@ class TransactionsView(LoginRequiredMixin, TemplateView):  # Class for transacti
 
             # Get all transactions for this patient
             if self.request.user.role == 'patient':
+                from core.models import Transaction as CoreTransaction
+                
                 # Get ServiceTransaction records
                 service_transactions = ServiceTransaction.objects.filter(
                     patient=self.request.user
                 ).select_related('service_provider', 'gateway_transaction')
+
+                # Get CoreTransaction records (includes FedaPay direct payments)
+                core_transactions = CoreTransaction.objects.filter(
+                    Q(sender=self.request.user) | Q(recipient=self.request.user)
+                ).select_related('wallet', 'sender', 'recipient')
 
                 # Get Appointments with payment info
                 appointments = Appointment.objects.filter(
@@ -2661,6 +2669,58 @@ class TransactionsView(LoginRequiredMixin, TemplateView):  # Class for transacti
                         'currency': display_currency,
                         'status': txn.status,
                         'status_display': txn.get_status_display(),
+                    })
+
+                # Add CoreTransaction records (FedaPay direct payments, etc.)
+                for txn in core_transactions:
+                    # Skip wallet-based transactions (already in ServiceTransaction)
+                    if txn.wallet is not None:
+                        continue
+                    
+                    # Determine if this is incoming or outgoing
+                    is_incoming = txn.recipient == self.request.user
+                    original_amount = txn.amount
+                    original_currency = txn.currency or 'XOF'
+
+                    try:
+                        converted_amount = CurrencyConverterService.convert_amount(
+                            Decimal(str(original_amount)),
+                            original_currency,
+                            display_currency
+                        )
+                    except Exception:
+                        converted_amount = original_amount
+
+                    # Get service description from metadata
+                    service_description = txn.description or ''
+                    if txn.metadata:
+                        if isinstance(txn.metadata, dict):
+                            service_type = txn.metadata.get('service_type', txn.transaction_type)
+                            service_description = txn.metadata.get('service_description', service_description) or service_description
+                        else:
+                            service_type = txn.transaction_type
+                    else:
+                        service_type = txn.transaction_type
+
+                    # Map transaction status
+                    status = txn.status  # pending, completed, failed, cancelled
+                    status_display = status.replace('_', ' ').title()
+
+                    all_transactions.append({
+                        'type': 'core_transaction',
+                        'transaction_ref': txn.transaction_ref,
+                        'created_at': txn.created_at,
+                        'service_type': service_type,
+                        'service_type_display': service_type.replace('_', ' ').title(),
+                        'service_description': service_description,
+                        'payment_method': txn.payment_method.replace('_', ' ').title() if txn.payment_method else 'Online Payment',
+                        'amount': converted_amount,
+                        'original_amount': original_amount,
+                        'original_currency': original_currency,
+                        'currency': display_currency,
+                        'status': status,
+                        'status_display': status_display,
+                        'is_incoming': is_incoming,
                     })
 
                 # Add Appointments as transactions with currency conversion

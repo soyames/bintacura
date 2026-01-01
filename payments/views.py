@@ -259,12 +259,71 @@ class WalletTopupView(APIView):
     responses={200: dict, 400: dict}
 )
 @csrf_exempt
-@api_view(['POST'])
+@api_view(['POST', 'GET'])
 @permission_classes([AllowAny])
 @csrf_exempt
 def fedapay_webhook(request):
-    """Handle FedaPay webhook events with ACID compliance and idempotency"""
+    """
+    Handle FedaPay webhook events with ACID compliance and idempotency
     
+    POST: Real webhook events from FedaPay (verified with signature)
+    GET: User redirect callbacks (status=approved/declined/pending)
+    """
+    
+    # Handle GET requests (user redirects from FedaPay payment page)
+    if request.method == 'GET':
+        status_param = request.GET.get('status', '')
+        transaction_id = request.GET.get('id', '')
+        
+        logger.info(f"📥 FedaPay redirect callback: status={status_param}, transaction_id={transaction_id}")
+        
+        # Log the redirect for tracking
+        if transaction_id:
+            try:
+                from .models import FedaPayWebhookEvent
+                FedaPayWebhookEvent.objects.create(
+                    event_id=f"redirect-{transaction_id}-{timezone.now().timestamp()}",
+                    event_type=f'transaction.redirect.{status_param}',
+                    payload={
+                        'type': 'redirect_callback',
+                        'status': status_param,
+                        'transaction_id': transaction_id,
+                        'timestamp': str(timezone.now())
+                    },
+                    processed=True,
+                    processed_at=timezone.now()
+                )
+                logger.info(f"✅ Redirect callback logged for transaction {transaction_id}")
+            except Exception as e:
+                logger.warning(f"Failed to log redirect callback: {e}")
+        
+        # Return a simple HTML response thanking the user
+        return HttpResponse(
+            f"""
+            <html>
+                <head>
+                    <title>Payment {status_param.title()}</title>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+                        .success {{ color: #28a745; }}
+                        .pending {{ color: #ffc107; }}
+                        .declined {{ color: #dc3545; }}
+                    </style>
+                </head>
+                <body>
+                    <h1 class="{status_param}">Payment {status_param.title()}</h1>
+                    <p>Transaction ID: {transaction_id}</p>
+                    <p>You can close this window and return to the application.</p>
+                    <script>
+                        setTimeout(function() {{ window.close(); }}, 3000);
+                    </script>
+                </body>
+            </html>
+            """,
+            content_type='text/html'
+        )
+    
+    # Handle POST requests (real webhooks from FedaPay)
     if request.method != 'POST':
         return JsonResponse({"error": "Method not allowed"}, status=405)
     

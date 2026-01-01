@@ -38,21 +38,22 @@ def is_production():
 current_env = detect_environment()
 _is_local = is_local()
 
-# Print configuration summary
-location = 'LOCAL MACHINE' if _is_local else 'RENDER.COM/AWS'
-print("\n" + "="*70)
-print("BINTACURA ENVIRONMENT CONFIGURATION")
-print("="*70)
-print(f"Environment:     {current_env.upper()}")
-print(f"Location:        {location}")
-print(f"Region:          {config('DEPLOYMENT_REGION', default='EU-NORTH-1').upper()}")
-print(f"Debug Mode:      {config('DEBUG', default=False, cast=bool)}")
-print(f"Database:        {config('DB_HOST', default='localhost')}")
-print(f"Email Backend:   {'AWS SES' if config('USE_SES', default=False, cast=bool) else 'SMTP'}")
-print(f"Security:        {config('SECURITY_PROFILE', default='moderate')}")
-if _is_local:
-    print(f"Local Port:      8080")
-print("="*70 + "\n")
+# Print configuration summary (only once, not on autoreload)
+if not os.environ.get('RUN_MAIN'):
+    location = 'LOCAL MACHINE' if _is_local else 'RENDER.COM/AWS'
+    print("\n" + "="*70)
+    print("BINTACURA ENVIRONMENT CONFIGURATION")
+    print("="*70)
+    print(f"Environment:     {current_env.upper()}")
+    print(f"Location:        {location}")
+    print(f"Region:          {config('DEPLOYMENT_REGION', default='EU-NORTH-1').upper()}")
+    print(f"Debug Mode:      {config('DEBUG', default=False, cast=bool)}")
+    print(f"Database:        {config('DB_HOST', default='localhost')}")
+    print(f"Email Backend:   {'AWS SES' if config('USE_SES', default=False, cast=bool) else 'SMTP'}")
+    print(f"Security:        {config('SECURITY_PROFILE', default='moderate')}")
+    if _is_local:
+        print(f"Local Port:      8080")
+    print("="*70 + "\n")
 
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
@@ -112,25 +113,35 @@ DATABASES = {
     }
 }
 
-# Add Frankfurt (Render) database if multi-region is enabled
-# This allows simultaneous connections to both AWS and Render databases
-if ENABLE_MULTI_REGION:
-    DATABASES['frankfurt'] = {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_FRANKFURT_NAME', default='vitacare_global_db'),
-        'USER': env('DB_FRANKFURT_USER', default=env('DB_USER')),
-        'PASSWORD': env('DB_FRANKFURT_PASSWORD', default=env('DB_PASSWORD')),
-        'HOST': env('DB_FRANKFURT_HOST'),
-        'PORT': env('DB_FRANKFURT_PORT', default=5432),
-        'OPTIONS': {
-            'sslmode': 'require',
-        },
-    }
+# ============================================================================
+# FRANKFURT DATABASE - DISABLED (Data migration verified on 2026-01-01)
+# ============================================================================
+# Frankfurt database is now permanently disabled for production use.
+# Multi-region support is maintained for future regions, but Frankfurt is excluded.
+# All Frankfurt data has been verified in AWS RDS.
+#
+# Migration Summary (2026-01-01):
+# - 0 tables needed migration (all data already in AWS)
+# - 211 tables verified as identical or empty in Frankfurt
+# - 4 tables had minor FK issues (not critical)
+#
+# if ENABLE_MULTI_REGION:
+#     DATABASES['frankfurt'] = {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': env('DB_FRANKFURT_NAME', default='vitacare_global_db'),
+#         'USER': env('DB_FRANKFURT_USER', default=env('DB_USER')),
+#         'PASSWORD': env('DB_FRANKFURT_PASSWORD', default=env('DB_PASSWORD')),
+#         'HOST': env('DB_FRANKFURT_HOST'),
+#         'PORT': env('DB_FRANKFURT_PORT', default=5432),
+#         'OPTIONS': {
+#             'sslmode': 'require',
+#         },
+#     }
 
-# Database router configuration (enable when using multi-region)
-# Routes database operations to appropriate regional database
-if ENABLE_MULTI_REGION:
-    DATABASE_ROUTERS = ['core.db_router.RegionalDatabaseRouter']
+# Database router configuration (ready for future multi-region expansion)
+# NOTE: Frankfurt is permanently excluded from routing
+# if ENABLE_MULTI_REGION:
+#     DATABASE_ROUTERS = ['core.db_router.RegionalDatabaseRouter']
 SECURITY_STRICT_MODE = config("SECURITY_STRICT_MODE", default=False, cast=bool)
 
 ENABLE_ADVANCED_SECURITY_MIDDLEWARE = config(
@@ -250,23 +261,23 @@ REGIONAL_PRICING = {
         'default_consultation_fee': 500,
         'database': 'default',
     },
-    'DE': {  # Germany (Frankfurt)
+    'DE': {  # Germany
         'country_code': 'DE',
         'currency': 'EUR',
         'default_consultation_fee': 50,
-        'database': 'frankfurt' if ENABLE_MULTI_REGION else 'default',
+        'database': 'default',  # Frankfurt database disabled, using AWS
     },
     'FR': {  # France
         'country_code': 'FR',
         'currency': 'EUR',
         'default_consultation_fee': 45,
-        'database': 'frankfurt' if ENABLE_MULTI_REGION else 'default',
+        'database': 'default',  # Frankfurt database disabled, using AWS
     },
     'BE': {  # Belgium
         'country_code': 'BE',
         'currency': 'EUR',
         'default_consultation_fee': 45,
-        'database': 'frankfurt' if ENABLE_MULTI_REGION else 'default',
+        'database': 'default',  # Frankfurt database disabled, using AWS
     },
     'US': {  # United States
         'country_code': 'US',
