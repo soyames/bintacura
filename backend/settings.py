@@ -296,7 +296,7 @@ SUPPORTED_CURRENCIES = ['USD', 'EUR', 'XOF', 'XAF', 'GNF','NGN', 'GHS', 'ZAR']
 
 # Exchange Rate API (for real-time currency conversion)
 EXCHANGE_RATE_API_KEY = env('EXCHANGE_RATE_API_KEY', default='')
-EXCHANGE_RATE_API_URL = 'https://api.exchangerate-api.com/v4/latest/USD'
+EXCHANGE_RATE_API_URL = 'https://api.exchangerate-api.com/v4/latest/XOF'
 
 INSTALLED_APPS = [
     "daphne",
@@ -508,7 +508,7 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in development
 # Format: comma-separated list with full protocol
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:3000,http://localhost:8080",
+    default="http://localhost:3000,http://localhost:8080,localhost",
     cast=Csv(),
 )
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies/credentials in CORS requests
