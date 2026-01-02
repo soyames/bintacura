@@ -16,6 +16,11 @@ class HospitalData(models.Model):
         Participant, on_delete=models.CASCADE, related_name="hospital_data"
     )
     license_number = models.CharField(max_length=100, unique=True)
+    identifier = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Human-readable unique identifier for subscription management")
+    activation_code = models.CharField(max_length=14, blank=True, help_text="12-character alphanumeric activation code for local instance")
+    activation_code_issued_at = models.DateTimeField(null=True, blank=True, help_text="When the activation code was issued")
+    activation_code_expires_at = models.DateTimeField(null=True, blank=True, help_text="When the activation code expires")
+    activation_code_validity_years = models.IntegerField(default=1, help_text="Number of years the activation code is valid (default: 1 year)")
     bed_capacity = models.IntegerField(default=0)
     consultation_fee = models.IntegerField(default=0)  # Stored in XOF (major units, not cents)
     emergency_services = models.BooleanField(default=False)
@@ -34,6 +39,21 @@ class HospitalData(models.Model):
     
     def __str__(self):
         return f"{self.participant.full_name} - Hospital"
+    
+    def is_activation_code_expired(self):
+        """Check if activation code has expired"""
+        if not self.activation_code_expires_at:
+            return False
+        from django.utils import timezone
+        return timezone.now() > self.activation_code_expires_at
+    
+    def days_until_expiry(self):
+        """Get number of days until activation code expires"""
+        if not self.activation_code_expires_at:
+            return None
+        from django.utils import timezone
+        delta = self.activation_code_expires_at - timezone.now()
+        return delta.days if delta.days > 0 else 0
     
     def get_actual_rating(self):
         """Calculate real-time average rating from Review model"""
@@ -132,6 +152,33 @@ class HospitalStaff(SyncMixin):  # Manages hospital staff members with roles and
 
     def __str__(self):  # Return string representation
         return f"{self.full_name} - {self.get_role_display()}"
+    
+    def has_parent_subscription_access(self):
+        """Check if the parent hospital has a valid subscription"""
+        if self.hospital and self.hospital.role == 'hospital':
+            return self.hospital.has_valid_subscription()
+        return True
+    
+    def get_parent_subscription_status(self):
+        """Get the parent hospital's subscription status"""
+        if self.hospital and self.hospital.role == 'hospital':
+            return self.hospital.get_subscription_status()
+        return 'not_applicable'
+    
+    def get_parent_organization_name(self):
+        """Get the parent hospital's name"""
+        if self.hospital:
+            return self.hospital.full_name
+        return 'Unknown Hospital'
+    
+    def has_feature_access(self, feature_name):
+        """Check if staff has access based on parent organization's subscription"""
+        # If staff is not active, deny access
+        if not self.is_active:
+            return False
+        
+        # Check parent hospital subscription
+        return self.has_parent_subscription_access()
 
 
 class Bed(SyncMixin):  # Represents hospital beds with status and equipment details

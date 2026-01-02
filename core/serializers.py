@@ -406,8 +406,100 @@ class InsuranceCompanySerializer(serializers.ModelSerializer):
                 'premium_amount': float(pkg.premium_amount),
                 'coverage_type': pkg.coverage_type,
                 'max_coverage_amount': float(pkg.max_coverage_amount) if pkg.max_coverage_amount else None,
-            } for pkg in packages[:5]]  # Limit to 5 packages
+            } for pkg in packages[:5]]
         except:
             return []
+
+
+class InsuranceCompanyDataSerializer(serializers.ModelSerializer):
+    """Serializer for insurance company data including activation code management"""
+    participant_uid = serializers.UUIDField(source='participant.uid', read_only=True)
+    participant_name = serializers.CharField(source='participant.full_name', read_only=True)
+    participant_email = serializers.EmailField(source='participant.email', read_only=True)
+    is_verified = serializers.BooleanField(source='participant.is_verified', read_only=True)
+    
+    # Activation code fields
+    is_activation_code_expired = serializers.SerializerMethodField()
+    days_until_expiry = serializers.SerializerMethodField()
+    activation_status = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = InsuranceCompanyData
+        fields = [
+            'participant_uid',
+            'participant_name',
+            'participant_email',
+            'is_verified',
+            'company_name',
+            'license_number',
+            'identifier',
+            'activation_code',
+            'activation_code_issued_at',
+            'activation_code_expires_at',
+            'activation_code_validity_years',
+            'is_activation_code_expired',
+            'days_until_expiry',
+            'activation_status',
+            'registration_number',
+            'address',
+            'city',
+            'country',
+            'phone_number',
+            'email',
+            'website',
+            'coverage_types',
+        ]
+        read_only_fields = [
+            'participant_uid',
+            'identifier',
+            'activation_code',
+            'activation_code_issued_at',
+            'activation_code_expires_at',
+        ]
+    
+    def get_is_activation_code_expired(self, obj):
+        """Check if activation code is expired"""
+        return obj.is_activation_code_expired()
+    
+    def get_days_until_expiry(self, obj):
+        """Get days until activation code expires"""
+        return obj.days_until_expiry()
+    
+    def get_activation_status(self, obj):
+        """Get human-readable activation status"""
+        if not obj.identifier:
+            return 'not_verified'
+        if not obj.activation_code:
+            return 'pending_activation'
+        if obj.is_activation_code_expired():
+            return 'expired'
+        
+        days = obj.days_until_expiry()
+        if days is None:
+            return 'active'
+        if days <= 30:
+            return 'expiring_soon'
+        return 'active'
+
+
+class InsuranceCompanyDataPublicSerializer(serializers.ModelSerializer):
+    """Public serializer without sensitive activation code information"""
+    participant_name = serializers.CharField(source='participant.full_name', read_only=True)
+    is_verified = serializers.BooleanField(source='participant.is_verified', read_only=True)
+    
+    class Meta:
+        model = InsuranceCompanyData
+        fields = [
+            'participant_name',
+            'is_verified',
+            'company_name',
+            'address',
+            'city',
+            'country',
+            'phone_number',
+            'email',
+            'website',
+            'coverage_types',
+        ]
 
 

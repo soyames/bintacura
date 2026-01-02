@@ -38,7 +38,7 @@ class ParticipantManager(BaseUserManager):
                 "To request admin access:\n\n"
                 "1. Contactez le support BintaCura\n"
                 "   Contact BintaCura support\n"
-                "   Email: support@bintacura.com\n\n"
+                "   Email: contacts@bintacura.org\n\n"
                 "2. Fournissez votre email et informations d'instance\n"
                 "   Provide your email and instance information\n\n"
                 "3. Un administrateur sera créé pour vous par notre équipe\n"
@@ -191,6 +191,120 @@ class Participant(AbstractBaseUser, PermissionsMixin):
             elif len(parts) == 1:
                 return parts[0][:2].upper()
         return "?"
+    
+    def get_subscription_data(self):
+        """
+        Get subscription-related data for hospitals, pharmacies, and insurance companies.
+        Returns None for other participant types.
+        """
+        if self.role == 'hospital' and hasattr(self, 'hospital_data'):
+            return self.hospital_data
+        elif self.role == 'pharmacy' and hasattr(self, 'pharmacy_data'):
+            return self.pharmacy_data
+        elif self.role == 'insurance_company' and hasattr(self, 'insurance_company_data'):
+            return self.insurance_company_data
+        return None
+    
+    def has_valid_subscription(self):
+        """
+        Check if participant has a valid (non-expired) subscription.
+        Only applies to hospitals, pharmacies, and insurance companies.
+        Returns True for other participant types.
+        """
+        if self.role not in ['hospital', 'pharmacy', 'insurance_company']:
+            return True
+        
+        subscription_data = self.get_subscription_data()
+        if not subscription_data:
+            return True
+        
+        # Not verified yet - allow full access
+        if not self.is_verified:
+            return True
+        
+        # Has identifier but no activation code yet - allow full access
+        if subscription_data.identifier and not subscription_data.activation_code:
+            return True
+        
+        # Check if activation code is expired
+        return not subscription_data.is_activation_code_expired()
+    
+    def get_subscription_status(self):
+        """
+        Get human-readable subscription status.
+        Returns: 'active', 'expired', 'grace_period', 'not_applicable'
+        """
+        if self.role not in ['hospital', 'pharmacy', 'insurance_company']:
+            return 'not_applicable'
+        
+        subscription_data = self.get_subscription_data()
+        if not subscription_data:
+            return 'not_applicable'
+        
+        if not self.is_verified:
+            return 'pending_verification'
+        
+        if not subscription_data.identifier:
+            return 'pending_setup'
+        
+        if not subscription_data.activation_code:
+            return 'pending_activation'
+        
+        if subscription_data.is_activation_code_expired():
+            # Check if within grace period (30 days after expiry)
+            from django.utils import timezone
+            from datetime import timedelta
+            if subscription_data.activation_code_expires_at:
+                grace_period_end = subscription_data.activation_code_expires_at + timedelta(days=30)
+                if timezone.now() <= grace_period_end:
+                    return 'grace_period'
+            return 'expired'
+        
+        # Check if expiring soon (< 30 days)
+        days_left = subscription_data.days_until_expiry()
+        if days_left is not None and days_left <= 30:
+            return 'expiring_soon'
+        
+        return 'active'
+    
+    def get_days_until_expiry(self):
+        """Get days until subscription expires. Returns None if not applicable."""
+        if self.role not in ['hospital', 'pharmacy', 'insurance_company']:
+            return None
+        
+        subscription_data = self.get_subscription_data()
+        if not subscription_data:
+            return None
+        
+        return subscription_data.days_until_expiry()
+    
+    def has_feature_access(self, feature_name):
+        """
+        Check if participant has access to a specific feature based on subscription status.
+        
+        Args:
+            feature_name: String identifier for the feature
+        
+        Returns:
+            Boolean indicating access permission
+        """
+        # Define limited features (accessible even with expired subscription)
+        LIMITED_FEATURES = [
+            'view_profile',
+            'edit_basic_info',
+            'view_subscription_status',
+            'renew_subscription',
+            'contact_support',
+            'view_notifications',
+        ]
+        
+        # Allow access to limited features regardless of subscription
+        if feature_name in LIMITED_FEATURES:
+            return True
+        
+        # Check subscription validity for other features
+        return self.has_valid_subscription()
+
 
 
 # Import SyncMixin after Participant to avoid circular import
@@ -262,6 +376,11 @@ class InsuranceCompanyData(models.Model):
     )
     company_name = models.CharField(max_length=255)
     license_number = models.CharField(max_length=100, unique=True)
+    identifier = models.CharField(max_length=50, unique=True, blank=True, null=True, help_text="Human-readable unique identifier for subscription management")
+    activation_code = models.CharField(max_length=14, blank=True, help_text="12-character alphanumeric activation code for local instance")
+    activation_code_issued_at = models.DateTimeField(null=True, blank=True, help_text="When the activation code was issued")
+    activation_code_expires_at = models.DateTimeField(null=True, blank=True, help_text="When the activation code expires")
+    activation_code_validity_years = models.IntegerField(default=1, help_text="Number of years the activation code is valid (default: 1 year)")
     registration_number = models.CharField(max_length=100)
     address = models.TextField()
     city = models.CharField(max_length=100)
@@ -274,6 +393,21 @@ class InsuranceCompanyData(models.Model):
 
     class Meta:
         db_table = "insurance_company_data"
+    
+    def is_activation_code_expired(self):
+        """Check if activation code has expired"""
+        if not self.activation_code_expires_at:
+            return False
+        from django.utils import timezone
+        return timezone.now() > self.activation_code_expires_at
+    
+    def days_until_expiry(self):
+        """Get number of days until activation code expires"""
+        if not self.activation_code_expires_at:
+            return None
+        from django.utils import timezone
+        delta = self.activation_code_expires_at - timezone.now()
+        return delta.days if delta.days > 0 else 0
 
 
 class AdminPermissions(models.Model):

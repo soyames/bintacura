@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.permissions import AllowAny
+from drf_spectacular.utils import extend_schema
 from django.views.generic import TemplateView
 from django.shortcuts import redirect
 from django.http import JsonResponse
@@ -40,6 +41,10 @@ class LandingPageView(TemplateView):
         return super().get(request, *args, **kwargs)
 
 
+@extend_schema(
+    responses={200: dict},
+    description="API root endpoint listing all available API endpoints"
+)
 @api_view(["GET"])
 def api_root(request, format=None):
     return Response(
@@ -67,6 +72,10 @@ def api_root(request, format=None):
     )
 
 
+@extend_schema(
+    responses={200: dict},
+    description="Health check endpoint for monitoring application and database status"
+)
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def health_check(request):

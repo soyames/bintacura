@@ -377,6 +377,7 @@ MIDDLEWARE = [
     "core.language_middleware.UserLanguageMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.subscription_middleware.SubscriptionAccessMiddleware",
 ]
 
 ADVANCED_SECURITY_MIDDLEWARE = [
@@ -419,6 +420,7 @@ TEMPLATES = [
                 "core.context_processors.platform_settings",
                 "core.context_processors.currency_context",
                 "core.context_processors.wallet_context",
+                "core.context_processors.subscription_context",
             ],
         },
     },

@@ -143,6 +143,39 @@ class EmailService:  # Service class for Email operations
             context=context,
         )
 
+
+def send_verification_credentials_email(participant, identifier, activation_code, expires_at=None):
+    """
+    Send identifier and activation code to verified hospital, pharmacy, or insurance company.
+    Called automatically when participant gets blue checkmark verification.
+    """
+    entity_type_display = {
+        'hospital': 'Hôpital',
+        'pharmacy': 'Pharmacie',
+        'insurance_company': 'Compagnie d\'assurance'
+    }.get(participant.role, 'Entité')
+    
+    context = {
+        'entity_name': participant.full_name,
+        'entity_type': entity_type_display,
+        'identifier': identifier,
+        'activation_code': activation_code,
+        'expires_at': expires_at,
+        'has_expiry': expires_at is not None,
+        'base_url': settings.BASE_URL,
+    }
+    
+    subject = f"Certification confirmée - Identifiant et Code d'activation | {participant.full_name}"
+    
+    return EmailService.send_email(
+        to_email=participant.email,
+        subject=subject,
+        template_name="emails/verification_credentials.html",
+        context=context,
+        participant=participant,
+        notification_type='account_verification'
+    )
+
     @staticmethod
     def send_insurance_claim_update(claim, status):  # Send insurance claim update
         context = {

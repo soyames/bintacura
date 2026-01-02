@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from django.shortcuts import render, redirect
@@ -64,10 +65,11 @@ class AdminAnalyticsView(APIView):  # Admin configuration for AnalyticsView mode
         return Response(serializer.data)
 
 
-class ParticipantGrowthView(APIView):  # View for ParticipantGrowth operations
+class ParticipantGrowthView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=UserGrowthDataSerializer(many=True))
+    def get(self, request):
         if not (request.user.is_superuser or request.user.role == "super_admin"):
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
@@ -79,10 +81,11 @@ class ParticipantGrowthView(APIView):  # View for ParticipantGrowth operations
         return Response(serializer.data)
 
 
-class RevenueAnalyticsView(APIView):  # View for RevenueAnalytics operations
+class RevenueAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=RevenueDataSerializer(many=True))
+    def get(self, request):
         if not (request.user.is_superuser or request.user.role == "super_admin"):
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
@@ -94,10 +97,11 @@ class RevenueAnalyticsView(APIView):  # View for RevenueAnalytics operations
         return Response(serializer.data)
 
 
-class RoleDistributionView(APIView):  # View for RoleDistribution operations
+class RoleDistributionView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=RoleDistributionSerializer(many=True))
+    def get(self, request):
         if not (request.user.is_superuser or request.user.role == "super_admin"):
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
@@ -108,10 +112,11 @@ class RoleDistributionView(APIView):  # View for RoleDistribution operations
         return Response(serializer.data)
 
 
-class RecentActivitiesView(APIView):  # View for RecentActivities operations
+class RecentActivitiesView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=ActivitySerializer(many=True))
+    def get(self, request):
         if not (request.user.is_superuser or request.user.role == "super_admin"):
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
@@ -123,10 +128,11 @@ class RecentActivitiesView(APIView):  # View for RecentActivities operations
         return Response(serializer.data)
 
 
-class TopProvidersView(APIView):  # View for TopProviders operations
+class TopProvidersView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=TopProviderSerializer(many=True))
+    def get(self, request):
         if not (request.user.is_superuser or request.user.role == "super_admin"):
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
@@ -138,10 +144,11 @@ class TopProvidersView(APIView):  # View for TopProviders operations
         return Response(serializer.data)
 
 
-class GeographicDistributionView(APIView):  # View for GeographicDistribution operations
+class GeographicDistributionView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=GeographicDistributionSerializer(many=True))
+    def get(self, request):
         if not (request.user.is_superuser or request.user.role == "super_admin"):
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
@@ -152,10 +159,11 @@ class GeographicDistributionView(APIView):  # View for GeographicDistribution op
         return Response(serializer.data)
 
 
-class DoctorAnalyticsView(APIView):  # View for DoctorAnalytics operations
+class DoctorAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=DoctorAnalyticsSerializer)
+    def get(self, request):
         if request.user.role != "doctor":
             return Response(
                 {"error": "Only doctors can access this endpoint"},
@@ -196,10 +204,11 @@ class DoctorAnalyticsView(APIView):  # View for DoctorAnalytics operations
         return Response(serializer.data)
 
 
-class HospitalAnalyticsView(APIView):  # View for HospitalAnalytics operations
+class HospitalAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=HospitalAnalyticsSerializer)
+    def get(self, request):
         if request.user.role != "hospital":
             return Response(
                 {"error": "Only hospitals can access this endpoint"},
@@ -237,10 +246,11 @@ class HospitalAnalyticsView(APIView):  # View for HospitalAnalytics operations
         return Response(serializer.data)
 
 
-class PharmacyAnalyticsView(APIView):  # View for PharmacyAnalytics operations
+class PharmacyAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=PharmacyAnalyticsSerializer)
+    def get(self, request):
         if request.user.role != "pharmacy":
             return Response(
                 {"error": "Only pharmacies can access this endpoint"},
@@ -284,10 +294,11 @@ class PharmacyAnalyticsView(APIView):  # View for PharmacyAnalytics operations
         return Response(serializer.data)
 
 
-class InsuranceAnalyticsView(APIView):  # View for InsuranceAnalytics operations
+class InsuranceAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=InsuranceAnalyticsSerializer)
+    def get(self, request):
         if request.user.role != "insurance_company":
             return Response(
                 {"error": "Only insurance companies can access this endpoint"},
@@ -331,10 +342,11 @@ class InsuranceAnalyticsView(APIView):  # View for InsuranceAnalytics operations
         return Response(serializer.data)
 
 
-class PatientAnalyticsView(APIView):  # View for PatientAnalytics operations
+class PatientAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=PatientAnalyticsSerializer)
+    def get(self, request):
         if request.user.role != "patient":
             return Response(
                 {"error": "Only patients can access this endpoint"},
@@ -477,10 +489,11 @@ def survey_thank_you_view(request):  # Survey thank you view
     return render(request, 'analytics/survey_thank_you.html')
 
 
-class SurveyStatisticsAPIView(APIView):  # View for SurveyStatisticsAPI operations
+class SurveyStatisticsAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request):  # Get
+    @extend_schema(responses=SurveyStatisticsSerializer)
+    def get(self, request):
         from django.db.models import Count, Avg, Min, Max, StdDev
 
         responses = SurveyResponse.objects.all()

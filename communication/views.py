@@ -3,6 +3,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import Q, F
@@ -271,6 +272,10 @@ class CommunityGroupViewSet(viewsets.ModelViewSet):  # View for CommunityGroupSe
         return Response(serializer.data)
 
 
+@extend_schema(
+    responses={200: OnlineStatusSerializer(many=True)},
+    description="Get list of currently online users"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def online_users(request):
@@ -295,6 +300,10 @@ def online_users(request):
     })
 
 
+@extend_schema(
+    responses={200: dict},
+    description="Update participant's last activity timestamp"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_activity(request):
@@ -306,6 +315,10 @@ def update_activity(request):
     return Response({'status': 'updated'})
 
 
+@extend_schema(
+    responses={200: dict},
+    description="Mark participant as offline"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def go_offline(request):
@@ -374,6 +387,10 @@ def mark_notification_read(request):  # Mark notification read
     return Response({'status': 'success'})
 
 
+@extend_schema(
+    responses={200: dict},
+    description="Proxy endpoint for AI chat - redirects to AI app"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def ai_chat_proxy(request):

@@ -24,7 +24,7 @@ class AIConversationSerializer(serializers.ModelSerializer):  # Serializer for A
                   'escalated_to_staff', 'escalated_at', 'sentiment_score', 'messages', 'message_count']
         read_only_fields = ['id', 'started_at', 'last_message_at']
     
-    def get_message_count(self, obj):
+    def get_message_count(self, obj) -> int:
         return obj.messages.count()
 
 

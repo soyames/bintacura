@@ -2,11 +2,11 @@ from rest_framework import serializers
 from .models import ExchangeRate, CurrencyPair
 
 
-class ExchangeRateSerializer(serializers.ModelSerializer):  # Serializer for ExchangeRate data
-    class Meta:  # Meta class implementation
+class ExchangeRateSerializer(serializers.ModelSerializer):
+    class Meta:
         model = ExchangeRate
-        fields = ['id', 'from_currency', 'to_currency', 'rate', 'source', 'fetched_at', 'is_active']
-        read_only_fields = ['id', 'fetched_at']
+        fields = ['id', 'base_code', 'target_code', 'conversion_rate', 'source', 'fetched_at', 'is_active', 'time_last_update_utc']
+        read_only_fields = ['id', 'fetched_at', 'time_last_update_utc']
 
 
 class CurrencyPairSerializer(serializers.ModelSerializer):  # Serializer for CurrencyPair data

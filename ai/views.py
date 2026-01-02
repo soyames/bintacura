@@ -64,11 +64,13 @@ class AIChatAPIView(APIView):  # API endpoint for AI chat functionality
             )
 
 
-class AIConversationViewSet(viewsets.ModelViewSet):  # ViewSet for AI conversations
+class AIConversationViewSet(viewsets.ModelViewSet):
     serializer_class = AIConversationSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return AIConversation.objects.none()
         return AIConversation.objects.filter(participant=self.request.user)
     
     @action(detail=True, methods=['post'])
@@ -88,11 +90,13 @@ class AIConversationViewSet(viewsets.ModelViewSet):  # ViewSet for AI conversati
         return Response({'status': 'escalated to human support'})
 
 
-class AIHealthInsightViewSet(viewsets.ModelViewSet):  # ViewSet for AI health insights
+class AIHealthInsightViewSet(viewsets.ModelViewSet):
     serializer_class = AIHealthInsightSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return AIHealthInsight.objects.none()
         return AIHealthInsight.objects.filter(patient=self.request.user)
     
     @action(detail=True, methods=['post'])
@@ -115,11 +119,13 @@ class AIHealthInsightViewSet(viewsets.ModelViewSet):  # ViewSet for AI health in
         return Response(serializer.data)
 
 
-class AISymptomCheckerViewSet(viewsets.ModelViewSet):  # ViewSet for symptom checker
+class AISymptomCheckerViewSet(viewsets.ModelViewSet):
     serializer_class = AISymptomCheckerSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return AISymptomChecker.objects.none()
         return AISymptomChecker.objects.filter(patient=self.request.user)
     
     def create(self, request, *args, **kwargs):
@@ -149,11 +155,13 @@ class AISymptomCheckerViewSet(viewsets.ModelViewSet):  # ViewSet for symptom che
         return Response({'status': 'marked as followed up'})
 
 
-class AIMedicationReminderViewSet(viewsets.ModelViewSet):  # ViewSet for medication reminders
+class AIMedicationReminderViewSet(viewsets.ModelViewSet):
     serializer_class = AIMedicationReminderSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return AIMedicationReminder.objects.none()
         return AIMedicationReminder.objects.filter(patient=self.request.user)
     
     @action(detail=False, methods=['get'])
@@ -177,11 +185,13 @@ class AIMedicationReminderViewSet(viewsets.ModelViewSet):  # ViewSet for medicat
         return Response({'status': 'deactivated'})
 
 
-class AIHealthRiskAssessmentViewSet(viewsets.ModelViewSet):  # ViewSet for health risk assessments
+class AIHealthRiskAssessmentViewSet(viewsets.ModelViewSet):
     serializer_class = AIHealthRiskAssessmentSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return AIHealthRiskAssessment.objects.none()
         return AIHealthRiskAssessment.objects.filter(patient=self.request.user)
     
     @action(detail=False, methods=['get'])
@@ -198,11 +208,13 @@ class AIHealthRiskAssessmentViewSet(viewsets.ModelViewSet):  # ViewSet for healt
         return Response({'status': 'shared with doctor'})
 
 
-class AIAppointmentSuggestionViewSet(viewsets.ModelViewSet):  # ViewSet for appointment suggestions
+class AIAppointmentSuggestionViewSet(viewsets.ModelViewSet):
     serializer_class = AIAppointmentSuggestionSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return AIAppointmentSuggestion.objects.none()
         return AIAppointmentSuggestion.objects.filter(patient=self.request.user)
     
     @action(detail=False, methods=['get'])
@@ -229,11 +241,13 @@ class AIAppointmentSuggestionViewSet(viewsets.ModelViewSet):  # ViewSet for appo
         return Response({'status': 'dismissed'})
 
 
-class AIFeedbackViewSet(viewsets.ModelViewSet):  # ViewSet for AI feedback
+class AIFeedbackViewSet(viewsets.ModelViewSet):
     serializer_class = AIFeedbackSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return AIFeedback.objects.none()
         return AIFeedback.objects.filter(participant=self.request.user)
     
     def perform_create(self, serializer):

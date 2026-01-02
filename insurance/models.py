@@ -591,6 +591,30 @@ class InsuranceStaff(SyncMixin):  # Manages insurance company staff members and 
 
     def __str__(self):
         return f"{self.staff_participant.full_name} - {self.get_staff_role_display()}"
+    
+    def has_parent_subscription_access(self):
+        """Check if the parent insurance company has a valid subscription"""
+        if self.insurance_company and self.insurance_company.role == 'insurance_company':
+            return self.insurance_company.has_valid_subscription()
+        return True
+    
+    def get_parent_subscription_status(self):
+        """Get the parent insurance company's subscription status"""
+        if self.insurance_company and self.insurance_company.role == 'insurance_company':
+            return self.insurance_company.get_subscription_status()
+        return 'not_applicable'
+    
+    def get_parent_organization_name(self):
+        """Get the parent insurance company's name"""
+        if self.insurance_company:
+            return self.insurance_company.full_name
+        return 'Unknown Insurance Company'
+    
+    def has_feature_access(self, feature_name):
+        """Check if staff has access based on parent organization's subscription"""
+        if not self.is_active:
+            return False
+        return self.has_parent_subscription_access()
 
 
 # COVERAGE CONFIGURATION MODELS - ISSUE-INS-007, INS-008

@@ -102,3 +102,56 @@ def update_rating_cache(sender, instance, **kwargs):
         except Participant.DoesNotExist:
             pass
 
+
+@receiver(post_save, sender=Participant)
+@transaction.atomic
+def assign_identifier_on_verification(sender, instance, **kwargs):
+    """
+    Automatically assign identifier and activation code when participant is verified.
+    Applies to hospitals, pharmacies, and insurance companies only.
+    """
+    if not instance.is_verified:
+        return
+    
+    if instance.role not in ['hospital', 'pharmacy', 'insurance_company']:
+        return
+    
+    from core.subscription_identifier_utils import assign_identifier_and_activation_code
+    
+    try:
+        if instance.role == 'hospital':
+            from hospital.models import HospitalData
+            hospital_data = HospitalData.objects.select_for_update().get(participant=instance)
+            if not hospital_data.identifier or not hospital_data.activation_code or hospital_data.is_activation_code_expired():
+                identifier, activation_code, expires_at = assign_identifier_and_activation_code(
+                    hospital_data, 'hospital'
+                )
+                
+                from communication.email_service import send_verification_credentials_email
+                send_verification_credentials_email(instance, identifier, activation_code, expires_at)
+        
+        elif instance.role == 'pharmacy':
+            from pharmacy.models import PharmacyData
+            pharmacy_data = PharmacyData.objects.select_for_update().get(participant=instance)
+            if not pharmacy_data.identifier or not pharmacy_data.activation_code or pharmacy_data.is_activation_code_expired():
+                identifier, activation_code, expires_at = assign_identifier_and_activation_code(
+                    pharmacy_data, 'pharmacy'
+                )
+                
+                from communication.email_service import send_verification_credentials_email
+                send_verification_credentials_email(instance, identifier, activation_code, expires_at)
+        
+        elif instance.role == 'insurance_company':
+            from core.models import InsuranceCompanyData
+            insurance_data = InsuranceCompanyData.objects.select_for_update().get(participant=instance)
+            if not insurance_data.identifier or not insurance_data.activation_code or insurance_data.is_activation_code_expired():
+                identifier, activation_code, expires_at = assign_identifier_and_activation_code(
+                    insurance_data, 'insurance'
+                )
+                
+                from communication.email_service import send_verification_credentials_email
+                send_verification_credentials_email(instance, identifier, activation_code, expires_at)
+    
+    except Exception:
+        pass
+

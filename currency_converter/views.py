@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema
 from decimal import Decimal
 from .models import ExchangeRate, CurrencyPair
 from .serializers import ExchangeRateSerializer, CurrencyPairSerializer, CurrencyConversionSerializer
@@ -32,11 +33,16 @@ class CurrencyPairViewSet(viewsets.ReadOnlyModelViewSet):  # View for CurrencyPa
     permission_classes = [IsAuthenticated]
 
 
-class CurrencyConversionViewSet(viewsets.ViewSet):  # View for CurrencyConversionSet operations
+class CurrencyConversionViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = CurrencyConversionSerializer
     
+    @extend_schema(
+        request=CurrencyConversionSerializer,
+        responses={200: CurrencyConversionSerializer}
+    )
     @action(detail=False, methods=['post'])
-    def convert(self, request):  # Convert
+    def convert(self, request):
         serializer = CurrencyConversionSerializer(data=request.data)
         if serializer.is_valid():
             amount = serializer.validated_data['amount']
