@@ -36,11 +36,11 @@ class DoctorDataSerializer(serializers.ModelSerializer):  # Serializer for Docto
             "total_consultations",
         ]
 
-    def get_consultation_fee(self, obj):
+    def get_consultation_fee(self, obj) -> dict:
         """Return consultation fee using model method that uses settings default"""
         return obj.get_consultation_fee()
 
-    def get_participant(self, obj):  # Get participant
+    def get_participant(self, obj) -> dict:  # Get participant
         participant = obj.participant
         return {
             "uid": str(participant.uid),
@@ -54,7 +54,7 @@ class DoctorDataSerializer(serializers.ModelSerializer):  # Serializer for Docto
             "profile_picture_url": participant.profile_picture_url,
         }
 
-    def get_affiliated_hospitals(self, obj):  # Get affiliated hospitals
+    def get_affiliated_hospitals(self, obj) -> list:  # Get affiliated hospitals
         """Get list of affiliated hospitals from DoctorAffiliation model"""
         affiliations = DoctorAffiliation.objects.filter(
             doctor=obj.participant,

@@ -76,7 +76,7 @@ class DoctorDataSerializer(serializers.ModelSerializer):  # Serializer for Docto
         parts = full_name.split()
         return " ".join(parts[1:]) if len(parts) > 1 else ""
 
-    def get_services(self, obj):
+    def get_services(self, obj) -> dict:
         from core.models import ProviderService
         services = ProviderService.objects.filter(
             participant=obj.participant, is_active=True, is_available=True
@@ -113,7 +113,7 @@ class ProviderDataSerializer(serializers.ModelSerializer):  # Serializer for Pro
     participant_id = serializers.UUIDField(source="participant.uid", read_only=True)
     services = serializers.SerializerMethodField()
 
-    def get_services(self, obj):
+    def get_services(self, obj) -> dict:
         from core.models import ProviderService
         services = ProviderService.objects.filter(
             participant=obj.participant, is_active=True, is_available=True
@@ -340,14 +340,14 @@ class HospitalProfileSerializer(serializers.ModelSerializer):  # Serializer for 
         ]
         read_only_fields = ["uid", "created_at"]
 
-    def get_consultation_fee(self, obj):
+    def get_consultation_fee(self, obj) -> dict:
         """Return consultation fee using model method that uses settings default"""
         if hasattr(obj, 'hospital_data'):
             return obj.hospital_data.get_consultation_fee()
         from django.conf import settings
         return getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
 
-    def get_services(self, obj):
+    def get_services(self, obj) -> str:
         try:
             from hospital.models import HospitalDepartment
             departments = HospitalDepartment.objects.filter(hospital=obj)
@@ -382,7 +382,7 @@ class InsuranceCompanySerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["uid", "created_at"]
     
-    def get_company_info(self, obj):
+    def get_company_info(self, obj) -> dict:
         """Return insurance company specific data"""
         if hasattr(obj, 'insurance_company_data'):
             data = obj.insurance_company_data
@@ -395,7 +395,7 @@ class InsuranceCompanySerializer(serializers.ModelSerializer):
             }
         return None
     
-    def get_packages(self, obj):
+    def get_packages(self, obj) -> list:
         """Return insurance packages offered"""
         try:
             from insurance.models import InsurancePackage
@@ -457,15 +457,15 @@ class InsuranceCompanyDataSerializer(serializers.ModelSerializer):
             'activation_code_expires_at',
         ]
     
-    def get_is_activation_code_expired(self, obj):
+    def get_is_activation_code_expired(self, obj) -> str:
         """Check if activation code is expired"""
         return obj.is_activation_code_expired()
     
-    def get_days_until_expiry(self, obj):
+    def get_days_until_expiry(self, obj) -> str:
         """Get days until activation code expires"""
         return obj.days_until_expiry()
     
-    def get_activation_status(self, obj):
+    def get_activation_status(self, obj) -> str:
         """Get human-readable activation status"""
         if not obj.identifier:
             return 'not_verified'

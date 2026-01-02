@@ -17,10 +17,10 @@ class CommunityPostSerializer(serializers.ModelSerializer):  # Serializer for Co
         read_only_fields = ['author', 'author_handle', 'likes_count', 'dislikes_count',
                            'comments_count', 'shares_count', 'created_at', 'updated_at']
 
-    def get_author_name(self, obj):  # Get author name
+    def get_author_name(self, obj) -> str:  # Get author name
         return obj.author.full_name if hasattr(obj.author, 'full_name') else 'Unknown'
 
-    def get_user_reaction(self, obj):  # Get user reaction
+    def get_user_reaction(self, obj) -> str:  # Get user reaction
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             reaction = PostLike.objects.filter(post=obj, participant=request.user).first()
@@ -41,13 +41,13 @@ class CommentSerializer(serializers.ModelSerializer):  # Serializer for Comment 
         ]
         read_only_fields = ['author', 'likes_count', 'created_at', 'updated_at']
 
-    def get_author_name(self, obj):  # Get author name
+    def get_author_name(self, obj) -> str:  # Get author name
         return obj.author.full_name if hasattr(obj.author, 'full_name') else 'Unknown'
 
-    def get_replies_count(self, obj):  # Get replies count
+    def get_replies_count(self, obj) -> int:  # Get replies count
         return obj.replies.count()
 
-    def get_user_liked(self, obj):  # Get user liked
+    def get_user_liked(self, obj) -> bool:  # Get user liked
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return CommentLike.objects.filter(comment=obj, participant=request.user).exists()
@@ -72,7 +72,7 @@ class CommunityGroupSerializer(serializers.ModelSerializer):  # Serializer for C
         ]
         read_only_fields = ['creator', 'members_count', 'posts_count', 'created_at', 'updated_at']
 
-    def get_is_member(self, obj):  # Get is member
+    def get_is_member(self, obj) -> bool:  # Get is member
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return GroupMembership.objects.filter(
@@ -80,7 +80,7 @@ class CommunityGroupSerializer(serializers.ModelSerializer):  # Serializer for C
             ).exists()
         return False
 
-    def get_user_role(self, obj):  # Get user role
+    def get_user_role(self, obj) -> str:  # Get user role
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             membership = GroupMembership.objects.filter(
@@ -97,7 +97,7 @@ class GroupMembershipSerializer(serializers.ModelSerializer):  # Serializer for 
         fields = ['id', 'group', 'participant', 'participant_name', 'role', 'status', 'joined_at']
         read_only_fields = ['joined_at']
 
-    def get_participant_name(self, obj):  # Get participant name
+    def get_participant_name(self, obj) -> str:  # Get participant name
         return obj.participant.full_name if hasattr(obj.participant, 'full_name') else 'Unknown'
 
 class OnlineStatusSerializer(serializers.ModelSerializer):  # Serializer for OnlineStatus data
@@ -108,7 +108,7 @@ class OnlineStatusSerializer(serializers.ModelSerializer):  # Serializer for Onl
         fields = ['participant', 'participant_name', 'is_online', 'last_seen', 'last_activity']
         read_only_fields = ['last_seen', 'last_activity']
 
-    def get_participant_name(self, obj):  # Get participant name
+    def get_participant_name(self, obj) -> str:  # Get participant name
         return obj.participant.full_name if hasattr(obj.participant, 'full_name') else 'Unknown'
 
 class NotificationSerializer(serializers.ModelSerializer):  # Serializer for Notification data

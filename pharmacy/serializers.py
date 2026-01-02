@@ -90,7 +90,7 @@ class PharmacyStaffSerializer(serializers.ModelSerializer):  # Serializer for Ph
         fields = '__all__'
         read_only_fields = ['id', 'pharmacy', 'staff_participant', 'created_at', 'updated_at']
 
-    def get_assigned_counter(self, obj):
+    def get_assigned_counter(self, obj) -> dict:
         if obj.staff_participant:
             counter = PharmacyCounter.objects.filter(current_staff=obj.staff_participant).first()
             if counter:

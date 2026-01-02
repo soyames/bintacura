@@ -191,6 +191,8 @@ class CommunityGroupViewSet(viewsets.ModelViewSet):  # View for CommunityGroupSe
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return CommunityGroup.objects.none()
         participant = self.request.user
         # Show public groups and groups user is a member of
         return CommunityGroup.objects.filter(
@@ -338,6 +340,8 @@ class NotificationViewSet(viewsets.ModelViewSet):  # View for NotificationSet op
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return Notification.objects.none()
         participant = self.request.user
         return Notification.objects.filter(recipient=participant)
 

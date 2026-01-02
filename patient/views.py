@@ -6,6 +6,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from .models import PatientData, DependentProfile
 from .serializers import PatientDataSerializer, DependentProfileSerializer
 from prescriptions.models import Prescription
@@ -24,6 +25,8 @@ class PatientDataViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):  # Get queryset
         # Users can only see their own patient data
+        if getattr(self, 'swagger_fake_view', False):
+            return PatientData.objects.none()
         if self.request.user.role == "patient":
             return PatientData.objects.filter(participant=self.request.user)
         # Staff/admin can see all
@@ -43,6 +46,8 @@ class DependentProfileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):  # Get queryset
         # Users can only see their own dependents
+        if getattr(self, 'swagger_fake_view', False):
+            return DependentProfile.objects.none()
         if self.request.user.role == "patient":
             return DependentProfile.objects.filter(
                 patient=self.request.user, is_active=True
@@ -57,6 +62,7 @@ class DependentProfileViewSet(viewsets.ModelViewSet):
         serializer.save(patient=self.request.user)
 
 
+@extend_schema(tags=["Patient Prescriptions"])
 class PrescriptionsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

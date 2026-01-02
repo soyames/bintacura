@@ -5,6 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -3446,10 +3447,14 @@ class BookTelemedicineView(PatientRequiredMixin, View):  # Class for booktelemed
             messages.error(request, f"Erreur: {str(e)}")
             return redirect("patient:telemedicine")
 
-
+@extend_schema(tags=['Patient Profile'])
 class PatientProfileAPIView(APIView):  # Class for patientprofileapi
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Get patient profile",
+        responses={200: ParticipantProfileSerializer}
+    )
     def get(self, request):  # Handle get operation
         try:
             profile_data = {
@@ -3501,9 +3506,14 @@ class PatientProfileAPIView(APIView):  # Class for patientprofileapi
             )
 
 
+@extend_schema(tags=['Beneficiaries'])
 class BeneficiariesAPIView(APIView):  # Class for beneficiariesapi
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="List all beneficiaries for the current patient",
+        responses={200: DependentProfileSerializer(many=True)}
+    )
     def get(self, request):  # Handle get operation
         from patient.models import DependentProfile
         from core.serializers import DependentProfileSerializer
@@ -3522,6 +3532,11 @@ class BeneficiariesAPIView(APIView):  # Class for beneficiariesapi
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(
+        summary="Add a new beneficiary",
+        request=DependentProfileSerializer,
+        responses={201: DependentProfileSerializer}
+    )
     def post(self, request):  # Handle form submission for data updates
         from patient.models import DependentProfile
         from core.serializers import DependentProfileSerializer
@@ -3549,9 +3564,14 @@ class BeneficiariesAPIView(APIView):  # Class for beneficiariesapi
             )
 
 
+@extend_schema(tags=['Beneficiaries'])
 class BeneficiaryDetailAPIView(APIView):  # Class for beneficiarydetailapi
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Get beneficiary details",
+        responses={200: DependentProfileSerializer}
+    )
     def get(self, request, pk):  # Handle get operation
         from patient.models import DependentProfile
         from core.serializers import DependentProfileSerializer
@@ -3571,6 +3591,11 @@ class BeneficiaryDetailAPIView(APIView):  # Class for beneficiarydetailapi
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+    @extend_schema(
+        summary="Update beneficiary",
+        request=DependentProfileSerializer,
+        responses={200: DependentProfileSerializer}
+    )
     def put(self, request, pk):  # Handle put operation
         from patient.models import DependentProfile
         from core.serializers import DependentProfileSerializer
@@ -3602,6 +3627,10 @@ class BeneficiaryDetailAPIView(APIView):  # Class for beneficiarydetailapi
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+    @extend_schema(
+        summary="Delete/deactivate beneficiary",
+        responses={200: OpenApiResponse(description="Success")}
+    )
     def delete(self, request, pk):  # Handle delete operation
         from patient.models import DependentProfile
 
@@ -3639,9 +3668,18 @@ class PatientHospitalsView(PatientRequiredMixin, TemplateView):  # Class for pat
     template_name = "patient/hospitals.html"
 
 
+@extend_schema(tags=['Hospitals'])
 class HospitalsAPIView(APIView):  # Class for hospitalsapi
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="List all hospitals with optional search and sorting",
+        parameters=[
+            OpenApiParameter(name='search', description='Search term', required=False, type=str),
+            OpenApiParameter(name='sort_by', description='Sort field (name, city)', required=False, type=str)
+        ],
+        responses={200: HospitalProfileSerializer(many=True)}
+    )
     def get(self, request):  # Handle get operation
         from core.models import Participant
         from core.serializers import HospitalProfileSerializer
@@ -3682,6 +3720,7 @@ class HospitalsAPIView(APIView):  # Class for hospitalsapi
         )
 
 
+@extend_schema(tags=["Hospital Appointments"])
 class HospitalAppointmentsAPIView(APIView):  # Class for hospitalappointmentsapi
     permission_classes = [IsAuthenticated]
 
@@ -3849,6 +3888,7 @@ class HospitalAppointmentsAPIView(APIView):  # Class for hospitalappointmentsapi
             )
 
 
+@extend_schema(tags=["Appointments"])
 class AvailableSlotsAPIView(APIView):
     """Get available appointment slots for a doctor or hospital on a specific date"""
     permission_classes = [IsAuthenticated]
@@ -4000,6 +4040,7 @@ class CheckoutView(LoginRequiredMixin, TemplateView):  # Class for checkout
     template_name = "patient/checkout.html"
 
 
+@extend_schema(tags=["Pharmacy"])
 class PharmacyCatalogAPIView(APIView):  # Class for pharmacycatalogapi
     permission_classes = [IsAuthenticated]
 
@@ -4073,6 +4114,7 @@ class PharmacyCatalogAPIView(APIView):  # Class for pharmacycatalogapi
         }, status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=["Pharmacy"])
 class PharmaciesAPIView(APIView):  # Class for pharmaciesapi
     permission_classes = [IsAuthenticated]
 
@@ -4113,6 +4155,7 @@ class PharmaciesAPIView(APIView):  # Class for pharmaciesapi
         }, status=status.HTTP_200_OK)
 
 
+@extend_schema(tags=["Pharmacy Orders"])
 class PharmacyOrdersAPIView(APIView):  # Class for pharmacyordersapi
     permission_classes = [IsAuthenticated]
 
@@ -4186,9 +4229,11 @@ class PharmacyOrdersAPIView(APIView):  # Class for pharmacyordersapi
             )
 
 
+@extend_schema(tags=['Security Monitoring'])
 class AntiScrapingMonitorViewSet(viewsets.ViewSet):  # Class for antiscrapingmonitorset
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(summary="Get blocked IPs", responses={200: OpenApiResponse(description="List of blocked IPs")})
     @action(detail=False, methods=["get"])
     def blocked_ips(self, request):  # Handle blocked ips operation
         from .anti_scraping_monitor import AntiScrapingMonitor
@@ -4201,6 +4246,7 @@ class AntiScrapingMonitorViewSet(viewsets.ViewSet):  # Class for antiscrapingmon
         blocked = AntiScrapingMonitor.get_blocked_ips()
         return Response({"blocked_ips": blocked, "count": len(blocked)})
 
+    @extend_schema(summary="Get suspicious activities", responses={200: OpenApiResponse(description="List of suspicious activities")})
     @action(detail=False, methods=["get"])
     def suspicious_activities(self, request):  # Handle suspicious activities operation
         from .anti_scraping_monitor import AntiScrapingMonitor
@@ -4216,6 +4262,7 @@ class AntiScrapingMonitorViewSet(viewsets.ViewSet):  # Class for antiscrapingmon
             {"activities": activities, "count": len(activities), "hours": hours}
         )
 
+    @extend_schema(summary="Unblock IP address", responses={200: OpenApiResponse(description="IP unblocked")})
     @action(detail=False, methods=["post"])
     def unblock_ip(self, request):  # Handle unblock ip operation
         from .anti_scraping_monitor import AntiScrapingMonitor
@@ -4249,9 +4296,11 @@ class AntiScrapingMonitorViewSet(viewsets.ViewSet):  # Class for antiscrapingmon
         return Response(stats)
 
 
+@extend_schema(tags=['Security Monitoring'])
 class SecurityMonitorViewSet(viewsets.ViewSet):  # Class for securitymonitorset
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(summary="Get security events", responses={200: OpenApiResponse(description="Security events list")})
     @action(detail=False, methods=["get"])
     def security_events(self, request):  # Handle security events operation
         from .security_monitor import SecurityMonitor
@@ -4275,7 +4324,12 @@ class SecurityMonitorViewSet(viewsets.ViewSet):  # Class for securitymonitorset
             }
         )
 
+    @extend_schema(summary="Get attack statistics", responses={200: OpenApiResponse(description="Attack statistics")})
+
+
     @action(detail=False, methods=["get"])
+
+
     def attack_statistics(self, request):  # Handle attack statistics operation
         from .security_monitor import SecurityMonitor
 
@@ -4287,7 +4341,12 @@ class SecurityMonitorViewSet(viewsets.ViewSet):  # Class for securitymonitorset
         stats = SecurityMonitor.get_attack_statistics()
         return Response(stats)
 
+    @extend_schema(summary="Get blocked IPs summary", responses={200: OpenApiResponse(description="Blocked IPs summary")})
+
+
     @action(detail=False, methods=["get"])
+
+
     def blocked_ips_summary(self, request):  # Handle blocked ips summary operation
         from .security_monitor import SecurityMonitor
 
@@ -4299,7 +4358,12 @@ class SecurityMonitorViewSet(viewsets.ViewSet):  # Class for securitymonitorset
         summary = SecurityMonitor.get_blocked_ips_summary()
         return Response(summary)
 
+    @extend_schema(summary="Unblock all IPs", responses={200: OpenApiResponse(description="All IPs unblocked")})
+
+
     @action(detail=False, methods=["post"])
+
+
     def unblock_ip_all(self, request):  # Handle unblock ip all operation
         from .security_monitor import SecurityMonitor
 
@@ -4413,6 +4477,7 @@ class DeliverPrescriptionView(PharmacyRequiredMixin, View):  # Class for deliver
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
+@extend_schema(tags=["Contact"])
 class ContactFormAPIView(APIView):  # Class for contactformapi
     permission_classes = [AllowAny]
 

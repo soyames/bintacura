@@ -29,7 +29,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at', 'updated_at']
 
-    def get_years_of_service(self, obj):
+    def get_years_of_service(self, obj) -> dict:
         return round(obj.get_years_of_service(), 2)
 
 
@@ -65,15 +65,15 @@ class PayrollPeriodSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['processed_at', 'created_at', 'updated_at']
 
-    def get_total_runs(self, obj):
+    def get_total_runs(self, obj) -> int:
         return obj.payroll_runs.count()
 
-    def get_total_gross_pay(self, obj):
+    def get_total_gross_pay(self, obj) -> float:
         from django.db.models import Sum
         total = obj.payroll_runs.aggregate(total=Sum('gross_pay'))['total']
         return float(total) if total else 0.0
 
-    def get_total_net_pay(self, obj):
+    def get_total_net_pay(self, obj) -> float:
         from django.db.models import Sum
         total = obj.payroll_runs.aggregate(total=Sum('net_pay'))['total']
         return float(total) if total else 0.0
@@ -160,7 +160,7 @@ class LeaveBalanceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['remaining_days', 'created_at', 'updated_at']
 
-    def get_total_available(self, obj):
+    def get_total_available(self, obj) -> float:
         return float(obj.entitled_days + obj.carried_over_days + obj.adjustment_days)
 
 
@@ -182,7 +182,7 @@ class TimeAndAttendanceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['total_hours', 'regular_hours', 'overtime_hours', 'created_at', 'updated_at']
 
-    def get_work_date(self, obj):
+    def get_work_date(self, obj) -> dict:
         return obj.clock_in.date()
 
 
@@ -202,5 +202,5 @@ class EmployeeBenefitSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at', 'updated_at']
 
-    def get_total_contribution(self, obj):
+    def get_total_contribution(self, obj) -> float:
         return float(obj.employer_contribution + obj.employee_contribution)

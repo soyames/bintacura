@@ -380,6 +380,8 @@ class DoctorAffiliationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return DoctorAffiliation.objects.none()
         user = self.request.user
         if user.role == 'doctor':
             return DoctorAffiliation.objects.filter(doctor=user, is_active=True).select_related('hospital')

@@ -63,5 +63,5 @@ class DepartmentSerializer(serializers.ModelSerializer):  # Serializer for Depar
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
 
-    def get_available_beds(self, obj):  # Get available beds
+    def get_available_beds(self, obj) -> int:  # Get available beds
         return obj.total_beds - obj.occupied_beds

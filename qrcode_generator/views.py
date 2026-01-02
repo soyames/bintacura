@@ -1,8 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from .services import QRCodeService
 
+@extend_schema(tags=["QR Code"])
 class GenerateQRCodeView(APIView):
     def post(self, request):
         content_type = request.data.get('content_type')
@@ -19,6 +21,7 @@ class GenerateQRCodeView(APIView):
             'qr_code_url': request.build_absolute_uri(qr_code.qr_code_image.url) if qr_code.qr_code_image else None
         }, status=status.HTTP_201_CREATED)
 
+@extend_schema(tags=["QR Code"])
 class GetQRCodeView(APIView):
     def get(self, request, content_type, object_id):
         qr_code = QRCodeService.get_qr_code(content_type, object_id)

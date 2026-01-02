@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.utils import timezone
 from django.db import transaction
 from django.db import models
@@ -36,6 +37,8 @@ class HospitalStaffViewSet(viewsets.ModelViewSet):  # View for HospitalStaffSet 
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'hospital':
             return HospitalStaff.objects.filter(hospital=self.request.user).select_related('department')
+        if getattr(self, 'swagger_fake_view', False):
+            return HospitalStaff.objects.none()
         return HospitalStaff.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -104,6 +107,8 @@ class BedViewSet(viewsets.ModelViewSet):  # View for BedSet operations
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'hospital':
             return Bed.objects.filter(hospital=self.request.user).select_related('department')
+        if getattr(self, 'swagger_fake_view', False):
+            return Bed.objects.none()
         return Bed.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -153,6 +158,8 @@ class AdmissionViewSet(viewsets.ModelViewSet):  # View for AdmissionSet operatio
             return Admission.objects.filter(hospital=self.request.user).select_related(
                 'patient', 'department', 'bed', 'admitting_doctor'
             )
+        if getattr(self, 'swagger_fake_view', False):
+            return Admission.objects.none()
         return Admission.objects.none()
 
     @transaction.atomic
@@ -231,6 +238,8 @@ class DepartmentTaskViewSet(viewsets.ModelViewSet):  # View for DepartmentTaskSe
             return DepartmentTask.objects.filter(
                 department__hospital=self.request.user
             ).select_related('department', 'assigned_to', 'created_by')
+        if getattr(self, 'swagger_fake_view', False):
+            return DepartmentTask.objects.none()
         return DepartmentTask.objects.none()
 
     @action(detail=True, methods=['post'])
@@ -259,6 +268,8 @@ class DepartmentViewSet(viewsets.ModelViewSet):  # View for DepartmentSet operat
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'hospital':
             return Department.objects.filter(hospital=self.request.user).select_related('head_of_department')
+        if getattr(self, 'swagger_fake_view', False):
+            return Department.objects.none()
         return Department.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -288,6 +299,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):  # View for DepartmentSet operat
         return Response(data)
 
 
+@extend_schema(tags=["Hospital Analytics"])
 class HospitalAnalyticsViewSet(viewsets.ViewSet):
     """AI-powered hospital operations analytics"""
     permission_classes = [IsAuthenticated]
@@ -379,6 +391,8 @@ class HospitalServiceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role == 'hospital':
             return HospitalService.objects.filter(hospital=self.request.user)
+        if getattr(self, 'swagger_fake_view', False):
+            return HospitalService.objects.none()
         return HospitalService.objects.none()
     
     @transaction.atomic

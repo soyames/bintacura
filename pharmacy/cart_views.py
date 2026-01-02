@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.db import transaction, models
 from django.utils import timezone
 from datetime import datetime
@@ -17,6 +18,7 @@ from currency_converter.services import CurrencyConverterService
 logger = logging.getLogger(__name__)
 
 
+@extend_schema(tags=["Shopping Cart"])
 class ShoppingCartViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 

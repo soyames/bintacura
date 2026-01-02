@@ -72,19 +72,19 @@ class TransportRequestSerializer(serializers.ModelSerializer):
             "last_location_update"
         ]
 
-    def get_patient_name(self, obj):
+    def get_patient_name(self, obj) -> dict:
         return obj.patient.full_name or obj.patient.email
 
-    def get_estimated_distance_display(self, obj):
+    def get_estimated_distance_display(self, obj) -> dict:
         if obj.estimated_distance:
             return f"{obj.estimated_distance} km"
         return None
 
-    def get_patient_currency(self, obj):
+    def get_patient_currency(self, obj) -> str:
         """Get patient's local currency"""
         return CurrencyConverterService.get_participant_currency(obj.patient)
 
-    def get_estimated_cost_local(self, obj):
+    def get_estimated_cost_local(self, obj) -> str:
         """Get estimated cost in patient's local currency"""
         if not obj.estimated_cost:
             return None
@@ -109,7 +109,7 @@ class TransportRequestSerializer(serializers.ModelSerializer):
             'needs_conversion': base_currency != patient_currency
         }
 
-    def get_final_cost_local(self, obj):
+    def get_final_cost_local(self, obj) -> str:
         """Get final cost in patient's local currency"""
         if not obj.final_cost:
             return None
@@ -212,11 +212,11 @@ class RideShareQuoteSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
 
-    def get_patient_currency(self, obj):
+    def get_patient_currency(self, obj) -> dict:
         """Get patient's local currency"""
         return CurrencyConverterService.get_participant_currency(obj.transport_request.patient)
 
-    def get_total_fare_local(self, obj):
+    def get_total_fare_local(self, obj) -> dict:
         """Get total fare in patient's local currency"""
         patient_currency = CurrencyConverterService.get_participant_currency(obj.transport_request.patient)
 

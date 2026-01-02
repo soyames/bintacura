@@ -14,7 +14,7 @@ class FiscalYearSerializer(serializers.ModelSerializer):
         model = FiscalYear
         fields = '__all__'
 
-    def get_is_current(self, obj):
+    def get_is_current(self, obj) -> dict:
         from django.utils import timezone
         today = timezone.now().date()
         return obj.start_date <= today <= obj.end_date
@@ -39,7 +39,7 @@ class ChartOfAccountsSerializer(serializers.ModelSerializer):
         model = ChartOfAccounts
         fields = '__all__'
 
-    def get_current_balance(self, obj):
+    def get_current_balance(self, obj) -> float:
         return float(obj.get_balance())
 
 
@@ -68,13 +68,13 @@ class JournalEntrySerializer(serializers.ModelSerializer):
         model = JournalEntry
         fields = '__all__'
 
-    def get_total_debit(self, obj):
+    def get_total_debit(self, obj) -> float:
         return float(sum([line.debit_amount for line in obj.line_items.all()]))
 
-    def get_total_credit(self, obj):
+    def get_total_credit(self, obj) -> float:
         return float(sum([line.credit_amount for line in obj.line_items.all()]))
 
-    def get_is_balanced(self, obj):
+    def get_is_balanced(self, obj) -> dict:
         return self.get_total_debit(obj) == self.get_total_credit(obj)
 
 
@@ -112,7 +112,7 @@ class BudgetSerializer(serializers.ModelSerializer):
         model = Budget
         fields = '__all__'
 
-    def get_total_budget(self, obj):
+    def get_total_budget(self, obj) -> float:
         return float(sum([line.annual_amount for line in obj.line_items.all()]))
 
 
@@ -138,7 +138,7 @@ class ProjectManagementSerializer(serializers.ModelSerializer):
         model = ProjectManagement
         fields = '__all__'
 
-    def get_actual_spend(self, obj):
+    def get_actual_spend(self, obj) -> float:
         # Calculate actual spend from journal entries
         from django.db.models import Sum
         actual = JournalEntryLine.objects.filter(
@@ -147,6 +147,6 @@ class ProjectManagementSerializer(serializers.ModelSerializer):
         ).aggregate(total=Sum('debit_amount'))['total'] or 0
         return float(actual)
 
-    def get_budget_variance(self, obj):
+    def get_budget_variance(self, obj) -> float:
         actual = self.get_actual_spend(obj)
         return float(obj.budget_amount - actual)

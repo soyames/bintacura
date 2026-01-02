@@ -16,6 +16,8 @@ class HealthRecordViewSet(viewsets.ModelViewSet):  # View for HealthRecordSet op
 
     def get_queryset(self):  # Get queryset
         participant = self.request.user
+        if getattr(self, 'swagger_fake_view', False):
+            return HealthRecord.objects.none()
         if participant.role == 'patient':
             return HealthRecord.objects.filter(assigned_to=participant)
         elif participant.role == 'doctor' or participant.role == 'hospital':

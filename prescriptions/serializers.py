@@ -28,7 +28,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         model = Prescription
         fields = '__all__'
     
-    def get_doctor_name(self, obj):
+    def get_doctor_name(self, obj) -> str:
         try:
             if obj.doctor:
                 last_name = obj.doctor.last_name if obj.doctor.last_name else obj.doctor.full_name
@@ -37,7 +37,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             pass
         return "Inconnu"
     
-    def get_doctor_last_name(self, obj):
+    def get_doctor_last_name(self, obj) -> str:
         try:
             if obj.doctor:
                 return obj.doctor.last_name if obj.doctor.last_name else obj.doctor.full_name or "Inconnu"
@@ -45,7 +45,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             pass
         return "Inconnu"
     
-    def get_patient_name(self, obj):
+    def get_patient_name(self, obj) -> str:
         try:
             if obj.patient:
                 first_name = obj.patient.first_name or ""
@@ -56,7 +56,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             pass
         return "Inconnu"
     
-    def get_pharmacy_name(self, obj):
+    def get_pharmacy_name(self, obj) -> dict:
         try:
             if obj.preferred_pharmacy:
                 return obj.preferred_pharmacy.last_name or obj.preferred_pharmacy.full_name
@@ -64,18 +64,18 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             pass
         return None
     
-    def get_is_expired(self, obj):
+    def get_is_expired(self, obj) -> dict:
         from django.utils import timezone
         return obj.valid_until < timezone.now().date() if obj.valid_until else False
     
-    def get_days_until_expiry(self, obj):
+    def get_days_until_expiry(self, obj) -> dict:
         from django.utils import timezone
         if obj.valid_until:
             delta = obj.valid_until - timezone.now().date()
             return delta.days
         return None
     
-    def get_qr_code_url(self, obj):
+    def get_qr_code_url(self, obj) -> str:
         from qrcode_generator.services import QRCodeService
         
         try:
@@ -99,7 +99,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             pass
         return None
     
-    def get_qr_code(self, obj):
+    def get_qr_code(self, obj) -> dict:
         from qrcode_generator.services import QRCodeService
         import base64
         
@@ -157,7 +157,7 @@ class PrescriptionFulfillmentSerializer(serializers.ModelSerializer):
         model = PrescriptionFulfillment
         fields = '__all__'
     
-    def get_pharmacy_name(self, obj):
+    def get_pharmacy_name(self, obj) -> str:
         if obj.pharmacy:
             return obj.pharmacy.last_name
         return "Unknown"

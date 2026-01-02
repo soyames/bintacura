@@ -29,7 +29,7 @@ class AppointmentSerializer(serializers.ModelSerializer):  # Serializer for Appo
         model = Appointment
         fields = "__all__"
     
-    def get_doctor(self, obj):
+    def get_doctor(self, obj) -> dict:
         """Get doctor information"""
         if obj.doctor:
             doctor_name = obj.doctor.full_name or f"Dr. {obj.doctor.email.split('@')[0]}"
@@ -45,7 +45,7 @@ class AppointmentSerializer(serializers.ModelSerializer):  # Serializer for Appo
             }
         return None
     
-    def get_hospital(self, obj):
+    def get_hospital(self, obj) -> dict:
         """Get hospital information"""
         if obj.hospital:
             hospital_name = obj.hospital.full_name or obj.hospital.email.split('@')[0]
@@ -62,7 +62,7 @@ class AppointmentSerializer(serializers.ModelSerializer):  # Serializer for Appo
             }
         return None
     
-    def get_patient_info(self, obj):
+    def get_patient_info(self, obj) -> dict:
         """Get patient information"""
         if obj.patient:
             return {
@@ -73,7 +73,7 @@ class AppointmentSerializer(serializers.ModelSerializer):  # Serializer for Appo
             }
         return None
     
-    def get_queue_info(self, obj):
+    def get_queue_info(self, obj) -> dict:
         """Get queue information if exists"""
         try:
             queue_entry = obj.queue_entry
@@ -85,7 +85,7 @@ class AppointmentSerializer(serializers.ModelSerializer):  # Serializer for Appo
         except:
             return None
     
-    def get_payment_info(self, obj):
+    def get_payment_info(self, obj) -> dict:
         """Get payment details with breakdown"""
         return {
             'payment_status': obj.payment_status,

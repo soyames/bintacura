@@ -34,15 +34,15 @@ class HealthRecordSerializer(serializers.ModelSerializer):  # Serializer for Hea
                     raise serializers.ValidationError({field: f'{field} is required'})
         return data
 
-    def get_created_by_name(self, obj):  # Get creator's full name
+    def get_created_by_name(self, obj) -> str:  # Get creator's full name
         return obj.created_by.full_name if obj.created_by else 'Unknown'
 
-    def get_created_by_contact(self, obj):  # Get creator's contact info
+    def get_created_by_contact(self, obj) -> dict:  # Get creator's contact info
         if obj.created_by:
             return {'email': obj.created_by.email, 'phone': obj.created_by.phone_number or ''}
         return None
 
-    def get_can_view_details(self, obj):  # Check if current participant can view full details
+    def get_can_view_details(self, obj) -> bool:  # Check if current participant can view full details
         request = self.context.get('request')
         if not request or not request.user:
             return False

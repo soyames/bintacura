@@ -61,7 +61,7 @@ class InsurancePackageSerializer(serializers.ModelSerializer):  # Serializer for
         ]
         read_only_fields = ["id", "company", "created_at", "updated_at"]
 
-    def get_premium_amount_local(self, obj):
+    def get_premium_amount_local(self, obj) -> dict:
         """Convert premium amount to user's local currency"""
         base_currency = 'XOF'  # Insurance prices in XOF cents
         user = self.context.get('request').user if self.context.get('request') else None
@@ -104,7 +104,7 @@ class InsurancePackageSerializer(serializers.ModelSerializer):  # Serializer for
             'needs_conversion': base_currency != user_currency
         }
 
-    def get_coverage_limit_local(self, obj):
+    def get_coverage_limit_local(self, obj) -> dict:
         """Convert coverage limit to user's local currency"""
         if not obj.max_coverage_amount:
             return None
@@ -197,7 +197,7 @@ class InsuranceSubscriptionSerializer(serializers.ModelSerializer):  # Serialize
         model = InsuranceSubscription
         fields = "__all__"
 
-    def get_premium_amount_local(self, obj):
+    def get_premium_amount_local(self, obj) -> str:
         """Convert premium amount to patient's local currency"""
         base_currency = 'XOF'
         patient_currency = CurrencyConverterService.get_participant_currency(obj.patient)
@@ -228,7 +228,7 @@ class InsuranceSubscriptionSerializer(serializers.ModelSerializer):  # Serialize
             'needs_conversion': base_currency != patient_currency
         }
 
-    def get_monthly_premium(self, obj):
+    def get_monthly_premium(self, obj) -> dict:
         """Alias for premium_amount_local for backwards compatibility"""
         return self.get_premium_amount_local(obj)['amount']
 
@@ -247,7 +247,7 @@ class InsuranceInvoiceSerializer(serializers.ModelSerializer):  # Serializer for
         model = InsuranceInvoice
         fields = "__all__"
 
-    def get_amount_local(self, obj):
+    def get_amount_local(self, obj) -> str:
         """Convert invoice amount to patient's local currency"""
         base_currency = 'XOF'  # Insurance invoices in XOF cents
         patient_currency = CurrencyConverterService.get_participant_currency(obj.patient)

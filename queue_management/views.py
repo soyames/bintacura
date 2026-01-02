@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from appointments.models import Appointment, AppointmentQueue
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 
+@extend_schema(tags=["Queue Management"], summary="Book appointment with queue")
 class BookAppointmentWithQueueView(APIView):
     """
     Book appointment with payment and automatic queue assignment

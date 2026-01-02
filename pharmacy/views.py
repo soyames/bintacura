@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.db import transaction
@@ -35,6 +36,8 @@ class PharmacyInventoryViewSet(viewsets.ModelViewSet):  # View for PharmacyInven
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'pharmacy':
             return PharmacyInventory.objects.filter(pharmacy=self.request.user).select_related('medication')
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacyInventory.objects.none()
         return PharmacyInventory.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -269,6 +272,8 @@ class PharmacyOrderViewSet(viewsets.ModelViewSet):  # View for PharmacyOrderSet 
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'pharmacy':
             return PharmacyOrder.objects.filter(pharmacy=self.request.user).select_related('patient', 'prescription')
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacyOrder.objects.none()
         return PharmacyOrder.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -347,6 +352,8 @@ class PharmacySupplierViewSet(viewsets.ModelViewSet):  # View for PharmacySuppli
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'pharmacy':
             return PharmacySupplier.objects.filter(pharmacy=self.request.user)
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacySupplier.objects.none()
         return PharmacySupplier.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -359,6 +366,8 @@ class PharmacyPurchaseViewSet(viewsets.ModelViewSet):  # View for PharmacyPurcha
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'pharmacy':
             return PharmacyPurchase.objects.filter(pharmacy=self.request.user).select_related('supplier')
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacyPurchase.objects.none()
         return PharmacyPurchase.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -406,6 +415,8 @@ class PharmacySaleViewSet(viewsets.ModelViewSet):  # View for PharmacySaleSet op
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'pharmacy':
             return PharmacySale.objects.filter(pharmacy=self.request.user).select_related('patient')
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacySale.objects.none()
         return PharmacySale.objects.none()
 
     @transaction.atomic
@@ -476,6 +487,8 @@ class PharmacyStaffViewSet(viewsets.ModelViewSet):  # View for PharmacyStaffSet 
 
     def get_queryset(self):  # Get queryset
         participant = self.request.user
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacyStaff.objects.none()
         if participant.role == 'pharmacy':
             queryset = PharmacyStaff.objects.filter(
                 pharmacy=participant,
@@ -634,6 +647,8 @@ class DoctorPharmacyReferralViewSet(viewsets.ModelViewSet):  # View for DoctorPh
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'doctor':
             return DoctorPharmacyReferral.objects.filter(doctor=self.request.user).select_related('pharmacy', 'patient')
+        if getattr(self, 'swagger_fake_view', False):
+            return DoctorPharmacyReferral.objects.none()
         elif self.request.user.role == 'pharmacy':
             return DoctorPharmacyReferral.objects.filter(pharmacy=self.request.user).select_related('doctor', 'patient')
         return DoctorPharmacyReferral.objects.none()
@@ -687,6 +702,8 @@ class PharmacyBonusConfigViewSet(viewsets.ModelViewSet):  # View for PharmacyBon
     def get_queryset(self):  # Get queryset
         if self.request.user.role == 'pharmacy':
             return PharmacyBonusConfig.objects.filter(pharmacy=self.request.user).select_related('doctor')
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacyBonusConfig.objects.none()
         return PharmacyBonusConfig.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -1027,6 +1044,8 @@ class PharmacyServiceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.user.role == 'pharmacy':
             return PharmacyService.objects.filter(pharmacy=self.request.user)
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacyService.objects.none()
         return PharmacyService.objects.none()
     
     @transaction.atomic
