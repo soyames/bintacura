@@ -112,11 +112,11 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
 
                 # Send in-app notification to patient
                 Notification.objects.create(
-                    participant=patient,
+                    recipient=patient,
                     title='Nouvelle Ordonnance',
                     message=f'Dr. {doctor.full_name} vous a prescrit une nouvelle ordonnance. Diagnostic: {prescription.diagnosis[:100]}',
                     notification_type='prescription',
-                    priority='high'
+                    action_url=f'/patient/prescriptions/{prescription.id}/'
                 )
 
                 # Send SMS notification to patient

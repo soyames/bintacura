@@ -210,15 +210,32 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
         
         receipt = PaymentReceipt()
         receipt.id = appointment.id
-        receipt.receipt_number = f"TEMP-{appointment.appointment_number}"
+        receipt.receipt_number = f"TEMP-APT-{str(appointment.id)[:8].upper()}"
         if service_transaction:
             receipt.service_transaction = service_transaction
         receipt.issued_to = appointment.patient
         receipt.issued_by = appointment.doctor
-        receipt.amount = appointment.consultation_fee or Decimal('0.00')
+        
+        # Set amounts correctly
+        base_amount = appointment.final_price or Decimal('0.00')
+        receipt.amount = base_amount
+        receipt.subtotal = base_amount
+        receipt.total_amount = base_amount
+        receipt.discount_amount = appointment.discount_amount or Decimal('0.00')
         receipt.currency = getattr(appointment, 'currency', 'XOF')
         receipt.payment_status = appointment.status
         receipt.issued_at = appointment.created_at
+        
+        # Set service details for the invoice
+        receipt.service_details = {
+            'description': f'Consultation avec Dr. {appointment.doctor.full_name}',
+            'appointment_date': appointment.appointment_time.isoformat() if appointment.appointment_time else '',
+            'consultation_fee': str(appointment.consultation_fee),
+            'additional_services': str(appointment.additional_services_total),
+            'original_price': str(appointment.original_price),
+            'discount': str(appointment.discount_amount),
+            'final_price': str(appointment.final_price),
+        }
         
         return receipt
     
@@ -596,7 +613,7 @@ class ServiceProviderWalletView(LoginRequiredMixin, TemplateView):
         completed_txns = ServiceTransaction.objects.filter(
             service_provider=participant,
             status='completed'
-        ).select_related('fee_details', 'gateway_transaction', 'patient')
+        ).select_related('gateway_transaction', 'patient')
         
         total_gross = completed_txns.aggregate(
             total=db_models.Sum('amount')
@@ -666,3 +683,88 @@ class ServiceProviderWalletView(LoginRequiredMixin, TemplateView):
         })
         
         return context
+
+
+class InitiateInvoicePaymentView(LoginRequiredMixin, TemplateView):
+    '''API endpoint to initiate payment for an invoice'''
+    
+    def post(self, request, *args, **kwargs):
+        import json
+        from .models import PaymentRequest
+        from appointments.models import Appointment
+        
+        try:
+            data = json.loads(request.body)
+            invoice_id = data.get('invoice_id')
+            payment_method = data.get('payment_method', 'cash')
+            
+            if not invoice_id:
+                return JsonResponse({'error': 'invoice_id is required'}, status=400)
+            
+            if payment_method not in ['cash', 'online']:
+                return JsonResponse({'error': 'Invalid payment method'}, status=400)
+            
+            participant = request.user
+            
+            # Try to find appointment
+            try:
+                appointment = Appointment.objects.get(id=invoice_id, patient=participant)
+            except Appointment.DoesNotExist:
+                return JsonResponse({'error': 'Appointment not found or access denied'}, status=404)
+            
+            # Determine who receives the payment
+            if appointment.doctor:
+                recipient = appointment.doctor
+            elif appointment.hospital:
+                recipient = appointment.hospital
+            else:
+                return JsonResponse({'error': 'No valid recipient for this appointment'}, status=400)
+            
+            # Check if payment request already exists
+            existing_request = PaymentRequest.objects.filter(
+                from_participant=participant,
+                to_participant=recipient,
+                metadata__appointment_id=str(appointment.id),
+                status__in=['pending', 'approved']
+            ).first()
+            
+            if existing_request:
+                return JsonResponse({
+                    'success': True,
+                    'payment_request_id': str(existing_request.id),
+                    'status': existing_request.status,
+                    'message': 'Une demande de paiement existe déjà pour ce rendez-vous'
+                })
+            
+            # Create payment request
+            payment_request = PaymentRequest.objects.create(
+                from_participant=participant,
+                to_participant=recipient,
+                amount=int((appointment.final_price or 0) * 100),
+                currency=getattr(appointment, 'currency', 'XOF'),
+                description=f'Paiement consultation - {appointment.doctor.full_name if appointment.doctor else "Hospital"}',
+                payment_method=payment_method,
+                status='pending',
+                metadata={
+                    'appointment_id': str(appointment.id),
+                    'service_type': 'appointment',
+                    'patient_name': participant.full_name,
+                    'doctor_name': appointment.doctor.full_name if appointment.doctor else '',
+                }
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'payment_request_id': str(payment_request.id),
+                'status': payment_request.status,
+                'message': 'Demande de paiement créée avec succès',
+                'redirect_url': f'/patient/payment-requests/{payment_request.id}/' if payment_method == 'online' else None
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error initiating payment: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)

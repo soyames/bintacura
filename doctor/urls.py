@@ -27,6 +27,8 @@ urlpatterns = [
     path("invoices/", __import__('payments.invoice_views', fromlist=['InvoiceListView']).InvoiceListView.as_view(), name="invoices"),
     path("view-invoice/<uuid:invoice_id>/", __import__('payments.invoice_views', fromlist=['InvoiceDetailView']).InvoiceDetailView.as_view(), name="view-invoice"),
     path("download-invoice/<uuid:invoice_id>/", __import__('payments.invoice_views', fromlist=['InvoiceDownloadView']).InvoiceDownloadView.as_view(), name="download-invoice"),
+    path("payment-requests/", __import__('payments.payment_request_views', fromlist=['ProviderPaymentRequestsView']).ProviderPaymentRequestsView.as_view(), name="payment-requests"),
+    path("payment-requests/<uuid:request_id>/process/", __import__('payments.payment_request_views', fromlist=['ProcessPaymentRequestView']).ProcessPaymentRequestView.as_view(), name="process-payment-request"),
     path("transactions/", views.TransactionsView.as_view(), name="transactions"),
     path("analytics/", doctor_views.DoctorAnalyticsView.as_view(), name="analytics"),
     path("laboratory/", views.DoctorLaboratoryView.as_view(), name="laboratory"),

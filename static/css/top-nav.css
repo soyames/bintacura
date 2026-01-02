@@ -97,8 +97,199 @@
 .nav-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
 }
+
+/* Notification and Message Icons */
+.nav-icon-container {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.nav-icon-container:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.nav-icon {
+    width: 22px;
+    height: 22px;
+    color: #333333;
+    transition: color 0.3s ease;
+}
+
+.nav-icon-container:hover .nav-icon {
+    color: #000000;
+}
+
+/* Badge for unread count */
+.nav-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    background: #dc3545;
+    color: #ffffff;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border: 2px solid #ffffff;
+}
+
+/* Participant type color branding for badges */
+.nav-icon-container[data-participant-type="patient"] .nav-badge {
+    background: #007bff;
+}
+
+.nav-icon-container[data-participant-type="doctor"] .nav-badge {
+    background: #28a745;
+}
+
+.nav-icon-container[data-participant-type="hospital"] .nav-badge {
+    background: #dc3545;
+}
+
+.nav-icon-container[data-participant-type="pharmacy"] .nav-badge {
+    background: #17a2b8;
+}
+
+.nav-icon-container[data-participant-type="insurance"] .nav-badge {
+    background: #6f42c1;
+}
+
+/* Participant-specific branding colors for ALL elements in top nav */
+
+/* Patient branding - BLUE */
+.top-nav[data-participant-type="patient"] .menu-toggle-btn span,
+.top-nav[data-participant-type="patient"] .nav-back-btn,
+.top-nav[data-participant-type="patient"] .nav-page-title,
+.top-nav[data-participant-type="patient"] .nav-icon {
+    color: #007bff !important;
+}
+
+.top-nav[data-participant-type="patient"] .menu-toggle-btn span {
+    background: #007bff !important;
+}
+
+.top-nav[data-participant-type="patient"] .nav-back-btn {
+    background: rgba(0, 123, 255, 0.1) !important;
+}
+
+.top-nav[data-participant-type="patient"] .nav-icon-container:hover {
+    background: rgba(0, 123, 255, 0.1) !important;
+}
+
+.top-nav[data-participant-type="patient"] .nav-user-avatar {
+    background: #007bff !important;
+}
+
+/* Doctor branding - GREEN */
+.top-nav[data-participant-type="doctor"] .menu-toggle-btn span,
+.top-nav[data-participant-type="doctor"] .nav-back-btn,
+.top-nav[data-participant-type="doctor"] .nav-page-title,
+.top-nav[data-participant-type="doctor"] .nav-icon {
+    color: #28a745 !important;
+}
+
+.top-nav[data-participant-type="doctor"] .menu-toggle-btn span {
+    background: #28a745 !important;
+}
+
+.top-nav[data-participant-type="doctor"] .nav-back-btn {
+    background: rgba(40, 167, 69, 0.1) !important;
+}
+
+.top-nav[data-participant-type="doctor"] .nav-icon-container:hover {
+    background: rgba(40, 167, 69, 0.1) !important;
+}
+
+.top-nav[data-participant-type="doctor"] .nav-user-avatar {
+    background: #28a745 !important;
+}
+
+/* Hospital branding - RED */
+.top-nav[data-participant-type="hospital"] .menu-toggle-btn span,
+.top-nav[data-participant-type="hospital"] .nav-back-btn,
+.top-nav[data-participant-type="hospital"] .nav-page-title,
+.top-nav[data-participant-type="hospital"] .nav-icon {
+    color: #dc3545 !important;
+}
+
+.top-nav[data-participant-type="hospital"] .menu-toggle-btn span {
+    background: #dc3545 !important;
+}
+
+.top-nav[data-participant-type="hospital"] .nav-back-btn {
+    background: rgba(220, 53, 69, 0.1) !important;
+}
+
+.top-nav[data-participant-type="hospital"] .nav-icon-container:hover {
+    background: rgba(220, 53, 69, 0.1) !important;
+}
+
+.top-nav[data-participant-type="hospital"] .nav-user-avatar {
+    background: #dc3545 !important;
+}
+
+/* Pharmacy branding - CYAN */
+.top-nav[data-participant-type="pharmacy"] .menu-toggle-btn span,
+.top-nav[data-participant-type="pharmacy"] .nav-back-btn,
+.top-nav[data-participant-type="pharmacy"] .nav-page-title,
+.top-nav[data-participant-type="pharmacy"] .nav-icon {
+    color: #17a2b8 !important;
+}
+
+.top-nav[data-participant-type="pharmacy"] .menu-toggle-btn span {
+    background: #17a2b8 !important;
+}
+
+.top-nav[data-participant-type="pharmacy"] .nav-back-btn {
+    background: rgba(23, 162, 184, 0.1) !important;
+}
+
+.top-nav[data-participant-type="pharmacy"] .nav-icon-container:hover {
+    background: rgba(23, 162, 184, 0.1) !important;
+}
+
+.top-nav[data-participant-type="pharmacy"] .nav-user-avatar {
+    background: #17a2b8 !important;
+}
+
+/* Insurance branding - PURPLE */
+.top-nav[data-participant-type="insurance"] .menu-toggle-btn span,
+.top-nav[data-participant-type="insurance"] .nav-back-btn,
+.top-nav[data-participant-type="insurance"] .nav-page-title,
+.top-nav[data-participant-type="insurance"] .nav-icon {
+    color: #6f42c1 !important;
+}
+
+.top-nav[data-participant-type="insurance"] .menu-toggle-btn span {
+    background: #6f42c1 !important;
+}
+
+.top-nav[data-participant-type="insurance"] .nav-back-btn {
+    background: rgba(111, 66, 193, 0.1) !important;
+}
+
+.top-nav[data-participant-type="insurance"] .nav-icon-container:hover {
+    background: rgba(111, 66, 193, 0.1) !important;
+}
+
+.top-nav[data-participant-type="insurance"] .nav-user-avatar {
+    background: #6f42c1 !important;
+}
+
 
 .nav-next-btn {
     width: 36px;
@@ -167,5 +358,176 @@
 
     .nav-logo-img {
         height: 26px;
+    }
+}
+/* Notification Dropdown Panels */
+.nav-icon-container {
+    position: relative;
+}
+
+.notification-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 380px;
+    max-height: 500px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 2000;
+    overflow: hidden;
+}
+
+.notification-dropdown-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+}
+
+.notification-dropdown-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+.mark-all-read-btn {
+    background: none;
+    border: none;
+    color: #007bff;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.mark-all-read-btn:hover {
+    background: #e8f4ff;
+}
+
+.notification-dropdown-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    display: flex;
+    gap: 12px;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background: #f8f9fa;
+}
+
+.notification-item.unread {
+    background: #f0f7ff;
+}
+
+.notification-item.read {
+    opacity: 0.7;
+}
+
+.notification-icon {
+    font-size: 24px;
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    border-radius: 50%;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.notification-message {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.notification-time {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+}
+
+.notification-dropdown-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+    background: #f8f9fa;
+}
+
+.notification-dropdown-footer a {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.notification-dropdown-footer a:hover {
+    text-decoration: underline;
+}
+
+.loading-message,
+.empty-message,
+.error-message {
+    padding: 40px 20px;
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+}
+
+.error-message {
+    color: #dc3545;
+}
+
+/* Scrollbar styling */
+.notification-dropdown-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-dropdown-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.notification-dropdown-content::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+.notification-dropdown-content::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .notification-dropdown-panel {
+        width: calc(100vw - 40px);
+        right: -10px;
     }
 }

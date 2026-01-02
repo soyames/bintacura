@@ -10,6 +10,7 @@ from drf_spectacular.views import (
     SpectacularRedocView,
 )
 from . import views
+from communication.views import notifications_list_view, messages_list_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -59,6 +60,7 @@ urlpatterns = [
     path("api/v1/sync/", include("sync.urls")),  # Offline-first sync endpoints
     path("api/v1/financial/", include(("financial.urls", "financial"), namespace="financial")),
     path("api/v1/hr/", include(("hr.urls", "hr"), namespace="hr")),
+    path("api/v1/menstruation/", include("menstruation.api_urls")),  # Menstruation tracker API
     path("account/", include("core.account_urls")),
     path("survey/", include(("analytics.survey_urls", "analytics"), namespace="analytics_survey")),
     path("", include("queue_management.urls")),
@@ -96,8 +98,11 @@ urlpatterns = [
     ),
     path("info/faq/", TemplateView.as_view(template_name="info/help.html"), name="faq"),
     path("patient/", include("patient.urls")),
+    path("patient/menstruation/", include("menstruation.urls")),  # Menstruation tracker web views
     path("doctor/", include("doctor.urls")),
     path("hospital/", include("hospital.web_urls")),
+    path("notifications/", notifications_list_view, name='notifications'),
+    path("messages/", messages_list_view, name='messages'),
     path("pharmacy/", include("pharmacy.web_urls")),
     path("insurance/", include("insurance.web_urls")),
     path("dashboard/", include("core.dashboard_urls")),

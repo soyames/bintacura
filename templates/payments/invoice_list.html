@@ -97,7 +97,7 @@
             </thead>
             <tbody>
                 {% for invoice in invoices %}
-                <tr>
+                <tr data-invoice-id="{{ invoice.id }}" data-invoice-type="{{ invoice.type }}" data-invoice-number="{{ invoice.invoice_number }}" data-invoice-amount="{{ invoice.display_amount|floatformat:0 }} {{ currency }}">
                     <td class="invoice-number">
                         <a href="{% if invoice.type == 'insurance_premium' %}/patient/insurance/invoices/{% else %}{% url portal|add:':view-invoice-detail' invoice.id %}{% endif %}">
                             {{ invoice.invoice_number }}
@@ -135,11 +135,11 @@
                     <td class="actions">
                         {% if invoice.status == 'PENDING' or invoice.status == 'pending' or invoice.status == 'OVERDUE' or invoice.status == 'overdue' %}
                             {% if invoice.type == 'insurance_premium' %}
-                                <button type="button" onclick="payInsuranceInvoice('{{ invoice.id }}')" class="btn btn-primary btn-sm">Payer</button>
+                                <button type="button" onclick="payInsuranceInvoice(this)" class="btn btn-primary btn-sm">Payer</button>
                             {% elif invoice.type == 'hospital_bill' %}
-                                <button type="button" onclick="payHospitalBill('{{ invoice.id }}')" class="btn btn-primary btn-sm">Payer</button>
+                                <button type="button" onclick="payHospitalBill(this)" class="btn btn-primary btn-sm">Payer</button>
                             {% else %}
-                                <button type="button" onclick="payServiceInvoice('{{ invoice.id }}')" class="btn btn-primary btn-sm">Payer</button>
+                                <button type="button" onclick="payServiceInvoice(this)" class="btn btn-primary btn-sm">Payer</button>
                             {% endif %}
                         {% endif %}
 
@@ -203,52 +203,269 @@
     {% endif %}
 </div>
 
+<!-- Payment Method Selection Modal -->
+<div id="paymentModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closePaymentModal()">&times;</span>
+        <h2>Paiement en espèces</h2>
+        <p class="invoice-amount">Montant à payer: <span id="modalAmount"></span></p>
+        <p class="invoice-ref">Facture: <span id="modalInvoiceNumber"></span></p>
+        
+        <div class="payment-methods">
+            <button class="payment-method-btn" onclick="requestCashPayment()">
+                <i class="fas fa-money-bill-wave"></i>
+                <div>
+                    <strong>Payer en espèces</strong>
+                    <small>Sur place - nécessite une approbation du fournisseur</small>
+                </div>
+            </button>
+        </div>
+        
+        <p style="margin-top: 20px; color: #666; font-size: 0.9em; text-align: center;">
+            <i class="fas fa-info-circle"></i> Cette demande sera envoyée au fournisseur de service qui devra l'approuver lorsque vous effectuez le paiement sur place.
+        </p>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.invoice-amount {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 15px 0;
+}
+
+.invoice-ref {
+    color: #7f8c8d;
+    margin-bottom: 25px;
+}
+
+.payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.payment-method-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.payment-method-btn:hover {
+    border-color: #4CAF50;
+    background: #f0f8f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.payment-method-btn i {
+    font-size: 2em;
+    color: #4CAF50;
+}
+
+.payment-method-btn strong {
+    display: block;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.payment-method-btn small {
+    color: #666;
+}
+</style>
+
 <script>
-async function payInsuranceInvoice(invoiceId) {
-    if (!confirm('Voulez-vous payer cette facture d\'assurance avec votre portefeuille?')) {
+let currentInvoiceId = null;
+let currentInvoiceAmount = null;
+let currentInvoiceNumber = null;
+let currentInvoiceType = null;
+
+function showPaymentModal(invoiceId, amount, invoiceNumber, invoiceType) {
+    // Validate inputs
+    if (!invoiceId) {
+        console.error('showPaymentModal called with missing invoiceId');
+        alert('Erreur: ID de facture manquant');
         return;
     }
+    
+    currentInvoiceId = invoiceId;
+    currentInvoiceAmount = amount;
+    currentInvoiceNumber = invoiceNumber;
+    currentInvoiceType = invoiceType || 'service';
+    
+    console.log('Payment modal opened with:', {
+        invoiceId: currentInvoiceId,
+        amount: currentInvoiceAmount,
+        invoiceNumber: currentInvoiceNumber,
+        invoiceType: currentInvoiceType
+    });
+    
+    document.getElementById('modalAmount').textContent = amount;
+    document.getElementById('modalInvoiceNumber').textContent = invoiceNumber;
+    document.getElementById('paymentModal').style.display = 'block';
+}
 
+function closePaymentModal() {
+    document.getElementById('paymentModal').style.display = 'none';
+    currentInvoiceId = null;
+    currentInvoiceAmount = null;
+    currentInvoiceNumber = null;
+    currentInvoiceType = null;
+}
+
+async function initiateOnlinePayment() {
+    // Store values before closing modal (which resets them)
+    const invoiceId = currentInvoiceId;
+    const invoiceType = currentInvoiceType;
+    
+    closePaymentModal();
+    
+    // Redirect to FedaPay payment page
     try {
-        const response = await fetch(`/api/v1/insurance/invoices/${invoiceId}/pay_with_wallet/`, {
+        const response = await fetch(`/api/v1/payments/initiate-online-payment/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            credentials: 'include'
+            credentials: 'include',
+            body: JSON.stringify({
+                invoice_id: invoiceId,
+                invoice_type: invoiceType
+            })
         });
-
+        
         const data = await response.json();
-
-        if (data.success) {
-            alert('Paiement réussi! Nouveau solde: ' + data.new_balance + ' FCFA');
-            window.location.reload();
+        
+        if (data.success && data.payment_url) {
+            window.location.href = data.payment_url;
         } else {
-            alert('Erreur: ' + (data.error || 'Le paiement a échoué'));
+            alert('Erreur lors de l\'initialisation du paiement: ' + (data.error || 'Erreur inconnue'));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Erreur de connexion');
+        alert('Erreur de connexion. Veuillez réessayer.');
     }
 }
 
-async function payHospitalBill(billId) {
-    alert('Le paiement des factures d\'hôpital sera bientôt disponible.\n\nVeuillez contacter l\'hôpital pour payer votre facture.');
-}
-
-async function payServiceInvoice(invoiceId) {
-    if (!confirm('Voulez-vous payer cette facture avec votre portefeuille?')) {
+async function requestCashPayment() {
+    // Validate we have an invoice ID before closing modal
+    if (!currentInvoiceId) {
+        alert('Erreur: ID de facture manquant. Veuillez réessayer.');
+        console.error('currentInvoiceId is missing:', currentInvoiceId);
         return;
     }
-
+    
+    // Store values before closing modal (which resets them)
+    const invoiceId = currentInvoiceId;
+    const invoiceType = currentInvoiceType || 'service';
+    
+    closePaymentModal();
+    
+    if (!confirm('Vous allez demander un paiement en espèces. Le fournisseur de service devra approuver ce paiement sur place.\n\nConfirmer?')) {
+        return;
+    }
+    
     try {
-        // For now, show info about the payment
-        alert('Le paiement des factures de service sera bientôt disponible.\n\nVeuillez utiliser la page de détails de la facture pour voir les options de paiement.');
+        const payload = {
+            invoice_id: invoiceId,
+            invoice_type: invoiceType
+        };
+        
+        console.log('Sending payment request:', payload);
+        
+        const response = await fetch(`/api/v1/payments/request-cash-payment/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'include',
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && (data.success || data.message)) {
+            alert('✓ Demande de paiement envoyée!\n\nLe fournisseur de service recevra votre demande et pourra approuver le paiement une fois sur place.');
+            window.location.reload();
+        } else {
+            alert('Erreur: ' + (data.error || 'La demande a échoué'));
+            console.error('Payment request failed:', data);
+        }
     } catch (error) {
         console.error('Error:', error);
-        alert('Erreur de connexion');
+        alert('Erreur de connexion. Veuillez réessayer.');
     }
+}
+
+function payInsuranceInvoice(button) {
+    const row = button.closest('tr');
+    const invoiceId = row.dataset.invoiceId;
+    const amount = row.dataset.invoiceAmount;
+    const invoiceNumber = row.dataset.invoiceNumber;
+    
+    console.log('payInsuranceInvoice called with:', {invoiceId, amount, invoiceNumber});
+    showPaymentModal(invoiceId, amount, invoiceNumber, 'insurance');
+}
+
+function payHospitalBill(button) {
+    const row = button.closest('tr');
+    const billId = row.dataset.invoiceId;
+    const amount = row.dataset.invoiceAmount;
+    const invoiceNumber = row.dataset.invoiceNumber;
+    
+    console.log('payHospitalBill called with:', {billId, amount, invoiceNumber});
+    showPaymentModal(billId, amount, invoiceNumber, 'hospital');
+}
+
+function payServiceInvoice(button) {
+    const row = button.closest('tr');
+    const invoiceId = row.dataset.invoiceId;
+    const amount = row.dataset.invoiceAmount;
+    const invoiceNumber = row.dataset.invoiceNumber;
+    
+    console.log('payServiceInvoice called with:', {invoiceId, amount, invoiceNumber});
+    showPaymentModal(invoiceId, amount, invoiceNumber, 'service');
 }
 
 function getCookie(name) {

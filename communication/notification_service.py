@@ -14,6 +14,12 @@ class NotificationService:  # Service class for Notification operations
         action_url="",
         metadata=None,
     ):
+        # Check if recipient has notifications enabled
+        notification_prefs = getattr(recipient, 'notification_preferences', {})
+        if notification_prefs.get('notifications_enabled', True) == False:
+            logger.info(f"Notifications disabled for participant {recipient.uid}")
+            return None
+        
         notification = Notification.objects.create(
             recipient=recipient,
             notification_type=notification_type,
@@ -21,6 +27,13 @@ class NotificationService:  # Service class for Notification operations
             message=message,
             action_url=action_url,
             metadata=metadata or {},
+        )
+
+        # Increment unread notification count
+        from django.db.models import F
+        from core.models import Participant
+        Participant.objects.filter(uid=recipient.uid).update(
+            unread_notifications_count=F('unread_notifications_count') + 1
         )
 
         NotificationService.send_realtime_notification(recipient.uid, notification)

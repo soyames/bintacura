@@ -9,6 +9,8 @@ from rest_framework import serializers as drf_serializers
 from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import Q, F
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from .models import *
 from .serializers import *
 
@@ -383,7 +385,12 @@ class NotificationViewSet(viewsets.ModelViewSet):  # View for NotificationSet op
 
     @action(detail=False, methods=["get"])
     def unread_count(self, request):  # Unread count
+        participant = request.user
         count = self.get_queryset().filter(is_read=False).count()
+        # Update participant's cached count
+        if participant.unread_notifications_count != count:
+            participant.unread_notifications_count = count
+            participant.save(update_fields=['unread_notifications_count'])
         return Response({"count": count})
 
     @action(detail=True, methods=["post"])
@@ -392,6 +399,12 @@ class NotificationViewSet(viewsets.ModelViewSet):  # View for NotificationSet op
         notification.is_read = True
         notification.read_at = timezone.now()
         notification.save()
+        
+        # Update participant's unread count
+        participant = request.user
+        participant.unread_notifications_count = Notification.objects.filter(recipient=participant, is_read=False).count()
+        participant.save(update_fields=['unread_notifications_count'])
+        
         return Response({"status": "notification marked as read"})
 
     @action(detail=False, methods=["post"])
@@ -399,6 +412,11 @@ class NotificationViewSet(viewsets.ModelViewSet):  # View for NotificationSet op
         self.get_queryset().filter(is_read=False).update(
             is_read=True, read_at=timezone.now()
         )
+        # Update participant's unread count to 0
+        participant = request.user
+        participant.unread_notifications_count = 0
+        participant.save(update_fields=['unread_notifications_count'])
+        
         return Response({"status": "all notifications marked as read"})
 
 
@@ -433,9 +451,15 @@ def get_unread_count(request):  # Get unread count
 def mark_notification_read(request):  # Mark notification read
     notification_id = request.data.get('notification_id')
     participant = request.user
-    Notification.objects.filter(id=notification_id, recipient=participant).update(
+    updated = Notification.objects.filter(id=notification_id, recipient=participant, is_read=False).update(
         is_read=True, read_at=timezone.now()
     )
+    
+    # Update participant's unread count if a notification was marked
+    if updated > 0:
+        participant.unread_notifications_count = Notification.objects.filter(recipient=participant, is_read=False).count()
+        participant.save(update_fields=['unread_notifications_count'])
+    
     return Response({'status': 'success'})
 
 
@@ -451,3 +475,41 @@ def ai_chat_proxy(request):
     from ai.views import AIChatAPIView
     ai_chat_view = AIChatAPIView.as_view()
     return ai_chat_view(request._request)
+
+
+@login_required
+def notifications_list_view(request):
+    """HTML view for notifications list"""
+    participant = request.user
+    filter_type = request.GET.get('filter', 'all')
+    
+    notifications_qs = Notification.objects.filter(recipient=participant).order_by('-created_at')
+    
+    if filter_type == 'unread':
+        notifications_qs = notifications_qs.filter(is_read=False)
+    
+    paginator = Paginator(notifications_qs, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'notifications': page_obj,
+        'total_count': Notification.objects.filter(recipient=participant).count(),
+        'unread_count': Notification.objects.filter(recipient=participant, is_read=False).count(),
+        'has_more': page_obj.has_next(),
+        'user_type': getattr(participant, 'role', 'patient')
+    }
+    
+    return render(request, 'notifications/list.html', context)
+
+
+@login_required
+def messages_list_view(request):
+    """HTML view for messages list - placeholder for now"""
+    participant = request.user
+    
+    context = {
+        'user_type': getattr(participant, 'role', 'patient')
+    }
+    
+    return render(request, 'messages/list.html', context)

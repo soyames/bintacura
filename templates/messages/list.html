@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Messages{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+<link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+{% endblock %}
+
+{% block content %}
+{% include 'components/top_nav.html' %}
+
+<div class="notifications-container">
+    <div class="notifications-header">
+        <h1>💬 Messages</h1>
+    </div>
+
+    <div class="empty-state">
+        <p>📭 La messagerie sera bientôt disponible</p>
+        <p style="font-size: 14px; margin-top: 10px;">En attendant, vous pouvez utiliser les notifications pour suivre vos activités</p>
+    </div>
+</div>
+
+{% endblock %}

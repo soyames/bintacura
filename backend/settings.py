@@ -361,6 +361,7 @@ INSTALLED_APPS = [
     "qrcode_generator",
     "sync",  # Offline-first synchronization for business instances
     "super_admin",  # Super admin dashboard and verification system
+    "menstruation",  # Menstruation tracker for female patients
 ]
 
 MIDDLEWARE = [

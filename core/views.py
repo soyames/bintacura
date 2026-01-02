@@ -549,6 +549,10 @@ class PatientDashboardView(PatientRequiredMixin, TemplateView):  # Main dashboar
 
         logger = logging.getLogger(__name__)
         patient = self.request.user
+        
+        # Add user_type for top nav
+        context["user_type"] = "patient"
+        context["page_title"] = "Tableau de Bord"
 
         try:
             upcoming_appointments = (
@@ -604,6 +608,10 @@ class DoctorDashboardView(DoctorRequiredMixin, TemplateView):  # Main dashboard 
 
         today = date.today()
         user = self.request.user
+        
+        # Add user_type for top nav
+        context["user_type"] = "doctor"
+        context["page_title"] = "Tableau de Bord"
 
         context["today_appointments"] = (
             Appointment.objects.filter(
@@ -650,6 +658,10 @@ class HospitalDashboardView(HospitalRequiredMixin, TemplateView):  # Main dashbo
 
         today = date.today()
         user = self.request.user
+        
+        # Add user_type for top nav
+        context["user_type"] = "hospital"
+        context["page_title"] = "Tableau de Bord"
 
         services = ProviderService.objects.filter(participant=user, is_active=True)
         context["total_services"] = services.count()
@@ -696,6 +708,11 @@ class PharmacyDashboardView(PharmacyRequiredMixin, TemplateView):  # Main dashbo
         from core.models import ProviderService
 
         user = self.request.user
+        
+        # Add user_type for top nav
+        context["user_type"] = "pharmacy"
+        context["page_title"] = "Tableau de Bord"
+        
         services = ProviderService.objects.filter(participant=user, is_active=True)
         context["total_services"] = services.count()
         context["active_services"] = services.filter(is_available=True).count()
@@ -708,6 +725,10 @@ class InsuranceDashboardView(InsuranceRequiredMixin, TemplateView):  # Main dash
     
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
         context = super().get_context_data(**kwargs)
+        
+        # Add user_type for top nav
+        context["user_type"] = "insurance"
+        context["page_title"] = "Tableau de Bord"
         
         from insurance.models import InsuranceClaim, InsuranceSubscription
         from django.db.models import Sum, Q

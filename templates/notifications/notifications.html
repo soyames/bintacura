@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+    <link rel="stylesheet" href="{% static 'css/' %}{{ user_type }}-theme.css">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type=user_type page_title="Notifications" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% if user_type == 'patient' %}
+        {% include "layout/_sidebar_patient.html" %}
+    {% elif user_type == 'doctor' %}
+        {% include "layout/_sidebar_doctor.html" %}
+    {% elif user_type == 'hospital' %}
+        {% include "layout/_sidebar_hospital.html" %}
+    {% elif user_type == 'pharmacy' %}
+        {% include "layout/_sidebar_pharmacy.html" %}
+    {% elif user_type == 'insurance' %}
+        {% include "layout/_sidebar_insurance.html" %}
+    {% endif %}
+
+    <div class="main-content">
+        <div class="notifications-container">
+            {% if notifications %}
+                {% for notification in notifications %}
+                <div class="notification-item {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
+                    <div class="notification-icon">
+                        {% if notification.notification_type == 'appointment' %}🗓️
+                        {% elif notification.notification_type == 'payment' %}💰
+                        {% elif notification.notification_type == 'prescription' %}💊
+                        {% elif notification.notification_type == 'message' %}📧
+                        {% else %}🔔
+                        {% endif %}
+                    </div>
+                    <div class="notification-content">
+                        <h3>{{ notification.title }}</h3>
+                        <p>{{ notification.message }}</p>
+                        <small>{{ notification.created_at|timesince }} ago</small>
+                    </div>
+                    {% if not notification.is_read %}
+                    <button class="mark-read-btn" onclick="markAsRead('{{ notification.id }}')">Marquer comme lu</button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p>Aucune notification</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
+</body>
+</html>

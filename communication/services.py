@@ -39,6 +39,21 @@ class NotificationService:  # Service class for Notification operations
     @staticmethod
     def create_notification(data):  # Create notification
         return Notification.objects.create(**data)
+    
+    @staticmethod
+    def send_notification(recipient, title, message, notification_type='system', action_url='', metadata=None):
+        """Simplified notification creation - checks if recipient has notifications enabled"""
+        if not recipient.has_notifications_enabled():
+            return None
+            
+        return Notification.objects.create(
+            recipient=recipient,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            action_url=action_url,
+            metadata=metadata or {}
+        )
 
     @staticmethod
     def get_notification(pk):  # Get notification

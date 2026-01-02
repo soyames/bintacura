@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/messages.css' %}">
+    <link rel="stylesheet" href="{% static 'css/' %}{{ user_type }}-theme.css">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type=user_type page_title="Messages" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% if user_type == 'patient' %}
+        {% include "layout/_sidebar_patient.html" %}
+    {% elif user_type == 'doctor' %}
+        {% include "layout/_sidebar_doctor.html" %}
+    {% elif user_type == 'hospital' %}
+        {% include "layout/_sidebar_hospital.html" %}
+    {% elif user_type == 'pharmacy' %}
+        {% include "layout/_sidebar_pharmacy.html" %}
+    {% elif user_type == 'insurance' %}
+        {% include "layout/_sidebar_insurance.html" %}
+    {% endif %}
+
+    <div class="main-content">
+        <div class="messages-container">
+            {% if messages_list %}
+                {% for message in messages_list %}
+                <div class="message-item {% if not message.is_read %}unread{% endif %}">
+                    <div class="message-sender">
+                        <strong>{{ message.sender.full_name }}</strong>
+                    </div>
+                    <div class="message-content">
+                        <p>{{ message.content }}</p>
+                        <small>{{ message.created_at|timesince }} ago</small>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p>Aucun message</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/messages.js' %}"></script>
+</body>
+</html>

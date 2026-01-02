@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/communication/messages.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with page_title="Messages" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_"|add:user_type|add:".html" %}
+
+    <div class="main-content">
+        <div class="messages-container">
+            <div class="messages-header">
+                <h2>Messages</h2>
+                <button class="btn-compose" onclick="openCompose()">
+                    Nouveau message
+                </button>
+            </div>
+
+            <div class="messages-content">
+                <div class="conversations-list">
+                    {% if conversations %}
+                        {% for conversation in conversations %}
+                        <div class="conversation-item {% if conversation.unread_count > 0 %}unread{% endif %}"
+                             onclick="loadConversation('{{ conversation.id }}')">
+                            <div class="conversation-avatar">
+                                {{ conversation.other_participant.first_name|slice:":1" }}
+                            </div>
+                            <div class="conversation-details">
+                                <div class="conversation-name">{{ conversation.other_participant.full_name }}</div>
+                                <div class="conversation-preview">{{ conversation.last_message.content|truncatechars:50 }}</div>
+                            </div>
+                            <div class="conversation-meta">
+                                <div class="conversation-time">{{ conversation.last_message.created_at|timesince }}</div>
+                                {% if conversation.unread_count > 0 %}
+                                <span class="unread-badge">{{ conversation.unread_count }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-conversations">
+                            <p>Aucune conversation</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="conversation-view" id="conversationView">
+                    <div class="no-conversation-selected">
+                        <p>Sélectionnez une conversation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/communication/messages.js' %}"></script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

@@ -154,10 +154,10 @@ class PaymentReceipt(SyncMixin):  # Generates and stores payment receipts for tr
     ]
     
     PAYMENT_STATUS_CHOICES = [
-        ('PAID', 'Paid'),
-        ('PENDING', 'Pending'),
-        ('FAILED', 'Failed'),
-        ('REFUNDED', 'Refunded'),
+        ('PAID', 'Payé'),
+        ('PENDING', 'En attente'),
+        ('FAILED', 'Échoué'),
+        ('REFUNDED', 'Remboursé'),
     ]
     uid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True, null=False)
     region_code = models.CharField(max_length=50, default="global", db_index=True)
@@ -232,11 +232,11 @@ class PaymentReceipt(SyncMixin):  # Generates and stores payment receipts for tr
                 elif self.transaction and self.transaction.recipient:
                     service_provider_role = self.transaction.recipient.role
                 
-                invoice_data = InvoiceNumberService.generate_invoice_number(
+                invoice_number, sequence = InvoiceNumberService.generate_invoice_number(
                     service_provider_role=service_provider_role
                 )
-                self.invoice_number = invoice_data['invoice_number']
-                self.invoice_sequence = invoice_data['sequence']
+                self.invoice_number = invoice_number
+                self.invoice_sequence = sequence
             
             if not self.qr_code:
                 QRCodeService.generate_invoice_qr_code(self)
@@ -246,11 +246,16 @@ class PaymentReceipt(SyncMixin):  # Generates and stores payment receipts for tr
 
 class PaymentRequest(SyncMixin):  # Manages payment requests sent between participants
     STATUS_CHOICES = [
-        ("pending", "Pending"),
-        ("approved", "Approved"),
-        ("rejected", "Rejected"),
-        ("completed", "Completed"),
-        ("cancelled", "Cancelled"),
+        ("pending", "En attente"),
+        ("approved", "Approuvé"),
+        ("rejected", "Rejeté"),
+        ("completed", "Terminé"),
+        ("cancelled", "Annulé"),
+    ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ("cash", "Espèces"),
+        ("online", "En ligne"),
     ]
     region_code = models.CharField(max_length=50, default="global", db_index=True)
     from_participant = models.ForeignKey(
@@ -263,6 +268,8 @@ class PaymentRequest(SyncMixin):  # Manages payment requests sent between partic
     currency = models.CharField(max_length=3, default="XOF")
     description = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cash", null=True, blank=True)
+    receipt = models.ForeignKey('PaymentReceipt', on_delete=models.SET_NULL, null=True, blank=True, related_name="payment_requests")
     transaction = models.ForeignKey(
         CoreTransaction,
         on_delete=models.SET_NULL,
@@ -281,6 +288,17 @@ class PaymentRequest(SyncMixin):  # Manages payment requests sent between partic
             models.Index(fields=["to_participant", "status"]),
             models.Index(fields=["from_participant", "status"]),
         ]
+    
+    @property
+    def amount_decimal(self):
+        """Convert amount from cents to decimal"""
+        from decimal import Decimal
+        return Decimal(self.amount) / Decimal('100')
+    
+    @property
+    def amount_display(self):
+        """Display amount with currency"""
+        return f"{self.amount_decimal:.2f} {self.currency}"
 
 
 class Transfer(SyncMixin):  # Records money transfers between wallets and external accounts
@@ -1349,11 +1367,11 @@ class VendorInvoice(SyncMixin):  # Tracks vendor invoices and payments (accounts
     Tracks outgoing payments to vendors and suppliers
     """
     PAYMENT_STATUS_CHOICES = [
-        ('pending', 'Pending Payment'),
-        ('paid', 'Paid'),
-        ('partially_paid', 'Partially Paid'),
-        ('overdue', 'Overdue'),
-        ('cancelled', 'Cancelled'),
+        ('pending', 'En attente'),
+        ('paid', 'Payé'),
+        ('partially_paid', 'Partiellement payé'),
+        ('overdue', 'En retard'),
+        ('cancelled', 'Annulé'),
     ]
     region_code = models.CharField(max_length=50, default="global", db_index=True)
     participant = models.ForeignKey(

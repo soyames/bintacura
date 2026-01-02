@@ -36,12 +36,35 @@
             <div class="billing-party">
                 <h3>Payer à</h3>
                 <div class="party-details">
-                    <p><strong>BINTACURA</strong></p>
-                    <p>Healthcare Platform</p>
-                    <p>RCCM: VTC/BJ/2024</p>
-                    <p>IFU: {{ company_ifu }}</p>
-                    <p>Tel: {{ company_phone }}</p>
-                    <p>{{ company_address }}</p>
+                    {% if receipt.issued_by %}
+                        <p><strong>{{ receipt.issued_by.full_name|upper }}</strong></p>
+                        {% if receipt.issued_by.role == 'doctor' %}
+                            <p>Médecin</p>
+                        {% elif receipt.issued_by.role == 'hospital' %}
+                            <p>Établissement Hospitalier</p>
+                        {% elif receipt.issued_by.role == 'pharmacy' %}
+                            <p>Pharmacie</p>
+                        {% elif receipt.issued_by.role == 'insurance_company' %}
+                            <p>Compagnie d'Assurance</p>
+                        {% else %}
+                            <p>Prestataire de Services</p>
+                        {% endif %}
+                        {% if receipt.issued_by.professional_id %}
+                            <p>N° Prof: {{ receipt.issued_by.professional_id }}</p>
+                        {% endif %}
+                        <p>Tel: {{ receipt.issued_by.phone_number|default:"N/A" }}</p>
+                        {% if receipt.issued_by.address %}
+                            <p>{{ receipt.issued_by.address }}</p>
+                        {% endif %}
+                        <p>{{ receipt.issued_by.city|default:"Cotonou" }}, {{ receipt.issued_by.country|default:"BENIN" }}</p>
+                    {% else %}
+                        <p><strong>BINTACURA</strong></p>
+                        <p>Healthcare Platform</p>
+                        <p>RCCM: VTC/BJ/2024</p>
+                        <p>IFU: {{ company_ifu }}</p>
+                        <p>Tel: {{ company_phone }}</p>
+                        <p>{{ company_address }}</p>
+                    {% endif %}
                 </div>
             </div>
             <div class="billing-party">
@@ -168,6 +191,11 @@
 
         <!-- Action Buttons -->
         <div class="receipt-actions">
+            {% if receipt.payment_status == 'pending' or receipt.payment_status == 'en_attente' %}
+            <button onclick="initiatePayment('{{ receipt.id }}')" class="btn btn-success btn-lg mb-3" style="width: 100%;">
+                <i class="fas fa-credit-card"></i> Payer cette facture
+            </button>
+            {% endif %}
             <button onclick="printReceipt()" class="btn btn-primary btn-print">
                 <i class="fas fa-print"></i> Imprimer
             </button>
@@ -188,5 +216,9 @@
 
 {% block extra_js %}
 <script src="{% static 'js/payments/receipt.js' %}"></script>
+<script src="{% static 'js/payments/payment-selection.js' %}"></script>
+
+<!-- Include Payment Selection Modal -->
+{% include 'payments/payment_selection_modal.html' %}
 {% endblock %}
 

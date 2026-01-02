@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import HealthRecord, WearableDevice, WearableData, MenstrualCycle, DocumentUpload, TelemedicineSession
+from .models import HealthRecord, WearableDevice, WearableData, DocumentUpload, TelemedicineSession
 
 @admin.register(HealthRecord)
 class HealthRecordAdmin(admin.ModelAdmin):  # Admin configuration for HealthRecord model
@@ -21,11 +21,7 @@ class WearableDataAdmin(admin.ModelAdmin):  # Admin configuration for WearableDa
     search_fields = ('patient__email',)
     date_hierarchy = 'timestamp'
 
-@admin.register(MenstrualCycle)
-class MenstrualCycleAdmin(admin.ModelAdmin):  # Admin configuration for MenstrualCycle model
-    list_display = ('id', 'patient', 'cycle_start_date', 'cycle_end_date', 'period_length', 'cycle_length', 'flow_intensity')
-    search_fields = ('patient__email',)
-    date_hierarchy = 'cycle_start_date'
+# NOTE: MenstrualCycle admin has been moved to menstruation.admin
 
 @admin.register(DocumentUpload)
 class DocumentUploadAdmin(admin.ModelAdmin):  # Admin configuration for DocumentUpload model

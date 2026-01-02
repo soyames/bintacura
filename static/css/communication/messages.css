@@ -1,0 +1,137 @@
+.messages-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.messages-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.messages-header h2 {
+    font-size: 1.8rem;
+    color: #333;
+}
+
+.btn-compose {
+    padding: 0.6rem 1.2rem;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-compose:hover {
+    background: #0056b3;
+}
+
+.messages-content {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 1rem;
+    height: calc(100vh - 200px);
+}
+
+.conversations-list {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow-y: auto;
+}
+
+.conversation-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.conversation-item:hover {
+    background: #f8f9fa;
+}
+
+.conversation-item.unread {
+    background: #f0f8ff;
+}
+
+.conversation-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #007bff;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.conversation-details {
+    flex: 1;
+}
+
+.conversation-name {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    color: #333;
+}
+
+.conversation-preview {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.conversation-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.conversation-time {
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.unread-badge {
+    background: #dc3545;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.conversation-view {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-conversation-selected,
+.no-conversations {
+    text-align: center;
+    color: #999;
+    font-size: 1.1rem;
+}
+
+@media (max-width: 968px) {
+    .messages-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .conversation-view {
+        display: none;
+    }
+}

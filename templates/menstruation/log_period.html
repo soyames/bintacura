@@ -1,0 +1,293 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enregistrer Cycle - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/menstruation.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='{% url 'menstruation:tracker' %}'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Enregistrer Mon Cycle</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    {% include "layout/_sidebar_patient.html" %}
+
+    <div class="menstruation-container">
+        <div class="form-card">
+            <div class="form-header">
+                <h2>🌸 Nouveau Cycle Menstruel</h2>
+                <p>Enregistrez le premier jour de vos règles</p>
+            </div>
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="POST" id="periodForm">
+                {% csrf_token %}
+                
+                <!-- Start Date -->
+                <div class="form-group">
+                    <label for="cycle_start_date">Date de Début des Règles *</label>
+                    <input type="date" 
+                           id="cycle_start_date" 
+                           name="cycle_start_date" 
+                           class="form-control" 
+                           max="{{ today }}"
+                           required>
+                    <small class="form-text">Premier jour de vos règles</small>
+                </div>
+
+                <!-- Period Length -->
+                <div class="form-group">
+                    <label for="period_length">Durée des Règles (jours) *</label>
+                    <div class="number-selector">
+                        <button type="button" class="btn-minus" onclick="decrementValue('period_length')">-</button>
+                        <input type="number" 
+                               id="period_length" 
+                               name="period_length" 
+                               class="form-control number-input" 
+                               value="5" 
+                               min="1" 
+                               max="15"
+                               required>
+                        <button type="button" class="btn-plus" onclick="incrementValue('period_length')">+</button>
+                    </div>
+                </div>
+
+                <!-- Cycle Length -->
+                <div class="form-group">
+                    <label for="cycle_length">Durée du Cycle (jours) *</label>
+                    <div class="number-selector">
+                        <button type="button" class="btn-minus" onclick="decrementValue('cycle_length')">-</button>
+                        <input type="number" 
+                               id="cycle_length" 
+                               name="cycle_length" 
+                               class="form-control number-input" 
+                               value="28" 
+                               min="20" 
+                               max="45"
+                               required>
+                        <button type="button" class="btn-plus" onclick="incrementValue('cycle_length')">+</button>
+                    </div>
+                    <small class="form-text">Nombre de jours entre deux règles (moyenne: 28 jours)</small>
+                </div>
+
+                <!-- Flow Intensity -->
+                <div class="form-group">
+                    <label>Intensité du Flux *</label>
+                    <div class="flow-options">
+                        <label class="flow-option">
+                            <input type="radio" name="flow_intensity" value="light" required>
+                            <div class="flow-card">
+                                <div class="flow-icon">💧</div>
+                                <div class="flow-label">Léger</div>
+                            </div>
+                        </label>
+                        <label class="flow-option">
+                            <input type="radio" name="flow_intensity" value="medium" checked>
+                            <div class="flow-card">
+                                <div class="flow-icon">💧💧</div>
+                                <div class="flow-label">Moyen</div>
+                            </div>
+                        </label>
+                        <label class="flow-option">
+                            <input type="radio" name="flow_intensity" value="heavy">
+                            <div class="flow-card">
+                                <div class="flow-icon">💧💧💧</div>
+                                <div class="flow-label">Abondant</div>
+                            </div>
+                        </label>
+                        <label class="flow-option">
+                            <input type="radio" name="flow_intensity" value="spotting">
+                            <div class="flow-card">
+                                <div class="flow-icon">•</div>
+                                <div class="flow-label">Spotting</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Mood -->
+                <div class="form-group">
+                    <label>Humeur</label>
+                    <div class="mood-options">
+                        <label class="mood-option">
+                            <input type="radio" name="mood" value="happy">
+                            <div class="mood-emoji">😊</div>
+                            <div class="mood-label">Heureuse</div>
+                        </label>
+                        <label class="mood-option">
+                            <input type="radio" name="mood" value="normal" checked>
+                            <div class="mood-emoji">😐</div>
+                            <div class="mood-label">Normale</div>
+                        </label>
+                        <label class="mood-option">
+                            <input type="radio" name="mood" value="irritable">
+                            <div class="mood-emoji">😠</div>
+                            <div class="mood-label">Irritable</div>
+                        </label>
+                        <label class="mood-option">
+                            <input type="radio" name="mood" value="sad">
+                            <div class="mood-emoji">😢</div>
+                            <div class="mood-label">Triste</div>
+                        </label>
+                        <label class="mood-option">
+                            <input type="radio" name="mood" value="anxious">
+                            <div class="mood-emoji">😰</div>
+                            <div class="mood-label">Anxieuse</div>
+                        </label>
+                        <label class="mood-option">
+                            <input type="radio" name="mood" value="tired">
+                            <div class="mood-emoji">😴</div>
+                            <div class="mood-label">Fatiguée</div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Symptoms -->
+                <div class="form-group">
+                    <label>Symptômes</label>
+                    <div class="symptoms-grid">
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="cramps">
+                            <span>Crampes</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="headache">
+                            <span>Maux de tête</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="bloating">
+                            <span>Ballonnements</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="breast_tenderness">
+                            <span>Seins sensibles</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="acne">
+                            <span>Acné</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="back_pain">
+                            <span>Mal de dos</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="fatigue">
+                            <span>Fatigue</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="nausea">
+                            <span>Nausée</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="mood_swings">
+                            <span>Sautes d'humeur</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="insomnia">
+                            <span>Insomnie</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="food_cravings">
+                            <span>Fringales</span>
+                        </label>
+                        <label class="symptom-checkbox">
+                            <input type="checkbox" name="symptoms" value="other">
+                            <span>Autre</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group">
+                    <label for="notes">Notes Personnelles</label>
+                    <textarea id="notes" 
+                              name="notes" 
+                              class="form-control" 
+                              rows="4" 
+                              placeholder="Ajoutez des notes sur ce cycle..."></textarea>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='{% url 'menstruation:tracker' %}'">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Enregistrer le Cycle
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Info Card -->
+        <div class="info-card">
+            <div class="info-icon">💡</div>
+            <div class="info-content">
+                <h4>Conseils pour un Suivi Précis</h4>
+                <ul>
+                    <li>Enregistrez le premier jour de vos règles dès qu'elles commencent</li>
+                    <li>Notez l'intensité du flux et vos symptômes quotidiennement</li>
+                    <li>Plus vous enregistrez de cycles, plus les prédictions seront précises</li>
+                    <li>Activez les rappels pour ne rien oublier</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function incrementValue(id) {
+            const input = document.getElementById(id);
+            const max = parseInt(input.max);
+            const current = parseInt(input.value);
+            if (current < max) {
+                input.value = current + 1;
+            }
+        }
+
+        function decrementValue(id) {
+            const input = document.getElementById(id);
+            const min = parseInt(input.min);
+            const current = parseInt(input.value);
+            if (current > min) {
+                input.value = current - 1;
+            }
+        }
+
+        // Set max date to today
+        document.getElementById('cycle_start_date').valueAsDate = new Date();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

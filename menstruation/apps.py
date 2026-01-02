@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class MenstruationConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'menstruation'
+    verbose_name = 'Menstruation Tracker'

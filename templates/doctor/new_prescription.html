@@ -308,7 +308,7 @@
 
             try {
                 // Load medications from the medications API
-                const response = await fetch('/api/v1/prescriptions/medications/', {
+                const response = await fetch('/api/v1/prescriptions/medications/?page_size=1000', {
                     credentials: 'same-origin'
                 });
 
@@ -316,8 +316,21 @@
                     throw new Error('Failed to load medications');
                 }
 
-                const medications = await response.json();
-                console.log('Loaded medications:', medications);
+                const data = await response.json();
+                console.log('Loaded medications:', data);
+
+                // Handle paginated response
+                let medications = [];
+                if (Array.isArray(data)) {
+                    // If it's already an array, use it
+                    medications = data;
+                } else if (data.results && Array.isArray(data.results)) {
+                    // If it's a paginated response, use results array
+                    medications = data.results;
+                } else {
+                    console.error('Unexpected API response format:', data);
+                    throw new Error('Format de réponse inattendu');
+                }
 
                 if (medications && medications.length > 0) {
                     catalogData = medications;

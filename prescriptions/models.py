@@ -61,6 +61,7 @@ class Prescription(SyncMixin):  # Represents medical prescriptions issued by doc
         ('pending_approval', 'Pending Approval'),
     ]
 
+    uid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, db_index=True)
     region_code = models.CharField(max_length=50, default="global", db_index=True)
     idempotency_key = models.CharField(
         max_length=255,

@@ -1,0 +1,131 @@
+<!-- Payment Selection Modal -->
+<div class="modal fade" id="paymentSelectionModal" tabindex="-1" role="dialog" aria-labelledby="paymentSelectionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentSelectionLabel">Choisir le mode de paiement</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="payment-summary-box mb-4">
+                    <h6>Détails de la facture</h6>
+                    <div class="d-flex justify-content-between">
+                        <span>Montant total:</span>
+                        <strong id="paymentAmount" class="text-primary"></strong>
+                    </div>
+                    <div class="small text-muted">
+                        <span>Numéro de facture: </span>
+                        <span id="paymentInvoiceNumber"></span>
+                    </div>
+                </div>
+
+                <input type="hidden" id="paymentReceiptId" value="">
+                
+                <div class="payment-options">
+                    <div class="payment-option-card" onclick="selectPaymentMethod('online')">
+                        <div class="payment-option-icon">
+                            <i class="fas fa-credit-card fa-2x text-primary"></i>
+                        </div>
+                        <div class="payment-option-content">
+                            <h6>Paiement en ligne</h6>
+                            <p class="small text-muted">Payer immédiatement via FedaPay</p>
+                        </div>
+                        <div class="payment-option-check">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+
+                    <div class="payment-option-card" onclick="selectPaymentMethod('cash')">
+                        <div class="payment-option-icon">
+                            <i class="fas fa-money-bill-wave fa-2x text-success"></i>
+                        </div>
+                        <div class="payment-option-content">
+                            <h6>Paiement en espèces</h6>
+                            <p class="small text-muted">Payer sur place (nécessite validation)</p>
+                        </div>
+                        <div class="payment-option-check">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="paymentMethodError" class="alert alert-danger mt-3" style="display: none;">
+                    Veuillez sélectionner un mode de paiement
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="proceedWithPayment()">
+                    <i class="fas fa-arrow-right"></i> Continuer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-summary-box {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.payment-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.payment-option-card {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.payment-option-card:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+}
+
+.payment-option-card.selected {
+    border-color: #007bff;
+    background-color: #e7f3ff;
+}
+
+.payment-option-icon {
+    flex-shrink: 0;
+    width: 60px;
+    text-align: center;
+}
+
+.payment-option-content {
+    flex-grow: 1;
+    margin-left: 15px;
+}
+
+.payment-option-content h6 {
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.payment-option-check {
+    flex-shrink: 0;
+    color: #28a745;
+    font-size: 1.5rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.payment-option-card.selected .payment-option-check {
+    opacity: 1;
+}
+</style>

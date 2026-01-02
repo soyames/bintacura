@@ -1,0 +1,228 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails du Cycle - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/menstruation.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='{% url 'menstruation:tracker' %}'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Détails du Cycle</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    {% include "layout/_sidebar_patient.html" %}
+
+    <div class="menstruation-container">
+        <!-- Cycle Overview -->
+        <div class="cycle-detail-card">
+            <div class="cycle-detail-header">
+                <div class="cycle-date-badge">
+                    <div class="badge-day">{{ cycle.cycle_start_date|date:"d" }}</div>
+                    <div class="badge-month">{{ cycle.cycle_start_date|date:"M Y" }}</div>
+                </div>
+                <div class="cycle-info-main">
+                    <h2>Cycle du {{ cycle.cycle_start_date|date:"d F Y" }}</h2>
+                    <div class="cycle-status">
+                        {% if cycle.is_active_cycle %}
+                        <span class="badge badge-success">En cours</span>
+                        {% else %}
+                        <span class="badge badge-secondary">Terminé</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="cycle-stats-row">
+                <div class="stat-item">
+                    <div class="stat-label">Durée du Cycle</div>
+                    <div class="stat-value">{{ cycle.cycle_length }} jours</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Durée des Règles</div>
+                    <div class="stat-value">{{ cycle.period_length }} jours</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Intensité</div>
+                    <div class="stat-value">
+                        <span class="flow-badge flow-{{ cycle.flow_intensity }}">
+                            {{ cycle.get_flow_intensity_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Humeur</div>
+                    <div class="stat-value">
+                        {% if cycle.mood %}
+                        <span class="mood-badge-mini">{{ cycle.get_mood_display }}</span>
+                        {% else %}
+                        <span class="text-muted">Non renseignée</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-card">
+            <h3>Chronologie du Cycle</h3>
+            <div class="cycle-timeline">
+                <div class="timeline-item period">
+                    <div class="timeline-marker">🔴</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">Règles</div>
+                        <div class="timeline-date">
+                            {{ cycle.cycle_start_date|date:"d M Y" }}
+                            {% if cycle.cycle_end_date %}
+                            - {{ cycle.cycle_end_date|date:"d M Y" }}
+                            {% endif %}
+                        </div>
+                        <div class="timeline-duration">{{ cycle.period_length }} jours</div>
+                    </div>
+                </div>
+
+                {% if cycle.predicted_fertile_window_start %}
+                <div class="timeline-item fertile">
+                    <div class="timeline-marker">🟡</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">Période Fertile</div>
+                        <div class="timeline-date">
+                            {{ cycle.predicted_fertile_window_start|date:"d M Y" }} - 
+                            {{ cycle.predicted_fertile_window_end|date:"d M Y" }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if cycle.predicted_ovulation_date %}
+                <div class="timeline-item ovulation">
+                    <div class="timeline-marker">🟢</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">Ovulation</div>
+                        <div class="timeline-date">{{ cycle.predicted_ovulation_date|date:"d M Y" }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if cycle.predicted_next_period_date %}
+                <div class="timeline-item next-period">
+                    <div class="timeline-marker">🌸</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">Prochaines Règles (Prédites)</div>
+                        <div class="timeline-date">{{ cycle.predicted_next_period_date|date:"d M Y" }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Symptoms Section -->
+        <div class="symptoms-card">
+            <div class="section-header">
+                <h3>Symptômes Enregistrés</h3>
+                <button class="btn btn-sm btn-primary" onclick="window.location.href='{% url 'menstruation:log_symptom' %}?cycle={{ cycle.id }}'">
+                    + Ajouter
+                </button>
+            </div>
+
+            {% if cycle.symptoms %}
+            <div class="symptoms-list">
+                {% for symptom in cycle.symptoms %}
+                <div class="symptom-tag">{{ symptom }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if daily_symptoms %}
+            <div class="daily-symptoms-timeline">
+                <h4>Journal des Symptômes</h4>
+                {% for symptom in daily_symptoms %}
+                <div class="daily-symptom-item">
+                    <div class="symptom-date">{{ symptom.date|date:"d M" }}</div>
+                    <div class="symptom-info">
+                        <div class="symptom-type">{{ symptom.get_symptom_type_display }}</div>
+                        <div class="symptom-severity">
+                            {% if symptom.severity == 1 %}
+                            <span class="severity-badge severity-mild">Léger</span>
+                            {% elif symptom.severity == 2 %}
+                            <span class="severity-badge severity-moderate">Modéré</span>
+                            {% else %}
+                            <span class="severity-badge severity-severe">Sévère</span>
+                            {% endif %}
+                        </div>
+                        {% if symptom.notes %}
+                        <div class="symptom-notes">{{ symptom.notes }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state-small">
+                <p>Aucun symptôme quotidien enregistré</p>
+                <button class="btn btn-sm btn-link" onclick="window.location.href='{% url 'menstruation:log_symptom' %}?cycle={{ cycle.id }}'">
+                    Enregistrer un symptôme
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Notes Section -->
+        {% if cycle.notes %}
+        <div class="notes-card">
+            <h3>Notes Personnelles</h3>
+            <div class="notes-content">{{ cycle.notes }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="cycle-actions-card">
+            <button class="btn btn-secondary" onclick="editCycle()">
+                ✏️ Modifier
+            </button>
+            <button class="btn btn-danger" onclick="deleteCycle()">
+                🗑️ Supprimer
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function editCycle() {
+            // TODO: Implement edit functionality
+            alert('Fonctionnalité de modification à venir');
+        }
+
+        function deleteCycle() {
+            if (confirm('Êtes-vous sûre de vouloir supprimer ce cycle ? Cette action est irréversible.')) {
+                // TODO: Implement delete functionality
+                window.location.href = '{% url "menstruation:tracker" %}';
+            }
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

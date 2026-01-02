@@ -153,6 +153,10 @@ class Participant(AbstractBaseUser, PermissionsMixin):
     terms_accepted = models.BooleanField(default=False)
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
 
+    notification_preferences = models.JSONField(default=dict, blank=True, help_text="Notification preferences for the participant")
+    unread_notifications_count = models.IntegerField(default=0, help_text="Count of unread notifications")
+    unread_messages_count = models.IntegerField(default=0, help_text="Count of unread messages")
+
     objects = ParticipantManager()
 
     USERNAME_FIELD = "email"

@@ -113,22 +113,8 @@ class WearableData(SyncMixin):  # Stores health data collected from wearable dev
             models.Index(fields=['device', 'timestamp']),
         ]
 
-class MenstrualCycle(SyncMixin):  # Tracks menstrual cycle data and predictions for female patients
-    patient = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='menstrual_cycles')
-    cycle_start_date = models.DateField()
-    cycle_end_date = models.DateField(null=True, blank=True)
-    period_length = models.IntegerField(default=5)
-    cycle_length = models.IntegerField(default=28)
-    flow_intensity = models.CharField(max_length=20, blank=True)
-    symptoms = models.JSONField(default=list, blank=True)
-    mood = models.CharField(max_length=50, blank=True)
-    notes = models.TextField(blank=True)
-    predicted_ovulation_date = models.DateField(null=True, blank=True)
-    predicted_next_period_date = models.DateField(null=True, blank=True)
-
-    class Meta:  # Meta class implementation
-        db_table = 'menstrual_cycles'
-        ordering = ['-cycle_start_date']
+# NOTE: MenstrualCycle model has been moved to the menstruation app
+# Import it from there if needed: from menstruation.models import MenstrualCycle
 
 class DocumentUpload(SyncMixin):  # Manages uploaded medical documents and verification status
     DOCUMENT_TYPE_CHOICES = [

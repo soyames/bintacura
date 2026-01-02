@@ -87,12 +87,35 @@
             <div class="billing-party">
                 <h3>Payer à</h3>
                 <div class="party-details">
-                    <p><strong>BINTACURA</strong></p>
-                    <p>Healthcare Platform</p>
-                    <p>RCCM: VTC/BJ/2024</p>
-                    <p>IFU: {{ company_ifu }}</p>
-                    <p>Tel: {{ company_phone }}</p>
-                    <p>{{ company_address }}</p>
+                    {% if receipt.issued_by %}
+                        <p><strong>{{ receipt.issued_by.full_name|upper }}</strong></p>
+                        {% if receipt.issued_by.role == 'doctor' %}
+                            <p>Médecin</p>
+                        {% elif receipt.issued_by.role == 'hospital' %}
+                            <p>Établissement Hospitalier</p>
+                        {% elif receipt.issued_by.role == 'pharmacy' %}
+                            <p>Pharmacie</p>
+                        {% elif receipt.issued_by.role == 'insurance_company' %}
+                            <p>Compagnie d'Assurance</p>
+                        {% else %}
+                            <p>Prestataire de Services</p>
+                        {% endif %}
+                        {% if receipt.issued_by.professional_id %}
+                            <p>N° Prof: {{ receipt.issued_by.professional_id }}</p>
+                        {% endif %}
+                        <p>Tel: {{ receipt.issued_by.phone_number|default:"N/A" }}</p>
+                        {% if receipt.issued_by.address %}
+                            <p>{{ receipt.issued_by.address }}</p>
+                        {% endif %}
+                        <p>{{ receipt.issued_by.city|default:"Cotonou" }}, {{ receipt.issued_by.country|default:"BENIN" }}</p>
+                    {% else %}
+                        <p><strong>BINTACURA</strong></p>
+                        <p>Healthcare Platform</p>
+                        <p>RCCM: VTC/BJ/2024</p>
+                        <p>IFU: {{ company_ifu }}</p>
+                        <p>Tel: {{ company_phone }}</p>
+                        <p>{{ company_address }}</p>
+                    {% endif %}
                 </div>
             </div>
             <div class="billing-party">
@@ -238,6 +261,11 @@
 
         <!-- Action Buttons -->
         <div class="receipt-actions">
+            {% if portal == 'patient' and receipt.payment_status in 'pending,overdue' %}
+            <button onclick="showPaymentModal('{{ receipt.id }}', '{{ receipt.converted_total_amount|default:receipt.total_amount|floatformat:0 }} {{ participant_currency }}', '{{ receipt.invoice_number|default:receipt.receipt_number }}', 'service')" class="btn btn-success btn-pay">
+                <i class="fas fa-credit-card"></i> Payer
+            </button>
+            {% endif %}
             <button onclick="printReceipt()" class="btn btn-primary btn-print">
                 <i class="fas fa-print"></i> Imprimer
             </button>
@@ -254,6 +282,237 @@
         </div>
     </div>
 </div>
+
+<!-- Payment Method Selection Modal -->
+<div id="paymentModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closePaymentModal()">&times;</span>
+        <h2>Choisissez votre mode de paiement</h2>
+        <p class="invoice-amount">Montant à payer: <span id="modalAmount"></span></p>
+        <p class="invoice-ref">Facture: <span id="modalInvoiceNumber"></span></p>
+        
+        <div class="payment-methods">
+            <button class="payment-method-btn" onclick="initiateOnlinePayment()">
+                <i class="fas fa-credit-card"></i>
+                <div>
+                    <strong>Payer en ligne</strong>
+                    <small>Via FedaPay (Carte bancaire, Mobile Money)</small>
+                </div>
+            </button>
+            
+            <button class="payment-method-btn" onclick="requestCashPayment()">
+                <i class="fas fa-money-bill-wave"></i>
+                <div>
+                    <strong>Payer en espèces</strong>
+                    <small>Sur place - nécessite une approbation</small>
+                </div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.invoice-amount {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 15px 0;
+}
+
+.invoice-ref {
+    color: #7f8c8d;
+    margin-bottom: 25px;
+}
+
+.payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.payment-method-btn {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.payment-method-btn:hover {
+    border-color: #4CAF50;
+    background: #f0f8f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.payment-method-btn i {
+    font-size: 2em;
+    color: #4CAF50;
+}
+
+.payment-method-btn strong {
+    display: block;
+    font-size: 1.1em;
+    margin-bottom: 5px;
+}
+
+.payment-method-btn small {
+    color: #666;
+}
+
+.btn-pay {
+    background: #4CAF50;
+    color: white;
+    border: none;
+}
+
+.btn-pay:hover {
+    background: #45a049;
+}
+</style>
+
+<script>
+let currentInvoiceId = null;
+let currentInvoiceAmount = null;
+let currentInvoiceNumber = null;
+let currentInvoiceType = null;
+
+function showPaymentModal(invoiceId, amount, invoiceNumber, invoiceType) {
+    currentInvoiceId = invoiceId;
+    currentInvoiceAmount = amount;
+    currentInvoiceNumber = invoiceNumber;
+    currentInvoiceType = invoiceType;
+    
+    document.getElementById('modalAmount').textContent = amount;
+    document.getElementById('modalInvoiceNumber').textContent = invoiceNumber;
+    document.getElementById('paymentModal').style.display = 'block';
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').style.display = 'none';
+    currentInvoiceId = null;
+    currentInvoiceAmount = null;
+    currentInvoiceNumber = null;
+    currentInvoiceType = null;
+}
+
+async function initiateOnlinePayment() {
+    closePaymentModal();
+    
+    // Redirect to FedaPay payment page
+    try {
+        const response = await fetch(`/api/v1/payments/initiate-invoice-payment/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                invoice_id: currentInvoiceId,
+                payment_method: 'online'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.payment_url) {
+            window.location.href = data.payment_url;
+        } else {
+            alert('Erreur lors de l\'initialisation du paiement: ' + (data.error || 'Erreur inconnue'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Erreur de connexion. Veuillez réessayer.');
+    }
+}
+
+async function requestCashPayment() {
+    closePaymentModal();
+    
+    if (!confirm('Vous allez demander un paiement en espèces. Le fournisseur de service devra approuver ce paiement sur place.\n\nConfirmer?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/v1/payments/request-cash-payment/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                receipt_id: currentInvoiceId,
+                payment_method: 'cash'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✓ Demande de paiement envoyée!\n\nLe fournisseur de service recevra votre demande et pourra approuver le paiement une fois sur place.');
+            window.location.reload();
+        } else {
+            alert('Erreur: ' + (data.error || 'La demande a échoué'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Erreur de connexion. Veuillez réessayer.');
+    }
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
 
 <script src="{% static 'js/payments/receipt.js' %}"></script>
 <script src="{% static 'js/dashboard.js' %}"></script>

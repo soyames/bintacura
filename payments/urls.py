@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from . import views_new
 from . import universal_payment_views
-from .invoice_views import MarkOnsitePaymentPaidView, VerifyInvoiceQRView
+from . import payment_request_views
+from .invoice_views import MarkOnsitePaymentPaidView, VerifyInvoiceQRView, InitiateInvoicePaymentView
 
 app_name = "payments"
 
@@ -38,6 +39,16 @@ urlpatterns = [
     path("receipts/<uuid:pk>/download/", views_new.PaymentReceiptViewSet.as_view({'get': 'download'}), name="download-receipt"),
     path("mark-onsite-paid/", MarkOnsitePaymentPaidView.as_view(), name="mark-onsite-paid"),
     path("verify-invoice-qr/", VerifyInvoiceQRView.as_view(), name="verify-invoice-qr"),
+    path("initiate-invoice-payment/", InitiateInvoicePaymentView.as_view(), name="initiate-invoice-payment"),
+    
+    # New payment workflow endpoints
+    path("request-cash-payment/", payment_request_views.create_cash_payment_request, name="request-cash-payment"),
+    path("pending-payment-requests/", payment_request_views.get_pending_payment_requests, name="pending-payment-requests"),
+    path("process-cash-payment/<uuid:payment_request_id>/", payment_request_views.process_cash_payment, name="process-cash-payment"),
+    
+    # Web views for providers
+    path("provider/requests/", payment_request_views.ProviderPaymentRequestsView.as_view(), name="provider-payment-requests"),
+    path("provider/requests/<uuid:request_id>/process/", payment_request_views.ProcessPaymentRequestView.as_view(), name="process-payment-request"),
 
     # Universal payment endpoints (works for all service types: appointment, pharmacy_order, lab_test, etc.)
     path("verify/<str:service_type>/<uuid:service_id>/", universal_payment_views.verify_payment_qr, name="verify-payment-qr"),

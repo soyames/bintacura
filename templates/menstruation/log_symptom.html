@@ -1,0 +1,210 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajouter Symptôme - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/menstruation.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.history.back()">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Ajouter un Symptôme</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    {% include "layout/_sidebar_patient.html" %}
+
+    <div class="menstruation-container">
+        <div class="form-card">
+            <div class="form-header">
+                <h2>💭 Journal de Symptômes</h2>
+                <p>Enregistrez vos symptômes quotidiens</p>
+            </div>
+
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="POST" id="symptomForm">
+                {% csrf_token %}
+                
+                <!-- Date -->
+                <div class="form-group">
+                    <label for="date">Date *</label>
+                    <input type="date" 
+                           id="date" 
+                           name="date" 
+                           class="form-control" 
+                           max="{{ today }}"
+                           required>
+                    <small class="form-text">Quand avez-vous ressenti ce symptôme ?</small>
+                </div>
+
+                <!-- Symptom Type -->
+                <div class="form-group">
+                    <label for="symptom_type">Type de Symptôme *</label>
+                    <select id="symptom_type" name="symptom_type" class="form-control" required>
+                        <option value="">Sélectionnez un symptôme</option>
+                        <option value="cramps">Crampes</option>
+                        <option value="headache">Maux de tête</option>
+                        <option value="bloating">Ballonnements</option>
+                        <option value="breast_tenderness">Seins sensibles</option>
+                        <option value="acne">Acné</option>
+                        <option value="back_pain">Mal de dos</option>
+                        <option value="fatigue">Fatigue</option>
+                        <option value="nausea">Nausée</option>
+                        <option value="diarrhea">Diarrhée</option>
+                        <option value="constipation">Constipation</option>
+                        <option value="food_cravings">Fringales</option>
+                        <option value="mood_swings">Sautes d'humeur</option>
+                        <option value="insomnia">Insomnie</option>
+                        <option value="other">Autre</option>
+                    </select>
+                </div>
+
+                <!-- Severity -->
+                <div class="form-group">
+                    <label>Intensité *</label>
+                    <div class="severity-options">
+                        <label class="severity-option">
+                            <input type="radio" name="severity" value="1" checked>
+                            <div class="severity-card severity-1">
+                                <div class="severity-icon">😊</div>
+                                <div class="severity-label">Léger</div>
+                                <small>Peu gênant</small>
+                            </div>
+                        </label>
+                        <label class="severity-option">
+                            <input type="radio" name="severity" value="2">
+                            <div class="severity-card severity-2">
+                                <div class="severity-icon">😐</div>
+                                <div class="severity-label">Modéré</div>
+                                <small>Inconfortable</small>
+                            </div>
+                        </label>
+                        <label class="severity-option">
+                            <input type="radio" name="severity" value="3">
+                            <div class="severity-card severity-3">
+                                <div class="severity-icon">😰</div>
+                                <div class="severity-label">Sévère</div>
+                                <small>Très gênant</small>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group">
+                    <label for="notes">Notes (Optionnel)</label>
+                    <textarea id="notes" 
+                              name="notes" 
+                              class="form-control" 
+                              rows="4" 
+                              placeholder="Décrivez le symptôme en détail..."></textarea>
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                        Annuler
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Tips -->
+        <div class="tips-card">
+            <div class="tip-header">
+                <div class="tip-icon">💡</div>
+                <h4>Conseils de Suivi</h4>
+            </div>
+            <div class="tips-list">
+                <div class="tip-item">
+                    <strong>Soyez précise :</strong> Notez les symptômes dès que vous les ressentez
+                </div>
+                <div class="tip-item">
+                    <strong>Détaillez :</strong> Plus vos notes sont détaillées, mieux vous comprendrez votre cycle
+                </div>
+                <div class="tip-item">
+                    <strong>Suivez l'évolution :</strong> Utilisez le calendrier pour voir les tendances
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Symptoms Guide -->
+        <div class="symptoms-guide-card">
+            <h4>Guide des Symptômes Courants</h4>
+            <div class="symptom-guide-grid">
+                <div class="symptom-guide-item">
+                    <div class="symptom-guide-icon">💢</div>
+                    <div class="symptom-guide-name">Crampes</div>
+                    <div class="symptom-guide-desc">Douleurs abdominales, souvent pendant les règles</div>
+                </div>
+                <div class="symptom-guide-item">
+                    <div class="symptom-guide-icon">🤕</div>
+                    <div class="symptom-guide-name">Maux de tête</div>
+                    <div class="symptom-guide-desc">Céphalées, migraines</div>
+                </div>
+                <div class="symptom-guide-item">
+                    <div class="symptom-guide-icon">😴</div>
+                    <div class="symptom-guide-name">Fatigue</div>
+                    <div class="symptom-guide-desc">Sensation d'épuisement, manque d'énergie</div>
+                </div>
+                <div class="symptom-guide-item">
+                    <div class="symptom-guide-icon">😠</div>
+                    <div class="symptom-guide-name">Sautes d'humeur</div>
+                    <div class="symptom-guide-desc">Changements émotionnels rapides</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set date to today by default
+        document.getElementById('date').valueAsDate = new Date();
+
+        // If cycle ID is provided via query param, we could pre-fill
+        const urlParams = new URLSearchParams(window.location.search);
+        const cycleId = urlParams.get('cycle');
+        if (cycleId) {
+            // Add hidden field for cycle
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'cycle_id';
+            input.value = cycleId;
+            document.getElementById('symptomForm').appendChild(input);
+        }
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

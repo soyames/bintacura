@@ -16,4 +16,6 @@ urlpatterns = [
     path('update-activity/', views.update_activity, name='update-activity'),
     path('go-offline/', views.go_offline, name='go-offline'),
     path('ai-chat/', views.ai_chat_proxy, name='ai-chat'),
+    path('notifications/list/', views.notifications_list_view, name='notifications-list'),
+    path('messages/list/', views.messages_list_view, name='messages-list'),
 ]

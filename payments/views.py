@@ -85,6 +85,29 @@ class PaymentRequestViewSet(SafeQuerysetMixin, viewsets.ModelViewSet):  # View f
 
         return Response({"message": "Payment request rejected"})
 
+    @action(detail=True, methods=["post"])
+    def complete(self, request, pk=None):
+        payment_request = self.get_object()
+        if payment_request.to_participant != request.user:
+            return Response(
+                {"error": "Not authorized"}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        if payment_request.status != "approved":
+            return Response(
+                {"error": "Request must be approved first"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        payment_request.status = "completed"
+        payment_request.save()
+        
+        if payment_request.receipt:
+            payment_request.receipt.payment_status = "paid"
+            payment_request.receipt.save()
+
+        return Response({"message": "Payment marked as completed"})
+
 
 class LinkedVendorViewSet(viewsets.ModelViewSet):  # View for LinkedVendorSet operations
     serializer_class = LinkedVendorSerializer
@@ -542,3 +565,281 @@ class ServicePaymentView(APIView):
                 {"error": f"Payment processing failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+@extend_schema(
+    summary="Request cash payment for an invoice",
+    request={'application/json': dict},
+    responses={200: dict, 400: dict, 404: dict}
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_cash_payment(request):
+    """
+    Patient requests to pay an invoice in cash (on-site).
+    Creates a payment request that service provider must approve.
+    """
+    try:
+        invoice_id = request.data.get('invoice_id')
+        invoice_type = request.data.get('invoice_type', 'service')
+        
+        if not invoice_id:
+            return Response(
+                {"error": "invoice_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get the receipt/invoice
+        try:
+            receipt = PaymentReceipt.objects.get(id=invoice_id)
+        except PaymentReceipt.DoesNotExist:
+            return Response(
+                {"error": "Facture introuvable"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if already paid
+        if receipt.payment_status == 'paid':
+            return Response(
+                {"error": "Cette facture est déjà payée"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Determine service provider
+        service_provider = receipt.issued_by if receipt.issued_by else receipt.issued_to
+        
+        # Check if payment request already exists
+        existing_request = PaymentRequest.objects.filter(
+            receipt=receipt,
+            from_participant=request.user,
+            status='pending'
+        ).first()
+        
+        if existing_request:
+            return Response(
+                {"error": "Une demande de paiement est déjà en attente pour cette facture"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create payment request
+        payment_request = PaymentRequest.objects.create(
+            from_participant=request.user,
+            to_participant=service_provider,
+            amount=int(receipt.amount * 100) if hasattr(receipt, 'amount') else 0,
+            currency=receipt.currency if hasattr(receipt, 'currency') else 'XOF',
+            description=f"Paiement en espèces pour facture {receipt.invoice_number}",
+            payment_method='cash',
+            receipt=receipt,
+            status='pending'
+        )
+        
+        # Create notification for service provider
+        from communication.models import Notification
+        Notification.objects.create(
+            participant=service_provider,
+            title="Nouvelle demande de paiement en espèces",
+            message=f"{request.user.get_full_name()} demande à payer la facture {receipt.invoice_number} en espèces",
+            notification_type='payment_request',
+            metadata={
+                'payment_request_id': str(payment_request.id),
+                'invoice_id': str(receipt.id),
+                'amount': str(receipt.amount) if hasattr(receipt, 'amount') else '0',
+                'patient_name': request.user.get_full_name()
+            }
+        )
+        
+        logger.info(f"Cash payment request created: {payment_request.id} for invoice {receipt.id}")
+        
+        return Response({
+            'success': True,
+            'message': 'Demande de paiement envoyée avec succès',
+            'payment_request_id': str(payment_request.id)
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error creating cash payment request: {str(e)}", exc_info=True)
+        return Response(
+            {"error": f"Erreur lors de la création de la demande: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@extend_schema(
+    summary="Initiate online payment via FedaPay",
+    request={'application/json': dict},
+    responses={200: dict, 400: dict, 404: dict}
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def initiate_online_payment(request):
+    """
+    Initiate an online payment via FedaPay for an invoice.
+    Returns FedaPay payment URL for redirect.
+    """
+    try:
+        invoice_id = request.data.get('invoice_id')
+        invoice_type = request.data.get('invoice_type', 'service')
+        
+        if not invoice_id:
+            return Response(
+                {"error": "invoice_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get the receipt/invoice
+        try:
+            receipt = PaymentReceipt.objects.get(id=invoice_id)
+        except PaymentReceipt.DoesNotExist:
+            return Response(
+                {"error": "Facture introuvable"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if already paid
+        if receipt.payment_status == 'paid':
+            return Response(
+                {"error": "Cette facture est déjà payée"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get amount
+        amount = receipt.amount if hasattr(receipt, 'amount') else 0
+        currency = receipt.currency if hasattr(receipt, 'currency') else 'XOF'
+        
+        # Build callback URL
+        callback_url = request.build_absolute_uri('/api/v1/payments/fedapay/webhook/')
+        
+        # Initiate FedaPay transaction
+        result = fedapay_service.create_transaction(
+            amount=amount,
+            currency=currency,
+            description=f"Paiement facture {receipt.invoice_number}",
+            callback_url=callback_url,
+            customer_email=request.user.email if request.user.email else None,
+            customer_firstname=request.user.first_name if request.user.first_name else None,
+            customer_lastname=request.user.last_name if request.user.last_name else None,
+            custom_metadata={
+                'invoice_id': str(receipt.id),
+                'invoice_number': receipt.invoice_number,
+                'patient_id': str(request.user.uid),
+                'invoice_type': invoice_type
+            }
+        )
+        
+        if result['success']:
+            # Create FedaPayTransaction record
+            FedaPayTransaction.objects.create(
+                participant=request.user,
+                fedapay_transaction_id=result['transaction_id'],
+                amount=amount,
+                currency=currency,
+                description=f"Paiement facture {receipt.invoice_number}",
+                status='pending',
+                metadata={
+                    'invoice_id': str(receipt.id),
+                    'invoice_number': receipt.invoice_number
+                }
+            )
+            
+            logger.info(f"Online payment initiated for invoice {receipt.id}: {result['transaction_id']}")
+            
+            return Response({
+                'success': True,
+                'payment_url': result['payment_url'],
+                'transaction_id': result['transaction_id']
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"error": result.get('error', 'Erreur lors de l\'initialisation du paiement')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+    except Exception as e:
+        logger.error(f"Error initiating online payment: {str(e)}", exc_info=True)
+        return Response(
+            {"error": f"Erreur lors de l\'initialisation: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@extend_schema(
+    summary="Approve cash payment request (for service providers)",
+    request={'application/json': dict},
+    responses={200: dict, 400: dict, 403: dict, 404: dict}
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def approve_cash_payment(request):
+    """
+    Service provider approves a cash payment request.
+    Marks invoice as paid and completes payment request.
+    """
+    try:
+        payment_request_id = request.data.get('payment_request_id')
+        
+        if not payment_request_id:
+            return Response(
+                {"error": "payment_request_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get payment request
+        try:
+            payment_request = PaymentRequest.objects.get(id=payment_request_id)
+        except PaymentRequest.DoesNotExist:
+            return Response(
+                {"error": "Demande de paiement introuvable"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check authorization
+        if payment_request.to_participant != request.user:
+            return Response(
+                {"error": "Non autorisé"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if already processed
+        if payment_request.status != 'pending':
+            return Response(
+                {"error": "Cette demande a déjà été traitée"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update payment request
+        payment_request.status = 'approved'
+        payment_request.responded_at = timezone.now()
+        payment_request.save()
+        
+        # Update invoice/receipt to paid
+        if payment_request.receipt:
+            receipt = payment_request.receipt
+            receipt.payment_status = 'paid'
+            receipt.save()
+            
+            logger.info(f"Cash payment approved: {payment_request.id}, invoice {receipt.id} marked as paid")
+        
+        # Create notification for patient
+        from communication.models import Notification
+        Notification.objects.create(
+            participant=payment_request.from_participant,
+            title="Paiement approuvé",
+            message=f"Votre paiement en espèces pour la facture {payment_request.receipt.invoice_number if payment_request.receipt else ''} a été approuvé",
+            notification_type='payment_approved',
+            metadata={
+                'payment_request_id': str(payment_request.id),
+                'invoice_id': str(payment_request.receipt.id) if payment_request.receipt else None
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Paiement approuvé avec succès'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Error approving cash payment: {str(e)}", exc_info=True)
+        return Response(
+            {"error": f"Erreur lors de l\'approbation: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

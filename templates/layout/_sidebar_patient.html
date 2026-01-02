@@ -55,6 +55,12 @@
                 <span class="sidebar-menu-item-icon">🚑</span>
                 <span class="sidebar-menu-item-text">Transport</span>
             </a>
+            {% if request.user.gender|lower in "female,feminin,f" %}
+            <a href="/patient/menstruation/" class="sidebar-menu-item">
+                <span class="sidebar-menu-item-icon">🌸</span>
+                <span class="sidebar-menu-item-text">Suivi Menstruel</span>
+            </a>
+            {% endif %}
         </div>
 
         <div class="sidebar-section">

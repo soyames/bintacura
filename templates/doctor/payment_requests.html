@@ -1,0 +1,142 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demandes de Paiement - Docteur BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor/doctor.css' %}">
+    <link rel="stylesheet" href="{% static 'css/payments/payment_requests.css' %}">
+    <link rel="stylesheet" href="{% static 'css/doctor-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="doctor" page_title="Demandes de Paiement" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_doctor.html" %}
+
+    <div class="main-content">
+<div class="payment-requests-container">
+    <header class="page-header">
+        <h1>💰 Demandes de Paiement</h1>
+        <p class="subtitle">Gérez les paiements en espèces des patients</p>
+    </header>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <section class="pending-section">
+        <h2>En Attente ({{ pending_requests|length }})</h2>
+        {% if pending_requests %}
+        <div class="requests-grid">
+            {% for request in pending_requests %}
+            <div class="payment-card pending">
+                <div class="card-header">
+                    <span class="badge badge-pending">En attente</span>
+                    <span class="amount">{{ request.amount_display }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="patient-info">
+                        <strong>Patient:</strong> {{ request.from_participant.full_name }}
+                    </div>
+                    {% if request.receipt %}
+                    <div class="invoice-info">
+                        <strong>Facture:</strong> {{ request.receipt.invoice_number|default:request.receipt.receipt_number }}
+                    </div>
+                    {% endif %}
+                    <div class="description-info">
+                        <strong>Description:</strong> {{ request.description }}
+                    </div>
+                    <div class="request-date">
+                        <strong>Demandé le:</strong> {{ request.created_at|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <form method="post" action="{% url 'doctor:process-payment-request' request.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="confirm">
+                        <textarea name="notes" placeholder="Notes optionnelles..." class="notes-input"></textarea>
+                        <button type="submit" class="btn btn-success">
+                            ✓ Confirmer le paiement
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'doctor:process-payment-request' request.id %}" class="inline-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="cancel">
+                        <textarea name="notes" placeholder="Raison de l'annulation..." class="notes-input"></textarea>
+                        <button type="submit" class="btn btn-danger">
+                            ✗ Annuler
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>Aucune demande de paiement en attente</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="completed-section">
+        <h2>Historique Récent</h2>
+        {% if completed_requests %}
+        <div class="requests-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Montant</th>
+                        <th>Facture</th>
+                        <th>Statut</th>
+                        <th>Date</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in completed_requests %}
+                    <tr class="status-{{ request.status }}">
+                        <td>{{ request.from_participant.full_name }}</td>
+                        <td>{{ request.amount_display }}</td>
+                        <td>{{ request.receipt.invoice_number|default:request.receipt.receipt_number|default:"-" }}</td>
+                        <td>
+                            {% if request.status == 'completed' %}
+                            <span class="badge badge-success">Payé</span>
+                            {% else %}
+                            <span class="badge badge-cancelled">Annulé</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ request.updated_at|date:"d/m/Y H:i" }}</td>
+                        <td>{{ request.metadata.notes|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>Aucun historique disponible</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/payments/payment_requests.js' %}"></script>
+</body>
+
+</html>

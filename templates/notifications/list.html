@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+<link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+{% endblock %}
+
+{% block content %}
+{% include 'components/top_nav.html' %}
+
+<div class="notifications-container">
+    <div class="notifications-header">
+        <h1>🔔 Notifications</h1>
+        {% if unread_count > 0 %}
+        <button id="markAllReadBtn" class="mark-all-btn">
+            Marquer tout comme lu
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="notifications-tabs">
+        <button class="tab-btn active" data-tab="all">Toutes ({{ total_count }})</button>
+        <button class="tab-btn" data-tab="unread">Non lues ({{ unread_count }})</button>
+    </div>
+
+    <div class="notifications-list" id="notificationsList">
+        {% if notifications %}
+            {% for notification in notifications %}
+            <div class="notification-item {% if not notification.is_read %}unread{% endif %}" 
+                 data-id="{{ notification.id }}">
+                <div class="notification-icon">
+                    {% if notification.notification_type == 'appointment' %}
+                        📅
+                    {% elif notification.notification_type == 'payment' %}
+                        💰
+                    {% elif notification.notification_type == 'prescription' %}
+                        💊
+                    {% elif notification.notification_type == 'message' %}
+                        💬
+                    {% else %}
+                        🔔
+                    {% endif %}
+                </div>
+                <div class="notification-content">
+                    <h3>{{ notification.title }}</h3>
+                    <p>{{ notification.message }}</p>
+                    <span class="notification-time">{{ notification.created_at|timesince }}</span>
+                </div>
+                {% if not notification.is_read %}
+                <button class="mark-read-btn" data-id="{{ notification.id }}">
+                    ✓
+                </button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <p>Aucune notification</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if has_more %}
+    <button id="loadMoreBtn" class="load-more-btn">
+        Charger plus
+    </button>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const markAllBtn = document.getElementById('markAllReadBtn');
+    const markReadBtns = document.querySelectorAll('.mark-read-btn');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            const filter = this.dataset.tab;
+            const url = new URL(window.location);
+            url.searchParams.set('filter', filter);
+            window.location.href = url;
+        });
+    });
+
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', async function() {
+            try {
+                const response = await fetch('/api/v1/communication/notifications/mark_all_read/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                
+                if (response.ok) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error marking all as read:', error);
+            }
+        });
+    }
+
+    markReadBtns.forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const notificationId = this.dataset.id;
+            
+            try {
+                const response = await fetch(`/api/v1/communication/notifications/${notificationId}/mark_read/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                
+                if (response.ok) {
+                    const notificationItem = this.closest('.notification-item');
+                    notificationItem.classList.remove('unread');
+                    this.remove();
+                    
+                    const unreadCountEl = document.querySelector('[data-tab="unread"]');
+                    if (unreadCountEl) {
+                        const currentCount = parseInt(unreadCountEl.textContent.match(/\d+/)[0]);
+                        unreadCountEl.textContent = `Non lues (${currentCount - 1})`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error marking as read:', error);
+            }
+        });
+    });
+});
+</script>
+
+{% csrf_token %}
+{% endblock %}
