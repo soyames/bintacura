@@ -6,13 +6,24 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from decimal import Decimal
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from core.system_config import SystemConfiguration
 from currency_converter.services import CurrencyConverterService
-
+from core.serializers import (
+    ConsultationFeeResponseSerializer,
+    ParticipantServicesResponseSerializer,
+    CurrencyConversionRequestSerializer,
+    CurrencyConversionResponseSerializer
+)
 from core.models import Participant
 
 
+@extend_schema(
+    responses={200: ConsultationFeeResponseSerializer},
+    summary="Get consultation fee in participant's currency",
+    description="Returns the default consultation fee converted to participant's local currency based on their region"
+)
 class GetConsultationFeeView(APIView):
     """
     Get the default consultation fee in patient's local currency
@@ -81,6 +92,16 @@ class GetConsultationFeeView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(name='participant_id', type=str, location=OpenApiParameter.PATH, description='Participant UUID'),
+        OpenApiParameter(name='category', type=str, location=OpenApiParameter.QUERY, required=False),
+        OpenApiParameter(name='is_available', type=bool, location=OpenApiParameter.QUERY, required=False)
+    ],
+    responses={200: ParticipantServicesResponseSerializer},
+    summary="Get participant services",
+    description="Returns additional services offered by a doctor or hospital"
+)
 class GetParticipantServicesView(APIView):
     """
     Get additional services offered by a participant (doctor or hospital)
@@ -188,6 +209,12 @@ class GetParticipantServicesView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@extend_schema(
+    request=CurrencyConversionRequestSerializer,
+    responses={200: CurrencyConversionResponseSerializer},
+    summary="Convert currency",
+    description="Convert an amount from one currency to another using current exchange rates"
+)
 class ConvertCurrencyView(APIView):
     """
     Convert amount from one currency to another

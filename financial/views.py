@@ -12,6 +12,7 @@ from .models import (
     FiscalYear, FiscalPeriod, ChartOfAccounts, JournalEntry, JournalEntryLine,
     BankAccount, Budget, BudgetLine, Tax, ProjectManagement
 )
+from core.serializers import ParticipantSerializer
 from .serializers import (
     FiscalYearSerializer, FiscalPeriodSerializer, ChartOfAccountsSerializer,
     JournalEntrySerializer, JournalEntryLineSerializer, BankAccountSerializer,
@@ -308,6 +309,7 @@ class ProjectManagementViewSet(FinancialBaseViewSet):
 class FinancialReportsViewSet(viewsets.ViewSet):
     """Financial reports: P&L, Balance Sheet, Cash Flow, etc."""
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
     @extend_schema(summary="Generate Profit & Loss statement", responses={200: OpenApiResponse(description="P&L report")})
     @action(detail=False, methods=['get'])

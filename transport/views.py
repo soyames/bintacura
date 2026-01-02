@@ -16,6 +16,8 @@ class TransportRequestViewSet(viewsets.ModelViewSet):  # View for TransportReque
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return TransportRequest.objects.none()
         # Filter by current user (Participant model is the user model)
         return TransportRequest.objects.filter(patient=self.request.user)
 

@@ -13,7 +13,7 @@ urlpatterns = [
     
     # Queue status
     path('api/v1/queue/status/', views.get_queue_status, name='queue_status'),
-    path('api/v1/queue/status/<uuid:participant_id>/', views.get_queue_status, name='provider_queue_status'),
+    path('api/v1/queue/status/<uuid:participant_id>/', views.get_provider_queue_status, name='provider_queue_status'),
     
     # Patient queue position
     path('api/v1/queue/my-position/<str:appointment_id>/', views.get_my_queue_position, name='my_queue_position'),

@@ -19,6 +19,9 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Prescription.objects.none()
+        
         participant = self.request.user
         print(f"DEBUG PrescriptionViewSet: User={participant.email}, Role={participant.role}, UID={participant.uid}")
         
@@ -691,6 +694,8 @@ class PrescriptionItemViewSet(viewsets.ModelViewSet):  # View for PrescriptionIt
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return PrescriptionItem.objects.none()
         return PrescriptionItem.objects.filter(prescription__patient=self.request.user)
 
 

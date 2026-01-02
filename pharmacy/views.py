@@ -27,6 +27,7 @@ from .serializers import (
     DoctorPharmacyReferralSerializer, PharmacyBonusConfigSerializer
 )
 from prescriptions.models import Prescription
+from prescriptions.serializers import PrescriptionSerializer
 from currency_converter.services import CurrencyConverterService
 
 class PharmacyInventoryViewSet(viewsets.ModelViewSet):  # View for PharmacyInventorySet operations
@@ -34,10 +35,10 @@ class PharmacyInventoryViewSet(viewsets.ModelViewSet):  # View for PharmacyInven
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'pharmacy':
-            return PharmacyInventory.objects.filter(pharmacy=self.request.user).select_related('medication')
         if getattr(self, 'swagger_fake_view', False):
             return PharmacyInventory.objects.none()
+        if self.request.user.role == 'pharmacy':
+            return PharmacyInventory.objects.filter(pharmacy=self.request.user).select_related('medication')
         return PharmacyInventory.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -270,10 +271,10 @@ class PharmacyOrderViewSet(viewsets.ModelViewSet):  # View for PharmacyOrderSet 
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'pharmacy':
-            return PharmacyOrder.objects.filter(pharmacy=self.request.user).select_related('patient', 'prescription')
         if getattr(self, 'swagger_fake_view', False):
             return PharmacyOrder.objects.none()
+        if self.request.user.role == 'pharmacy':
+            return PharmacyOrder.objects.filter(pharmacy=self.request.user).select_related('patient', 'prescription')
         return PharmacyOrder.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -350,10 +351,10 @@ class PharmacySupplierViewSet(viewsets.ModelViewSet):  # View for PharmacySuppli
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'pharmacy':
-            return PharmacySupplier.objects.filter(pharmacy=self.request.user)
         if getattr(self, 'swagger_fake_view', False):
             return PharmacySupplier.objects.none()
+        if self.request.user.role == 'pharmacy':
+            return PharmacySupplier.objects.filter(pharmacy=self.request.user)
         return PharmacySupplier.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -364,10 +365,10 @@ class PharmacyPurchaseViewSet(viewsets.ModelViewSet):  # View for PharmacyPurcha
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'pharmacy':
-            return PharmacyPurchase.objects.filter(pharmacy=self.request.user).select_related('supplier')
         if getattr(self, 'swagger_fake_view', False):
             return PharmacyPurchase.objects.none()
+        if self.request.user.role == 'pharmacy':
+            return PharmacyPurchase.objects.filter(pharmacy=self.request.user).select_related('supplier')
         return PharmacyPurchase.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -413,10 +414,10 @@ class PharmacySaleViewSet(viewsets.ModelViewSet):  # View for PharmacySaleSet op
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'pharmacy':
-            return PharmacySale.objects.filter(pharmacy=self.request.user).select_related('patient')
         if getattr(self, 'swagger_fake_view', False):
             return PharmacySale.objects.none()
+        if self.request.user.role == 'pharmacy':
+            return PharmacySale.objects.filter(pharmacy=self.request.user).select_related('patient')
         return PharmacySale.objects.none()
 
     @transaction.atomic
@@ -645,10 +646,10 @@ class DoctorPharmacyReferralViewSet(viewsets.ModelViewSet):  # View for DoctorPh
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'doctor':
-            return DoctorPharmacyReferral.objects.filter(doctor=self.request.user).select_related('pharmacy', 'patient')
         if getattr(self, 'swagger_fake_view', False):
             return DoctorPharmacyReferral.objects.none()
+        if self.request.user.role == 'doctor':
+            return DoctorPharmacyReferral.objects.filter(doctor=self.request.user).select_related('pharmacy', 'patient')
         elif self.request.user.role == 'pharmacy':
             return DoctorPharmacyReferral.objects.filter(pharmacy=self.request.user).select_related('doctor', 'patient')
         return DoctorPharmacyReferral.objects.none()
@@ -700,10 +701,10 @@ class PharmacyBonusConfigViewSet(viewsets.ModelViewSet):  # View for PharmacyBon
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'pharmacy':
-            return PharmacyBonusConfig.objects.filter(pharmacy=self.request.user).select_related('doctor')
         if getattr(self, 'swagger_fake_view', False):
             return PharmacyBonusConfig.objects.none()
+        if self.request.user.role == 'pharmacy':
+            return PharmacyBonusConfig.objects.filter(pharmacy=self.request.user).select_related('doctor')
         return PharmacyBonusConfig.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -849,6 +850,11 @@ def counter_dashboard(request):
     return render(request, 'pharmacy/staff/counter_dashboard.html', context)
 
 
+@extend_schema(
+    tags=["Pharmacy Prescriptions"],
+    summary="Search prescription by code",
+    responses={200: PrescriptionSerializer}
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def search_prescription(request):
@@ -922,6 +928,12 @@ def search_prescription(request):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
+@extend_schema(
+    tags=["Pharmacy Prescriptions"],
+    summary="Prepare medications for prescription",
+    request=PharmacyOrderSerializer,
+    responses={200: PharmacyOrderSerializer}
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @transaction.atomic
@@ -1042,10 +1054,10 @@ class PharmacyServiceViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        if self.request.user.role == 'pharmacy':
-            return PharmacyService.objects.filter(pharmacy=self.request.user)
         if getattr(self, 'swagger_fake_view', False):
             return PharmacyService.objects.none()
+        if self.request.user.role == 'pharmacy':
+            return PharmacyService.objects.filter(pharmacy=self.request.user)
         return PharmacyService.objects.none()
     
     @transaction.atomic

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @extend_schema(tags=["Shopping Cart"])
 class ShoppingCartViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = PharmacyOrderSerializer
 
     def get_or_create_cart(self, patient, pharmacy=None):
         cart = PharmacyOrder.objects.filter(

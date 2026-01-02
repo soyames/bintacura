@@ -33,7 +33,7 @@ class PatientDataSerializer(serializers.ModelSerializer):  # Serializer for Pati
             "home_doctor_id",
         ]
 
-    def get_participant(self, obj):  # Get participant
+    def get_participant(self, obj) -> dict:  # Get participant
         participant = obj.participant
         return {
             "uid": str(participant.uid),

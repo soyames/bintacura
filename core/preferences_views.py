@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 from .preferences import ParticipantPreferences, EmergencyContact
 from .preferences_serializers import (
@@ -15,12 +17,21 @@ from .preferences_serializers import (
 class LanguagePreferenceView(APIView):
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(
+        summary="Get participant language preference",
+        responses={200: OpenApiTypes.OBJECT}
+    )
     def get(self, request):
         return Response({
             'preferred_language': request.user.preferred_language,
             'supported_languages': [{'code': code, 'name': name} for code, name in settings.LANGUAGES]
         })
     
+    @extend_schema(
+        summary="Set participant language preference",
+        request={'application/json': {'type': 'object', 'properties': {'language': {'type': 'string'}}}},
+        responses={200: OpenApiTypes.OBJECT}
+    )
     def post(self, request):
         language_code = request.data.get('language')
         if not language_code:
@@ -50,7 +61,12 @@ class ParticipantPreferencesView(APIView):
     PUT/PATCH: Update preferences
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantPreferencesSerializer
     
+    @extend_schema(
+        summary="Get participant preferences",
+        responses={200: ParticipantPreferencesSerializer}
+    )
     def get(self, request):
         """Get participant's current preferences."""
         preferences, created = ParticipantPreferences.objects.get_or_create(
@@ -59,6 +75,11 @@ class ParticipantPreferencesView(APIView):
         serializer = ParticipantPreferencesSerializer(preferences)
         return Response(serializer.data)
     
+    @extend_schema(
+        summary="Update participant preferences (full)",
+        request=ParticipantPreferencesSerializer,
+        responses={200: ParticipantPreferencesSerializer}
+    )
     def put(self, request):
         """Update participant's preferences (full update)."""
         preferences, created = ParticipantPreferences.objects.get_or_create(
@@ -74,6 +95,11 @@ class ParticipantPreferencesView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @extend_schema(
+        summary="Update participant preferences (partial)",
+        request=ParticipantPreferencesSerializer,
+        responses={200: ParticipantPreferencesSerializer}
+    )
     def patch(self, request):
         """Update participant's preferences (partial update)."""
         preferences, created = ParticipantPreferences.objects.get_or_create(
@@ -97,13 +123,25 @@ class EmergencyContactListView(APIView):
     POST: Create new emergency contact
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = EmergencyContactSerializer
     
+    @extend_schema(
+        operation_id="preferences_emergency_contacts_list",
+        summary="List emergency contacts",
+        responses={200: EmergencyContactSerializer(many=True)}
+    )
     def get(self, request):
         """Get all emergency contacts for participant."""
         contacts = EmergencyContact.objects.filter(participant=request.user)
         serializer = EmergencyContactSerializer(contacts, many=True)
         return Response(serializer.data)
     
+    @extend_schema(
+        operation_id="preferences_emergency_contacts_create",
+        summary="Create emergency contact",
+        request=EmergencyContactSerializer,
+        responses={201: EmergencyContactSerializer}
+    )
     def post(self, request):
         """Create new emergency contact."""
         serializer = EmergencyContactSerializer(
@@ -124,6 +162,7 @@ class EmergencyContactDetailView(APIView):
     DELETE: Remove contact
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = EmergencyContactSerializer
     
     def get_object(self, pk, user):
         """Get emergency contact ensuring it belongs to the user."""
@@ -133,12 +172,23 @@ class EmergencyContactDetailView(APIView):
             participant=user
         )
     
+    @extend_schema(
+        operation_id="preferences_emergency_contact_detail",
+        summary="Get emergency contact details",
+        responses={200: EmergencyContactSerializer}
+    )
     def get(self, request, pk):
         """Get emergency contact details."""
         contact = self.get_object(pk, request.user)
         serializer = EmergencyContactSerializer(contact)
         return Response(serializer.data)
     
+    @extend_schema(
+        operation_id="preferences_emergency_contact_update",
+        summary="Update emergency contact (full)",
+        request=EmergencyContactSerializer,
+        responses={200: EmergencyContactSerializer}
+    )
     def put(self, request, pk):
         """Update emergency contact (full update)."""
         contact = self.get_object(pk, request.user)
@@ -152,6 +202,12 @@ class EmergencyContactDetailView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @extend_schema(
+        operation_id="preferences_emergency_contact_partial_update",
+        summary="Update emergency contact (partial)",
+        request=EmergencyContactSerializer,
+        responses={200: EmergencyContactSerializer}
+    )
     def patch(self, request, pk):
         """Update emergency contact (partial update)."""
         contact = self.get_object(pk, request.user)
@@ -166,6 +222,11 @@ class EmergencyContactDetailView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @extend_schema(
+        operation_id="preferences_emergency_contact_delete",
+        summary="Delete emergency contact",
+        responses={204: None}
+    )
     def delete(self, request, pk):
         """Delete emergency contact."""
         contact = self.get_object(pk, request.user)

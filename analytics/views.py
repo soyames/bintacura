@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from django.db.models import Count, Sum, Avg, Q
 from django.utils import timezone
 from django.shortcuts import render, redirect
@@ -51,10 +51,16 @@ class PlatformStatisticsViewSet(viewsets.ReadOnlyModelViewSet):  # View for Plat
         return super().get_queryset()
 
 
-class AdminAnalyticsView(APIView):  # Admin configuration for AnalyticsView model
+class AdminAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = DashboardOverviewSerializer
 
-    def get(self, request):  # Get
+    @extend_schema(
+        summary="Get admin dashboard overview",
+        tags=["Analytics"],
+        responses={200: DashboardOverviewSerializer}
+    )
+    def get(self, request):
         if not (request.user.is_superuser or request.user.role == "super_admin"):
             return Response(
                 {"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN
@@ -384,10 +390,15 @@ class PatientAnalyticsView(APIView):
         return Response(serializer.data)
 
 
-class DetailedPatientAnalyticsView(APIView):  # View for DetailedPatientAnalytics operations
+class DetailedPatientAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(
+        summary="Get patient analytics dashboard",
+        tags=["Analytics"],
+        responses={200: OpenApiResponse(description="Patient analytics data")}
+    )
+    def get(self, request):
         from .analytics_service import PatientAnalytics
 
         if request.user.role != "patient":
@@ -400,10 +411,15 @@ class DetailedPatientAnalyticsView(APIView):  # View for DetailedPatientAnalytic
         return Response(stats)
 
 
-class DetailedDoctorAnalyticsView(APIView):  # View for DetailedDoctorAnalytics operations
+class DetailedDoctorAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(
+        summary="Get doctor analytics dashboard",
+        tags=["Analytics"],
+        responses={200: OpenApiResponse(description="Doctor analytics data")}
+    )
+    def get(self, request):
         from .analytics_service import DoctorAnalytics
 
         if request.user.role != "doctor":
@@ -416,10 +432,15 @@ class DetailedDoctorAnalyticsView(APIView):  # View for DetailedDoctorAnalytics 
         return Response(stats)
 
 
-class DetailedHospitalAnalyticsView(APIView):  # View for DetailedHospitalAnalytics operations
+class DetailedHospitalAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(
+        summary="Get hospital analytics dashboard",
+        tags=["Analytics"],
+        responses={200: OpenApiResponse(description="Hospital analytics data")}
+    )
+    def get(self, request):
         from .analytics_service import HospitalAnalytics
 
         if request.user.role != "hospital":
@@ -432,10 +453,15 @@ class DetailedHospitalAnalyticsView(APIView):  # View for DetailedHospitalAnalyt
         return Response(stats)
 
 
-class DetailedPharmacyAnalyticsView(APIView):  # View for DetailedPharmacyAnalytics operations
+class DetailedPharmacyAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):  # Get
+    @extend_schema(
+        summary="Get pharmacy analytics dashboard",
+        tags=["Analytics"],
+        responses={200: OpenApiResponse(description="Pharmacy analytics data")}
+    )
+    def get(self, request):
         from .analytics_service import PharmacyAnalytics
 
         if request.user.role != "pharmacy":
@@ -776,6 +802,7 @@ class PredictiveAnalyticsViewSet(viewsets.ViewSet):
     Provides statistical forecasting and pattern analysis
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = None
 
     def _check_admin_permission(self, request):
         """Check if user has admin permissions"""

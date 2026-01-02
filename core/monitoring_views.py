@@ -6,8 +6,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+from rest_framework import serializers as drf_serializers
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from drf_spectacular.utils import extend_schema, OpenApiResponse, inline_serializer
 from .centralized_logging import RegionalLogAggregator, HealthMonitor
 from .security_config import SecurityConfig
 import logging
@@ -16,6 +18,29 @@ logger = logging.getLogger(__name__)
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Receive logs from regional deployments",
+    tags=["Monitoring"],
+    request=inline_serializer(
+        name='RegionalLogRequest',
+        fields={
+            'region': drf_serializers.CharField(),
+            'level': drf_serializers.CharField(),
+            'message': drf_serializers.CharField(),
+            'timestamp': drf_serializers.DateTimeField(),
+        }
+    ),
+    responses={
+        200: inline_serializer(
+            name='LogReceivedResponse',
+            fields={'status': drf_serializers.CharField()}
+        ),
+        401: inline_serializer(
+            name='UnauthorizedResponse',
+            fields={'error': drf_serializers.CharField()}
+        ),
+    }
+)
 @api_view(['POST'])
 def receive_regional_logs(request):
     """
@@ -44,6 +69,28 @@ def receive_regional_logs(request):
 
 
 @csrf_exempt
+@extend_schema(
+    summary="Receive health status from regional deployments",
+    tags=["Monitoring"],
+    request=inline_serializer(
+        name='HealthStatusRequest',
+        fields={
+            'region': drf_serializers.CharField(),
+            'status': drf_serializers.CharField(),
+            'timestamp': drf_serializers.DateTimeField(),
+        }
+    ),
+    responses={
+        200: inline_serializer(
+            name='HealthStatusReceivedResponse',
+            fields={'status': drf_serializers.CharField()}
+        ),
+        401: inline_serializer(
+            name='HealthUnauthorizedResponse',
+            fields={'error': drf_serializers.CharField()}
+        ),
+    }
+)
 @api_view(['POST'])
 def receive_health_status(request):
     """
@@ -66,6 +113,11 @@ def receive_health_status(request):
     return Response({'status': 'received'}, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    summary="Get current health status",
+    tags=["Monitoring"],
+    responses={200: OpenApiResponse(description="Health status data")}
+)
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def get_health_status(request):
@@ -77,6 +129,11 @@ def get_health_status(request):
     return Response(health_status, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    summary="Get current security configuration",
+    tags=["Monitoring"],
+    responses={200: OpenApiResponse(description="Security configuration")}
+)
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def get_security_config(request):
@@ -88,6 +145,11 @@ def get_security_config(request):
     return Response(config, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    summary="Get region configuration info",
+    tags=["Monitoring"],
+    responses={200: OpenApiResponse(description="Region configuration")}
+)
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def get_region_info(request):

@@ -65,7 +65,12 @@ class DependentProfileViewSet(viewsets.ModelViewSet):
 @extend_schema(tags=["Patient Prescriptions"])
 class PrescriptionsAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = PrescriptionSerializer
 
+    @extend_schema(
+        summary="Get patient prescriptions",
+        responses={200: PrescriptionSerializer}
+    )
     def get(self, request):
         import logging
         logger = logging.getLogger(__name__)

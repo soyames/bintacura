@@ -15,6 +15,7 @@ import string
 from .models import HospitalStaff, Bed, Admission, DepartmentTask
 from .service_models import HospitalService
 from core.models import Department, Participant
+from core.serializers import ParticipantSerializer
 from .serializers import (
     HospitalStaffSerializer, BedSerializer, AdmissionSerializer,
     DepartmentTaskSerializer, DepartmentSerializer
@@ -35,10 +36,10 @@ class HospitalStaffViewSet(viewsets.ModelViewSet):  # View for HospitalStaffSet 
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'hospital':
-            return HospitalStaff.objects.filter(hospital=self.request.user).select_related('department')
         if getattr(self, 'swagger_fake_view', False):
             return HospitalStaff.objects.none()
+        if self.request.user.role == 'hospital':
+            return HospitalStaff.objects.filter(hospital=self.request.user).select_related('department')
         return HospitalStaff.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -105,10 +106,10 @@ class BedViewSet(viewsets.ModelViewSet):  # View for BedSet operations
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'hospital':
-            return Bed.objects.filter(hospital=self.request.user).select_related('department')
         if getattr(self, 'swagger_fake_view', False):
             return Bed.objects.none()
+        if self.request.user.role == 'hospital':
+            return Bed.objects.filter(hospital=self.request.user).select_related('department')
         return Bed.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -154,12 +155,12 @@ class AdmissionViewSet(viewsets.ModelViewSet):  # View for AdmissionSet operatio
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return Admission.objects.none()
         if self.request.user.role == 'hospital':
             return Admission.objects.filter(hospital=self.request.user).select_related(
                 'patient', 'department', 'bed', 'admitting_doctor'
             )
-        if getattr(self, 'swagger_fake_view', False):
-            return Admission.objects.none()
         return Admission.objects.none()
 
     @transaction.atomic
@@ -234,12 +235,12 @@ class DepartmentTaskViewSet(viewsets.ModelViewSet):  # View for DepartmentTaskSe
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return DepartmentTask.objects.none()
         if self.request.user.role == 'hospital':
             return DepartmentTask.objects.filter(
                 department__hospital=self.request.user
             ).select_related('department', 'assigned_to', 'created_by')
-        if getattr(self, 'swagger_fake_view', False):
-            return DepartmentTask.objects.none()
         return DepartmentTask.objects.none()
 
     @action(detail=True, methods=['post'])
@@ -266,10 +267,10 @@ class DepartmentViewSet(viewsets.ModelViewSet):  # View for DepartmentSet operat
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'hospital':
-            return Department.objects.filter(hospital=self.request.user).select_related('head_of_department')
         if getattr(self, 'swagger_fake_view', False):
             return Department.objects.none()
+        if self.request.user.role == 'hospital':
+            return Department.objects.filter(hospital=self.request.user).select_related('head_of_department')
         return Department.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -303,6 +304,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):  # View for DepartmentSet operat
 class HospitalAnalyticsViewSet(viewsets.ViewSet):
     """AI-powered hospital operations analytics"""
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
     @action(detail=False, methods=['get'])
     def ai_bed_occupancy(self, request):

@@ -125,4 +125,6 @@ class WearableDataViewSet(viewsets.ModelViewSet):  # View for WearableDataSet op
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return WearableData.objects.none()
         return WearableData.objects.filter(patient=self.request.user)

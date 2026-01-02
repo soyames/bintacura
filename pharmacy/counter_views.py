@@ -38,8 +38,11 @@ def get_pharmacy_id_for_user(user):
 class PharmacyCounterViewSet(viewsets.ModelViewSet):
     serializer_class = PharmacyCounterSerializer
     permission_classes = [IsAuthenticated]
+    queryset = PharmacyCounter.objects.none()
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return PharmacyCounter.objects.none()
         pharmacy_id = get_pharmacy_id_for_user(self.request.user)
         if pharmacy_id:
             return PharmacyCounter.objects.filter(
@@ -95,8 +98,11 @@ class PharmacyCounterViewSet(viewsets.ModelViewSet):
 class OrderQueueViewSet(viewsets.ModelViewSet):
     serializer_class = OrderQueueSerializer
     permission_classes = [IsAuthenticated]
+    queryset = OrderQueue.objects.none()
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return OrderQueue.objects.none()
         pharmacy_id = get_pharmacy_id_for_user(self.request.user)
         if pharmacy_id:
             return OrderQueue.objects.filter(
@@ -228,8 +234,11 @@ class OrderQueueViewSet(viewsets.ModelViewSet):
 class DeliveryTrackingViewSet(viewsets.ModelViewSet):
     serializer_class = DeliveryTrackingSerializer
     permission_classes = [IsAuthenticated]
+    queryset = DeliveryTracking.objects.none()
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return DeliveryTracking.objects.none()
         user = self.request.user
         pharmacy_id = get_pharmacy_id_for_user(user)
         
@@ -346,8 +355,11 @@ class DeliveryTrackingViewSet(viewsets.ModelViewSet):
 class PickupVerificationViewSet(viewsets.ModelViewSet):
     serializer_class = PickupVerificationSerializer
     permission_classes = [IsAuthenticated]
+    queryset = PickupVerification.objects.none()
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return PickupVerification.objects.none()
         pharmacy_id = get_pharmacy_id_for_user(self.request.user)
         if pharmacy_id:
             return PickupVerification.objects.filter(

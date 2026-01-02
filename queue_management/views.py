@@ -9,8 +9,8 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from rest_framework import status, serializers as drf_serializers
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter, inline_serializer, OpenApiTypes
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from appointments.models import Appointment, AppointmentQueue
@@ -29,7 +29,12 @@ class BookAppointmentWithQueueView(APIView):
     Generates receipt with queue number
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = AppointmentBookingSerializer
     
+    @extend_schema(
+        request=AppointmentBookingSerializer,
+        responses={201: AppointmentBookingSerializer}
+    )
     def post(self, request):  # Post
         logger.error(f"🔍 =============== BOOK APPOINTMENT DEBUG ===============")
         logger.error(f"   Logged-in user: {request.user.email}")
@@ -117,6 +122,37 @@ class BookAppointmentWithQueueView(APIView):
 
 
 
+@extend_schema(
+    summary="Call next patient in queue",
+    tags=["Queue Management"],
+    request=inline_serializer(
+        name='CallNextPatientRequest',
+        fields={'appointment_date': drf_serializers.DateField(required=False)}
+    ),
+    responses={
+        200: inline_serializer(
+            name='CallNextPatientResponse',
+            fields={
+                'success': drf_serializers.BooleanField(),
+                'message': drf_serializers.CharField(),
+                'patient_name': drf_serializers.CharField(),
+                'queue_number': drf_serializers.IntegerField(),
+                'appointment_id': drf_serializers.UUIDField(),
+            }
+        ),
+        403: inline_serializer(
+            name='CallNextPatientForbiddenResponse',
+            fields={'error': drf_serializers.CharField()}
+        ),
+        404: inline_serializer(
+            name='CallNextPatientNotFoundResponse',
+            fields={
+                'success': drf_serializers.BooleanField(),
+                'message': drf_serializers.CharField()
+            }
+        ),
+    }
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def call_next_patient(request):
@@ -149,10 +185,31 @@ def call_next_patient(request):
         )
 
 
+@extend_schema(
+    operation_id="get_my_queue_status",
+    tags=["Queue Management"],
+    summary="Get queue status for current participant",
+    parameters=[
+        OpenApiParameter(
+            name='date',
+            type=OpenApiTypes.DATE,
+            location=OpenApiParameter.QUERY,
+            description='Appointment date (YYYY-MM-DD)',
+            required=False
+        )
+    ],
+    responses={200: inline_serializer(
+        name='MyQueueStatusResponse',
+        fields={
+            'queue_entries': drf_serializers.ListField(),
+            'total_waiting': drf_serializers.IntegerField(),
+        }
+    )}
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_queue_status(request, participant_id=None):
-    """Get queue status for a participant (doctor/hospital)"""
+    """Get queue status for current participant (doctor/hospital)"""
     if participant_id is None:
         if request.user.role in ['doctor', 'hospital']:
             participant_id = str(request.user.uid)
@@ -179,6 +236,83 @@ def get_queue_status(request, participant_id=None):
         )
 
 
+@extend_schema(
+    operation_id="get_provider_queue_status",
+    tags=["Queue Management"],
+    summary="Get queue status for specific participant",
+    parameters=[
+        OpenApiParameter(
+            name='participant_id',
+            type=OpenApiTypes.UUID,
+            location=OpenApiParameter.PATH,
+            description='Participant UUID',
+            required=True
+        ),
+        OpenApiParameter(
+            name='date',
+            type=OpenApiTypes.DATE,
+            location=OpenApiParameter.QUERY,
+            description='Appointment date (YYYY-MM-DD)',
+            required=False
+        )
+    ],
+    responses={200: inline_serializer(
+        name='ProviderQueueStatusResponse',
+        fields={
+            'queue_entries': drf_serializers.ListField(),
+            'total_waiting': drf_serializers.IntegerField(),
+        }
+    )}
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_provider_queue_status(request, participant_id):
+    """Get queue status for specific participant (doctor/hospital)"""
+    appointment_date = request.GET.get('date')
+    
+    try:
+        status_data = QueueManagementService.get_participant_queue_status(
+            participant_id,
+            appointment_date
+        )
+        
+        return Response(status_data)
+        
+    except Participant.DoesNotExist:
+        return Response(
+            {'error': 'Provider not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@extend_schema(
+    tags=["Queue Management"],
+    summary="Complete appointment and update queue",
+    responses={200: OpenApiResponse(description="Appointment completed")}
+)
+@extend_schema(
+    summary="Complete appointment and update queue",
+    tags=["Queue Management"],
+    request=None,
+    responses={
+        200: inline_serializer(
+            name='CompleteAppointmentResponse',
+            fields={
+                'success': drf_serializers.BooleanField(),
+                'message': drf_serializers.CharField(),
+                'duration_minutes': drf_serializers.IntegerField(),
+            }
+        ),
+        403: inline_serializer(
+            name='CompleteAppointmentUnauthorizedResponse',
+            fields={'error': drf_serializers.CharField()}
+        ),
+        404: inline_serializer(
+            name='CompleteAppointmentNotFoundResponse',
+            fields={'error': drf_serializers.CharField()}
+        ),
+    }
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def complete_appointment_with_queue(request, appointment_id):
@@ -213,6 +347,11 @@ def complete_appointment_with_queue(request, appointment_id):
         )
 
 
+@extend_schema(
+    tags=["Queue Management"],
+    summary="Get patient's position in queue",
+    responses={200: OpenApiResponse(description="Queue position")}
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_my_queue_position(request, appointment_id):

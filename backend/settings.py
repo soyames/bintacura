@@ -526,7 +526,15 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": "/api/v1/",
+    "ENUM_GENERATE_CHOICE_DESCRIPTION": False,
+    "DISABLE_ERRORS_AND_WARNINGS": True,
+    "ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE": False,
 }
+
+# Silence DRF Spectacular enum naming collision warnings (documentation only, no functional impact)
+SILENCED_SYSTEM_CHECKS = [
+    'drf_spectacular.W001',
+]
 
 # CORS: Cross-Origin Resource Sharing configuration for frontend access
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in development
@@ -704,7 +712,7 @@ X_FRAME_OPTIONS = "DENY"
 # Smart security settings: Enable in production, allow localhost override
 # In production (DEBUG=False), these are enabled by default for security
 # For local development, can be overridden via .env
-_IS_PRODUCTION = not DEBUG
+_IS_PRODUCTION = not DEBUG and not _is_local
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=_IS_PRODUCTION, cast=bool)
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=_IS_PRODUCTION, cast=bool)
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=_IS_PRODUCTION, cast=bool)

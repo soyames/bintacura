@@ -203,6 +203,25 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
     template_name = "payments/invoice_detail.html"
     login_url = "/auth/login/"
     
+    def _generate_temporary_receipt(self, appointment, service_transaction=None):
+        """Generate a temporary receipt object for display purposes (not saved to DB)"""
+        from payments.models import PaymentReceipt
+        from decimal import Decimal
+        
+        receipt = PaymentReceipt()
+        receipt.id = appointment.id
+        receipt.receipt_number = f"TEMP-{appointment.appointment_number}"
+        if service_transaction:
+            receipt.service_transaction = service_transaction
+        receipt.issued_to = appointment.patient
+        receipt.issued_by = appointment.doctor
+        receipt.amount = appointment.consultation_fee or Decimal('0.00')
+        receipt.currency = getattr(appointment, 'currency', 'XOF')
+        receipt.payment_status = appointment.status
+        receipt.issued_at = appointment.created_at
+        
+        return receipt
+    
     def get(self, request, *args, **kwargs):
         """Override get to handle missing invoices gracefully"""
         invoice_id = self.kwargs.get('invoice_id')
@@ -241,71 +260,64 @@ class InvoiceDetailView(LoginRequiredMixin, TemplateView):
         
         return super().get(request, *args, **kwargs)
     
-    def _generate_receipt_from_appointment(self, appointment):
-        """Generate a PaymentReceipt on-the-fly from appointment data"""
-        from payments.models import PaymentReceipt
-        from django.utils import timezone
-        
-        # Create receipt without saving to database (transient object)
-        receipt = PaymentReceipt(
-            id=appointment.id,  # Use appointment ID
-            receipt_number=f"APT-{str(appointment.id)[:8].upper()}",
-            issued_to=appointment.patient,
-            issued_by=appointment.doctor if appointment.doctor else appointment.hospital,
-            amount=appointment.final_price or appointment.consultation_fee or 0,
-            currency=appointment.currency or 'XOF',
-            payment_method=appointment.payment_method or 'onsite',
-            payment_status=appointment.payment_status or 'pending',
-            issued_at=appointment.created_at,
-            description=f"Consultation - {appointment.appointment_type or 'General'}",
-            metadata={
-                'appointment_id': str(appointment.id),
-                'appointment_date': str(appointment.appointment_date),
-                'appointment_time': str(appointment.appointment_time),
-                'doctor': appointment.doctor.full_name if appointment.doctor else 'N/A',
-                'generated_on_fly': True,
-            }
-        )
-        return receipt
-    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         invoice_id = self.kwargs.get('invoice_id')
         transaction_id = self.kwargs.get('transaction_id') or self.request.GET.get('transaction_id')
+        appointment_id = self.request.GET.get('appointment_id')
         
         if transaction_id:
             receipt = get_object_or_404(
                 PaymentReceipt,
                 db_models.Q(service_transaction__id=transaction_id) | db_models.Q(transaction__id=transaction_id)
             )
+        elif appointment_id:
+            # Handle appointment_id from query parameter
+            from appointments.models import Appointment
+            appointment = get_object_or_404(Appointment, id=appointment_id)
+            
+            # Check permission
+            if appointment.patient != self.request.user and not self.request.user.is_staff:
+                from django.core.exceptions import PermissionDenied
+                raise PermissionDenied("You don't have permission to view this invoice")
+            
+            # Try to find existing receipt through payment request
+            receipt = None
+            if hasattr(appointment, 'payment_request') and appointment.payment_request:
+                if hasattr(appointment.payment_request, 'transaction') and appointment.payment_request.transaction:
+                    receipt = PaymentReceipt.objects.filter(
+                        transaction=appointment.payment_request.transaction
+                    ).first()
+            
+            if not receipt:
+                # Generate temporary receipt
+                receipt = self._generate_temporary_receipt(appointment)
         elif invoice_id:
             # Try to find receipt by ID first
             try:
                 receipt = PaymentReceipt.objects.get(id=invoice_id)
             except PaymentReceipt.DoesNotExist:
-                # If not found, try to find by appointment ID
-                from appointments.models import Appointment
+                # If not found, try to find by appointment ID via ServiceTransaction
+                from payments.models import ServiceTransaction
                 
                 try:
-                    appointment = Appointment.objects.get(id=invoice_id)
-                except Appointment.DoesNotExist:
+                    # Find ServiceTransaction where service_id matches the appointment ID
+                    service_transaction = ServiceTransaction.objects.select_related(
+                        'patient', 'service_provider'
+                    ).get(service_id=invoice_id, service_type='appointment')
+                    
+                    # Get the receipt linked to this service transaction
+                    try:
+                        receipt = PaymentReceipt.objects.get(service_transaction=service_transaction)
+                    except PaymentReceipt.DoesNotExist:
+                        # Generate temporary receipt for appointment
+                        from appointments.models import Appointment
+                        appointment = get_object_or_404(Appointment, id=invoice_id)
+                        receipt = self._generate_temporary_receipt(appointment, service_transaction)
+                        
+                except ServiceTransaction.DoesNotExist:
                     from django.http import Http404
-                    raise Http404("Invoice not found")
-                
-                # Find receipt linked to this appointment via Transaction
-                from core.models import Transaction
-                service_transaction = Transaction.objects.filter(
-                    service_id=str(appointment.id)
-                ).first()
-                
-                if service_transaction and hasattr(service_transaction, 'receipt'):
-                    receipt = service_transaction.receipt
-                else:
-                    receipt = None
-                
-                if not receipt:
-                    # Generate receipt on-the-fly from appointment data
-                    receipt = self._generate_receipt_from_appointment(appointment)
+                    raise Http404("Transaction not found for this appointment")
         else:
             from django.http import Http404
             raise Http404("Invoice not found")

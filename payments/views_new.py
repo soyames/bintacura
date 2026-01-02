@@ -47,6 +47,8 @@ class ParticipantPhoneViewSet(viewsets.ModelViewSet):  # View for ParticipantPho
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return ParticipantPhone.objects.none()
         return ParticipantPhone.objects.filter(participant=self.request.user)
 
     def perform_create(self, serializer):  # Perform create
@@ -184,6 +186,8 @@ class ParticipantGatewayAccountViewSet(viewsets.ModelViewSet):  # View for Parti
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return ParticipantGatewayAccount.objects.none()
         return ParticipantGatewayAccount.objects.filter(participant=self.request.user)
 
     @action(detail=False, methods=['post'])
@@ -338,6 +342,8 @@ class ServiceTransactionViewSet(viewsets.ReadOnlyModelViewSet):  # Service class
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return ServiceTransaction.objects.none()
         return ServiceTransactionService.get_participant_transactions(
             participant=self.request.user,
             status=self.request.query_params.get('status')
@@ -431,6 +437,8 @@ class PayoutScheduleViewSet(viewsets.ReadOnlyModelViewSet):  # View for PayoutSc
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return PayoutSchedule.objects.none()
         if self.request.user.role in ['doctor', 'hospital', 'pharmacy', 'insurance_company']:
             return PayoutSchedule.objects.filter(participant=self.request.user)
         return PayoutSchedule.objects.none()
@@ -455,6 +463,8 @@ class PaymentReceiptViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PaymentReceiptSerializer
     
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return PaymentReceipt.objects.none()
         return PaymentReceipt.objects.filter(issued_to=self.request.user).order_by('-issued_at')
     
     def retrieve(self, request, pk=None):

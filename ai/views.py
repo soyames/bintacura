@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from django.shortcuts import render
 from django.views.generic import TemplateView
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from core.mixins import PatientRequiredMixin
 from .models import (
     AIConversation, AIChatMessage, AIHealthInsight, AISymptomChecker,
@@ -34,9 +35,16 @@ class AIAssistantPageView(PatientRequiredMixin, TemplateView):  # AI Assistant c
         return context
 
 
-class AIChatAPIView(APIView):  # API endpoint for AI chat functionality
+class AIChatAPIView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = AIChatRequestSerializer
     
+    @extend_schema(
+        summary="Send message to AI assistant",
+        tags=["AI Assistant"],
+        request=AIChatRequestSerializer,
+        responses={200: AIChatResponseSerializer}
+    )
     def post(self, request):
         serializer = AIChatRequestSerializer(data=request.data)
         if not serializer.is_valid():
@@ -254,6 +262,16 @@ class AIFeedbackViewSet(viewsets.ModelViewSet):
         serializer.save(participant=self.request.user)
 
 
+@extend_schema(
+    summary="Generate personalized health recommendations",
+    tags=["AI Assistant"],
+    responses={200: OpenApiResponse(description="Health recommendations generated")}
+)
+@extend_schema(
+    request=None,
+    responses={200: OpenApiResponse(description="Health recommendations generated")},
+    summary="Generate personalized health recommendations"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def generate_health_recommendations(request):
@@ -298,7 +316,12 @@ class AIAnalyticsViewSet(viewsets.ViewSet):
     Provides unified insights from all modules (HR, Financial, Hospital, Patient)
     """
     permission_classes = [IsAuthenticated]
+    serializer_class = None
 
+    @extend_schema(
+        summary="Get unified AI insights from all modules",
+        responses={200: OpenApiResponse(description="Unified insights data")}
+    )
     @action(detail=False, methods=['get'])
     def unified_insights(self, request):
         """

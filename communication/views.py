@@ -3,7 +3,9 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiTypes, inline_serializer
+from drf_spectacular import openapi
+from rest_framework import serializers as drf_serializers
 from django.shortcuts import render
 from django.utils import timezone
 from django.db.models import Q, F
@@ -278,6 +280,16 @@ class CommunityGroupViewSet(viewsets.ModelViewSet):  # View for CommunityGroupSe
     responses={200: OnlineStatusSerializer(many=True)},
     description="Get list of currently online users"
 )
+@extend_schema(
+    responses={200: inline_serializer(
+        name='OnlineUsersResponse',
+        fields={
+            'count': drf_serializers.IntegerField(),
+            'users': OnlineStatusSerializer(many=True)
+        }
+    )},
+    summary="Get list of online users"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def online_users(request):
@@ -303,13 +315,27 @@ def online_users(request):
 
 
 @extend_schema(
-    responses={200: dict},
+    responses={200: inline_serializer(
+        name='ActivityUpdateResponse',
+        fields={'status': drf_serializers.CharField()}
+    )},
+    summary="Update participant's last activity timestamp"
+)
+@extend_schema(
+    request=inline_serializer(
+        name='UpdateActivityRequest',
+        fields={}
+    ),
+    responses={200: inline_serializer(
+        name='UpdateActivityResponse',
+        fields={'status': drf_serializers.CharField()}
+    )},
     description="Update participant's last activity timestamp"
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_activity(request):
-    """Update user's last activity timestamp"""
+    """Update participant's last activity timestamp"""
     online_status, created = OnlineStatus.objects.get_or_create(participant=request.user)
     online_status.is_online = True
     online_status.last_activity = timezone.now()
@@ -318,7 +344,11 @@ def update_activity(request):
 
 
 @extend_schema(
-    responses={200: dict},
+    request=None,
+    responses={200: inline_serializer(
+        name='OfflineResponse',
+        fields={'status': drf_serializers.CharField()}
+    )},
     description="Mark participant as offline"
 )
 @api_view(['POST'])
@@ -372,6 +402,13 @@ class NotificationViewSet(viewsets.ModelViewSet):  # View for NotificationSet op
         return Response({"status": "all notifications marked as read"})
 
 
+@extend_schema(
+    responses={200: inline_serializer(
+        name='UnreadCountResponse',
+        fields={'unread_count': drf_serializers.IntegerField()}
+    )},
+    summary="Get unread notification count"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_unread_count(request):  # Get unread count
@@ -380,6 +417,17 @@ def get_unread_count(request):  # Get unread count
     return Response({'unread_count': count})
 
 
+@extend_schema(
+    request=inline_serializer(
+        name='MarkNotificationReadRequest',
+        fields={'notification_id': drf_serializers.UUIDField()}
+    ),
+    responses={200: inline_serializer(
+        name='MarkNotificationReadResponse',
+        fields={'status': drf_serializers.CharField()}
+    )},
+    summary="Mark notification as read"
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_notification_read(request):  # Mark notification read
@@ -392,13 +440,14 @@ def mark_notification_read(request):  # Mark notification read
 
 
 @extend_schema(
-    responses={200: dict},
-    description="Proxy endpoint for AI chat - redirects to AI app"
+    request=None,
+    responses={200: OpenApiResponse(description="AI chat response")},
+    summary="Proxy endpoint for AI chat"
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def ai_chat_proxy(request):
     """Proxy endpoint for AI chat - redirects to AI app"""
     from ai.views import AIChatAPIView
-    view = AIChatAPIView.as_view()
-    return view(request._request)
+    ai_chat_view = AIChatAPIView.as_view()
+    return ai_chat_view(request._request)

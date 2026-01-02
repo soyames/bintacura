@@ -188,7 +188,7 @@ class WalletSerializer(serializers.ModelSerializer):  # Serializer for Wallet mo
         ]
         read_only_fields = ["id", "created_at", "last_transaction_date"]
 
-    def get_participant_name(self, obj):  # Get participant's full name from profile or email
+    def get_participant_name(self, obj) -> str:  # Get participant's full name from profile or email
         profile = getattr(obj.participant, "profile", None)
         if profile:
             return f"{profile.first_name} {profile.last_name}"
@@ -235,7 +235,7 @@ class TransactionSerializer(serializers.ModelSerializer):  # Serializer for Tran
         ]
 
 
-class DependentProfileSerializer(serializers.ModelSerializer):  # Serializer for DependentProfile model with calculated age
+class CoreDependentProfileSerializer(serializers.ModelSerializer):  # Serializer for DependentProfile model with calculated age
     age = serializers.SerializerMethodField()
 
     class Meta:
@@ -262,7 +262,7 @@ class DependentProfileSerializer(serializers.ModelSerializer):  # Serializer for
         ]
         read_only_fields = ["id", "patient", "age", "created_at", "updated_at"]
 
-    def get_age(self, obj):  # Calculate age from date of birth
+    def get_age(self, obj) -> int:  # Calculate age from date of birth
         from datetime import date
 
         today = date.today()
@@ -501,5 +501,52 @@ class InsuranceCompanyDataPublicSerializer(serializers.ModelSerializer):
             'website',
             'coverage_types',
         ]
+
+
+class ConsultationFeeResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    fee_local = serializers.DecimalField(max_digits=10, decimal_places=2)
+    currency = serializers.CharField()
+    currency_symbol = serializers.CharField()
+    formatted = serializers.CharField()
+    base_currency = serializers.CharField()
+    base_fee = serializers.DecimalField(max_digits=10, decimal_places=2)
+    region = serializers.CharField()
+    region_name = serializers.CharField()
+
+
+class ParticipantServicesResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    participant_id = serializers.UUIDField()
+    participant_name = serializers.CharField()
+    role = serializers.CharField()
+    services = ParticipantServiceSerializer(many=True)
+
+
+class CurrencyConversionRequestSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    from_currency = serializers.CharField(max_length=3)
+    to_currency = serializers.CharField(max_length=3)
+
+
+class CurrencyConversionResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    converted_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    from_currency = serializers.CharField()
+    to_currency = serializers.CharField()
+    rate = serializers.DecimalField(max_digits=10, decimal_places=6)
+
+
+class ContactFormRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200)
+    email = serializers.EmailField()
+    subject = serializers.CharField(max_length=300)
+    message = serializers.CharField()
+
+
+class ContactFormResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
 
 

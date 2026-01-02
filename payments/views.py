@@ -91,6 +91,8 @@ class LinkedVendorViewSet(viewsets.ModelViewSet):  # View for LinkedVendorSet op
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return LinkedVendor.objects.none()
         return LinkedVendor.objects.filter(participant=self.request.user)
 
     def perform_create(self, serializer):  # Perform create
@@ -117,6 +119,8 @@ class FinancialChatViewSet(viewsets.ModelViewSet):  # View for FinancialChatSet 
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return FinancialChat.objects.none()
         return FinancialChat.objects.filter(participant=self.request.user)
 
     def perform_create(self, serializer):  # Perform create

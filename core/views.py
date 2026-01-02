@@ -3450,6 +3450,7 @@ class BookTelemedicineView(PatientRequiredMixin, View):  # Class for booktelemed
 @extend_schema(tags=['Patient Profile'])
 class PatientProfileAPIView(APIView):  # Class for patientprofileapi
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantProfileSerializer
 
     @extend_schema(
         summary="Get patient profile",
@@ -3512,7 +3513,7 @@ class BeneficiariesAPIView(APIView):  # Class for beneficiariesapi
 
     @extend_schema(
         summary="List all beneficiaries for the current patient",
-        responses={200: DependentProfileSerializer(many=True)}
+        responses={200: CoreDependentProfileSerializer(many=True)}
     )
     def get(self, request):  # Handle get operation
         from patient.models import DependentProfile
@@ -3534,15 +3535,15 @@ class BeneficiariesAPIView(APIView):  # Class for beneficiariesapi
 
     @extend_schema(
         summary="Add a new beneficiary",
-        request=DependentProfileSerializer,
-        responses={201: DependentProfileSerializer}
+        request=CoreDependentProfileSerializer,
+        responses={201: CoreDependentProfileSerializer}
     )
     def post(self, request):  # Handle form submission for data updates
         from patient.models import DependentProfile
-        from core.serializers import DependentProfileSerializer
+        from core.serializers import CoreDependentProfileSerializer
 
         try:
-            serializer = DependentProfileSerializer(data=request.data, context={'request': request})
+            serializer = CoreDependentProfileSerializer(data=request.data, context={'request': request})
             if serializer.is_valid():
                 serializer.save(patient=request.user)
                 return Response(
@@ -3570,17 +3571,17 @@ class BeneficiaryDetailAPIView(APIView):  # Class for beneficiarydetailapi
 
     @extend_schema(
         summary="Get beneficiary details",
-        responses={200: DependentProfileSerializer}
+        responses={200: CoreDependentProfileSerializer}
     )
     def get(self, request, pk):  # Handle get operation
         from patient.models import DependentProfile
-        from core.serializers import DependentProfileSerializer
+        from core.serializers import CoreDependentProfileSerializer
 
         try:
             beneficiary = DependentProfile.objects.get(
                 id=pk, patient=request.user, is_active=True
             )
-            serializer = DependentProfileSerializer(beneficiary)
+            serializer = CoreDependentProfileSerializer(beneficiary)
             return Response(
                 {"success": True, "beneficiary": serializer.data},
                 status=status.HTTP_200_OK,
@@ -3593,18 +3594,18 @@ class BeneficiaryDetailAPIView(APIView):  # Class for beneficiarydetailapi
 
     @extend_schema(
         summary="Update beneficiary",
-        request=DependentProfileSerializer,
-        responses={200: DependentProfileSerializer}
+        request=CoreDependentProfileSerializer,
+        responses={200: CoreDependentProfileSerializer}
     )
     def put(self, request, pk):  # Handle put operation
         from patient.models import DependentProfile
-        from core.serializers import DependentProfileSerializer
+        from core.serializers import CoreDependentProfileSerializer
 
         try:
             beneficiary = DependentProfile.objects.get(
                 id=pk, patient=request.user, is_active=True
             )
-            serializer = DependentProfileSerializer(
+            serializer = CoreDependentProfileSerializer(
                 beneficiary, data=request.data, partial=True, context={'request': request}
             )
             if serializer.is_valid():
@@ -3723,7 +3724,13 @@ class HospitalsAPIView(APIView):  # Class for hospitalsapi
 @extend_schema(tags=["Hospital Appointments"])
 class HospitalAppointmentsAPIView(APIView):  # Class for hospitalappointmentsapi
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
+    @extend_schema(
+        summary="Book hospital appointment",
+        request=ParticipantSerializer,
+        responses={200: ParticipantSerializer}
+    )
     def post(self, request):  # Handle form submission for data updates
         from appointments.models import Appointment
         from core.models import Participant
@@ -3892,7 +3899,12 @@ class HospitalAppointmentsAPIView(APIView):  # Class for hospitalappointmentsapi
 class AvailableSlotsAPIView(APIView):
     """Get available appointment slots for a doctor or hospital on a specific date"""
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
+    @extend_schema(
+        summary="Get available appointment slots",
+        responses={200: ParticipantSerializer}
+    )
     def get(self, request):
         from appointments.models import Appointment, Availability
         from core.models import Participant
@@ -4043,7 +4055,12 @@ class CheckoutView(LoginRequiredMixin, TemplateView):  # Class for checkout
 @extend_schema(tags=["Pharmacy"])
 class PharmacyCatalogAPIView(APIView):  # Class for pharmacycatalogapi
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
+    @extend_schema(
+        summary="Get pharmacy catalog",
+        responses={200: ParticipantSerializer}
+    )
     def get(self, request):  # Handle get operation
         from pharmacy.models import PharmacyInventory
         from prescriptions.models import Medication
@@ -4117,7 +4134,12 @@ class PharmacyCatalogAPIView(APIView):  # Class for pharmacycatalogapi
 @extend_schema(tags=["Pharmacy"])
 class PharmaciesAPIView(APIView):  # Class for pharmaciesapi
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
+    @extend_schema(
+        summary="Get list of pharmacies",
+        responses={200: ParticipantSerializer}
+    )
     def get(self, request):  # Handle get operation
         from core.models import Participant
         from core.serializers import HospitalProfileSerializer
@@ -4158,7 +4180,13 @@ class PharmaciesAPIView(APIView):  # Class for pharmaciesapi
 @extend_schema(tags=["Pharmacy Orders"])
 class PharmacyOrdersAPIView(APIView):  # Class for pharmacyordersapi
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
+    @extend_schema(
+        summary="Create pharmacy order",
+        request=ParticipantSerializer,
+        responses={201: ParticipantSerializer}
+    )
     def post(self, request):  # Handle form submission for data updates
         from prescriptions.models import Prescription, PrescriptionFulfillment, FulfillmentItem, PrescriptionItem
         from core.models import Participant
@@ -4232,6 +4260,7 @@ class PharmacyOrdersAPIView(APIView):  # Class for pharmacyordersapi
 @extend_schema(tags=['Security Monitoring'])
 class AntiScrapingMonitorViewSet(viewsets.ViewSet):  # Class for antiscrapingmonitorset
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
     @extend_schema(summary="Get blocked IPs", responses={200: OpenApiResponse(description="List of blocked IPs")})
     @action(detail=False, methods=["get"])
@@ -4299,6 +4328,7 @@ class AntiScrapingMonitorViewSet(viewsets.ViewSet):  # Class for antiscrapingmon
 @extend_schema(tags=['Security Monitoring'])
 class SecurityMonitorViewSet(viewsets.ViewSet):  # Class for securitymonitorset
     permission_classes = [IsAuthenticated]
+    serializer_class = ParticipantSerializer
 
     @extend_schema(summary="Get security events", responses={200: OpenApiResponse(description="Security events list")})
     @action(detail=False, methods=["get"])
@@ -4478,6 +4508,12 @@ class DeliverPrescriptionView(PharmacyRequiredMixin, View):  # Class for deliver
 
 
 @extend_schema(tags=["Contact"])
+@extend_schema(
+    request=ContactFormRequestSerializer,
+    responses={200: ContactFormResponseSerializer},
+    summary="Submit contact form",
+    description="Send a contact form message to the Bintacura team"
+)
 class ContactFormAPIView(APIView):  # Class for contactformapi
     permission_classes = [AllowAny]
 

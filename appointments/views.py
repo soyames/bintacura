@@ -27,6 +27,9 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return Appointment.objects.none()
+        
         current_participant = self.request.user
         
         if current_participant.role == "patient":
@@ -595,9 +598,24 @@ class AppointmentViewSet(viewsets.ModelViewSet):  # View for AppointmentSet oper
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Use appointment ID to generate receipt
+        # Try to find existing receipt through transaction
+        from payments.models import PaymentReceipt
         from django.shortcuts import redirect
-        return redirect(f'/patient/view-invoice/{appointment.id}/')
+        
+        receipt = None
+        
+        # Check if appointment has a payment request with transaction
+        if hasattr(appointment, 'payment_request') and appointment.payment_request:
+            if hasattr(appointment.payment_request, 'transaction') and appointment.payment_request.transaction:
+                receipt = PaymentReceipt.objects.filter(
+                    transaction=appointment.payment_request.transaction
+                ).first()
+        
+        if receipt:
+            return redirect(f'/patient/view-invoice/{receipt.id}/')
+        else:
+            # Use appointment ID with query param to generate temporary receipt
+            return redirect(f'/patient/view-invoice/?appointment_id={appointment.id}')
 
 
 class AvailabilityViewSet(viewsets.ModelViewSet):  # View for AvailabilitySet operations

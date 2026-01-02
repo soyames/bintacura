@@ -21,10 +21,10 @@ class InsurancePackageViewSet(viewsets.ModelViewSet):  # View for InsurancePacka
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
-        if self.request.user.role == 'insurance_company':
-            return InsurancePackage.objects.filter(company=self.request.user).order_by("-created_at")
         if getattr(self, 'swagger_fake_view', False):
             return InsurancePackage.objects.none()
+        if self.request.user.role == 'insurance_company':
+            return InsurancePackage.objects.filter(company=self.request.user).order_by("-created_at")
         return InsurancePackage.objects.filter(is_active=True).order_by("company__full_name", "name")
 
     def perform_create(self, serializer):  # Perform create
@@ -271,12 +271,12 @@ class InsuranceSubscriptionViewSet(viewsets.ModelViewSet):  # View for Insurance
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return InsuranceSubscription.objects.none()
         if self.request.user.role == 'insurance_company':
             return InsuranceSubscription.objects.filter(
                 insurance_package__company=self.request.user
             ).select_related('patient', 'insurance_package', 'insurance_card').order_by('-created_at')
-        if getattr(self, 'swagger_fake_view', False):
-            return InsuranceSubscription.objects.none()
         return InsuranceSubscription.objects.filter(patient=self.request.user).order_by('-created_at')
 
     @action(detail=True, methods=['post'])
@@ -396,12 +396,12 @@ class InsuranceInvoiceViewSet(viewsets.ModelViewSet):  # View for InsuranceInvoi
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return InsuranceInvoice.objects.none()
         if self.request.user.role == 'insurance_company':
             return InsuranceInvoice.objects.filter(
                 insurance_package__company=self.request.user
             ).select_related('patient', 'subscription', 'insurance_package').order_by('-issue_date')
-        if getattr(self, 'swagger_fake_view', False):
-            return InsuranceInvoice.objects.none()
         return InsuranceInvoice.objects.filter(patient=self.request.user).order_by('-issue_date')
     
     @action(detail=True, methods=['post'])
@@ -452,12 +452,12 @@ class InsuranceClaimViewSet(viewsets.ModelViewSet):  # View for InsuranceClaimSe
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return InsuranceClaim.objects.none()
         if self.request.user.role == 'insurance_company':
             return InsuranceClaim.objects.filter(
                 insurance_package__company=self.request.user
             ).select_related('patient', 'insurance_card', 'insurance_package').order_by('-submission_date')
-        if getattr(self, 'swagger_fake_view', False):
-            return InsuranceClaim.objects.none()
         return InsuranceClaim.objects.filter(patient=self.request.user).order_by('-submission_date')
 
     @transaction.atomic
@@ -749,12 +749,12 @@ class InsuranceCoverageEnquiryViewSet(viewsets.ModelViewSet):  # View for Insura
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return InsuranceCoverageEnquiry.objects.none()
         if self.request.user.role == 'insurance_company':
             return InsuranceCoverageEnquiry.objects.filter(
                 insurance_package__company=self.request.user
             ).select_related('patient', 'insurance_card', 'insurance_package').order_by('-created_at')
-        if getattr(self, 'swagger_fake_view', False):
-            return InsuranceCoverageEnquiry.objects.none()
         return InsuranceCoverageEnquiry.objects.filter(patient=self.request.user).order_by('-created_at')
 
     def create(self, request, *args, **kwargs):  # Create
@@ -918,12 +918,12 @@ class InsuranceStaffViewSet(viewsets.ModelViewSet):  # View for InsuranceStaffSe
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return InsuranceStaff.objects.none()
         if self.request.user.role == 'insurance_company':
             return InsuranceStaff.objects.filter(
                 insurance_company=self.request.user
             ).select_related('staff_participant', 'supervisor').order_by('-created_at')
-        if getattr(self, 'swagger_fake_view', False):
-            return InsuranceStaff.objects.none()
         return InsuranceStaff.objects.none()
 
     def create(self, request, *args, **kwargs):
@@ -1024,12 +1024,12 @@ class HealthcarePartnerNetworkViewSet(viewsets.ModelViewSet):  # View for managi
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):  # Get queryset
+        if getattr(self, 'swagger_fake_view', False):
+            return HealthcarePartnerNetwork.objects.none()
         if self.request.user.role == 'insurance_company':
             return HealthcarePartnerNetwork.objects.filter(
                 insurance_company=self.request.user
             ).select_related('healthcare_partner', 'insurance_package').order_by('-created_at')
-        if getattr(self, 'swagger_fake_view', False):
-            return HealthcarePartnerNetwork.objects.none()
         return HealthcarePartnerNetwork.objects.none()
 
     def perform_create(self, serializer):  # Perform create
@@ -1101,10 +1101,10 @@ class InsuranceServiceViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        if self.request.user.role == 'insurance_company':
-            return InsuranceService.objects.filter(insurance_company=self.request.user)
         if getattr(self, 'swagger_fake_view', False):
             return InsuranceService.objects.none()
+        if self.request.user.role == 'insurance_company':
+            return InsuranceService.objects.filter(insurance_company=self.request.user)
         return InsuranceService.objects.none()
     
     @transaction.atomic
