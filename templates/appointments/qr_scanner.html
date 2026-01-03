@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Scanner QR - Enregistrement{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #f7fafc;
+    }
+
+    .scanner-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .scanner-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px 12px 0 0;
+        text-align: center;
+    }
+
+    .scanner-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+    }
+
+    .scanner-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .scanner-box {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto 2rem;
+        aspect-ratio: 1;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    #scanner-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 70%;
+        height: 70%;
+        border: 3px solid #48bb78;
+        border-radius: 12px;
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+    }
+
+    .scanner-corners {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+    }
+
+    .scanner-corners::before,
+    .scanner-corners::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 4px;
+        background: #48bb78;
+    }
+
+    .corner-tl {
+        top: -2px;
+        left: -2px;
+    }
+
+    .corner-tl::before {
+        top: 0;
+        left: 0;
+    }
+
+    .corner-tl::after {
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+
+    .corner-tr {
+        top: -2px;
+        right: -2px;
+    }
+
+    .corner-tr::before {
+        top: 0;
+        right: 0;
+    }
+
+    .corner-tr::after {
+        top: 0;
+        right: 0;
+        width: 4px;
+        height: 100%;
+    }
+
+    .corner-bl {
+        bottom: -2px;
+        left: -2px;
+    }
+
+    .corner-bl::before {
+        bottom: 0;
+        left: 0;
+    }
+
+    .corner-bl::after {
+        bottom: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+    }
+
+    .corner-br {
+        bottom: -2px;
+        right: -2px;
+    }
+
+    .corner-br::before {
+        bottom: 0;
+        right: 0;
+    }
+
+    .corner-br::after {
+        bottom: 0;
+        right: 0;
+        width: 4px;
+        height: 100%;
+    }
+
+    .scanner-instructions {
+        text-align: center;
+        color: #4a5568;
+        margin-bottom: 2rem;
+    }
+
+    .scanner-instructions p {
+        margin: 0.5rem 0;
+    }
+
+    .result-card {
+        background: #f0fff4;
+        border: 2px solid #48bb78;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-top: 2rem;
+        display: none;
+    }
+
+    .result-card.success {
+        display: block;
+    }
+
+    .result-card.error {
+        display: block;
+        background: #fff5f5;
+        border-color: #fc8181;
+    }
+
+    .result-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .result-header .icon {
+        font-size: 3rem;
+    }
+
+    .result-header h2 {
+        margin: 0;
+        color: #2d3748;
+    }
+
+    .result-details {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        color: #718096;
+        font-weight: 600;
+    }
+
+    .detail-value {
+        color: #2d3748;
+        font-weight: 500;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background: #f7fafc;
+        color: #2d3748;
+        border: 2px solid #e2e8f0;
+    }
+
+    .btn-secondary:hover {
+        background: #edf2f7;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e2e8f0;
+    }
+
+    .stat-card {
+        background: #f7fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #667eea;
+        margin: 0.5rem 0;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #718096;
+        margin: 0;
+    }
+
+    @media (max-width: 768px) {
+        .scanner-container {
+            padding: 1rem;
+        }
+
+        .scanner-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scanner-container">
+    <div class="scanner-header">
+        <h1>📷 Scanner QR Code</h1>
+        <p>Enregistrement des patients</p>
+    </div>
+
+    <div class="scanner-content">
+        <div class="scanner-instructions">
+            <p><strong>📱 Instructions :</strong></p>
+            <p>Placez le QR code du rendez-vous devant la caméra</p>
+            <p>Le scan se fera automatiquement</p>
+        </div>
+
+        <div class="scanner-box">
+            <video id="scanner-video" autoplay playsinline></video>
+            <div class="scanner-overlay">
+                <div class="scanner-corners corner-tl"></div>
+                <div class="scanner-corners corner-tr"></div>
+                <div class="scanner-corners corner-bl"></div>
+                <div class="scanner-corners corner-br"></div>
+            </div>
+        </div>
+
+        <div id="result-success" class="result-card">
+            <div class="result-header">
+                <span class="icon">✅</span>
+                <div>
+                    <h2>Enregistrement réussi !</h2>
+                    <p style="margin: 0; color: #48bb78;">Le patient est enregistré</p>
+                </div>
+            </div>
+
+            <div class="result-details" id="success-details">
+                <!-- Will be filled by JavaScript -->
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="resetScanner()">
+                    Scanner un autre QR code
+                </button>
+            </div>
+        </div>
+
+        <div id="result-error" class="result-card">
+            <div class="result-header">
+                <span class="icon">❌</span>
+                <div>
+                    <h2>Erreur</h2>
+                    <p id="error-message" style="margin: 0; color: #c53030;"></p>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="resetScanner()">
+                    Réessayer
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="stats-grid" id="stats-section">
+            <div class="stat-card">
+                <p class="stat-value" id="stat-total">0</p>
+                <p class="stat-label">Rendez-vous Total</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value" id="stat-checked-in">0</p>
+                <p class="stat-label">Enregistrés</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value" id="stat-pending">0</p>
+                <p class="stat-label">En Attente</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value" id="stat-rate">0%</p>
+                <p class="stat-label">Taux d'Enregistrement</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+let video, canvas, context;
+let scanning = true;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initScanner();
+    loadStats();
+});
+
+function initScanner() {
+    video = document.getElementById('scanner-video');
+    canvas = document.createElement('canvas');
+    context = canvas.getContext('2d');
+
+    // Request camera access
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(stream => {
+            video.srcObject = stream;
+            video.setAttribute('playsinline', true);
+            video.play();
+            requestAnimationFrame(scanQR);
+        })
+        .catch(err => {
+            showError('Impossible d\'accéder à la caméra: ' + err.message);
+        });
+}
+
+function scanQR() {
+    if (!scanning) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (code) {
+            scanning = false;
+            processQRCode(code.data);
+            return;
+        }
+    }
+
+    requestAnimationFrame(scanQR);
+}
+
+function processQRCode(qrData) {
+    // Hide scanner
+    document.querySelector('.scanner-box').style.display = 'none';
+    document.querySelector('.scanner-instructions').style.display = 'none';
+
+    fetch('/api/appointments/checkin/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ qr_data: qrData })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess(data.appointment);
+            loadStats(); // Refresh stats
+        } else {
+            showError(data.error || 'Erreur lors de l\'enregistrement');
+        }
+    })
+    .catch(error => {
+        showError('Erreur de connexion: ' + error.message);
+    });
+}
+
+function showSuccess(appointment) {
+    const detailsDiv = document.getElementById('success-details');
+    detailsDiv.innerHTML = `
+        <div class="detail-row">
+            <span class="detail-label">Patient:</span>
+            <span class="detail-value">${appointment.patient_name}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Médecin:</span>
+            <span class="detail-value">${appointment.doctor_name}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Heure du RDV:</span>
+            <span class="detail-value">${appointment.appointment_time}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Enregistré à:</span>
+            <span class="detail-value">${appointment.checked_in_at}</span>
+        </div>
+    `;
+    
+    document.getElementById('result-success').classList.add('success');
+    document.getElementById('result-error').style.display = 'none';
+}
+
+function showError(message) {
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('result-error').classList.add('error');
+    document.getElementById('result-success').style.display = 'none';
+}
+
+function resetScanner() {
+    document.querySelector('.scanner-box').style.display = 'block';
+    document.querySelector('.scanner-instructions').style.display = 'block';
+    document.getElementById('result-success').classList.remove('success');
+    document.getElementById('result-error').classList.remove('error');
+    scanning = true;
+    requestAnimationFrame(scanQR);
+}
+
+function loadStats() {
+    fetch('/api/appointments/checkin-stats/')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('stat-total').textContent = data.total_appointments;
+        document.getElementById('stat-checked-in').textContent = data.checked_in;
+        document.getElementById('stat-pending').textContent = data.pending;
+        document.getElementById('stat-rate').textContent = data.check_in_rate.toFixed(0) + '%';
+    })
+    .catch(error => console.error('Error loading stats:', error));
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

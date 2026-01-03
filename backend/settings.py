@@ -354,6 +354,8 @@ INSTALLED_APPS = [
     "hospital",
     "queue_management",
     "transport",
+    "menstruation",  # Menstruation tracker for female patients
+    "wearable_devices",  # Wearable device integration
     "currency_converter",
     "financial",
     "hr",
@@ -361,7 +363,6 @@ INSTALLED_APPS = [
     "qrcode_generator",
     "sync",  # Offline-first synchronization for business instances
     "super_admin",  # Super admin dashboard and verification system
-    "menstruation",  # Menstruation tracker for female patients
 ]
 
 MIDDLEWARE = [
@@ -380,6 +381,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.subscription_middleware.SubscriptionAccessMiddleware",
 ]
+
+if SENTRY_AVAILABLE:
+    MIDDLEWARE.insert(1, "core.sentry_middleware.SentryContextMiddleware")
 
 ADVANCED_SECURITY_MIDDLEWARE = [
     "core.middleware.SecurityHeadersMiddleware",
@@ -645,6 +649,19 @@ FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:8000")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
 
+# Wearable Device Integration
+# Encryption key for storing OAuth tokens securely
+ENCRYPTION_KEY = config("ENCRYPTION_KEY", default="YourDefaultEncryptionKeyHere_Change_In_Production_Must_Be_32_Bytes_Base64=")
+
+# Google Fit API Configuration
+GOOGLE_FIT_CLIENT_ID = config("GOOGLE_FIT_CLIENT_ID", default="")
+GOOGLE_FIT_CLIENT_SECRET = config("GOOGLE_FIT_CLIENT_SECRET", default="")
+
+# Fitbit API Configuration
+FITBIT_CLIENT_ID = config("FITBIT_CLIENT_ID", default="")
+FITBIT_CLIENT_SECRET = config("FITBIT_CLIENT_SECRET", default="")
+FITBIT_REDIRECT_URI = config("FITBIT_REDIRECT_URI", default="http://127.0.0.1:8080/patient/wearable-devices/oauth/callback/")
+
 # Note: FedaPay configuration is at line ~288-298 above
 
 # Regional Payment Provider Configuration (uncomment when deploying to specific regions)
@@ -798,7 +815,7 @@ if not os.path.exists(LOGS_DIR):
 USE_FILE_LOGGING = os.path.exists(LOGS_DIR) and os.access(LOGS_DIR, os.W_OK)
 
 # Get region-specific logging configuration
-LOGGING = get_logging_config(BASE_DIR, DEPLOYMENT_REGION)
+LOGGING = get_logging_config(BASE_DIR, DEPLOYMENT_REGION, SENTRY_AVAILABLE)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -882,11 +899,13 @@ if SENTRY_AVAILABLE:
             RedisIntegration(),
             CeleryIntegration(),
         ],
-        traces_sample_rate=config("SENTRY_TRACES_SAMPLE_RATE", default=0.1, cast=float),
+        send_default_pii=True,
+        enable_logs=True,
+        traces_sample_rate=config("SENTRY_TRACES_SAMPLE_RATE", default=1.0, cast=float),
         profiles_sample_rate=config(
-            "SENTRY_PROFILES_SAMPLE_RATE", default=0.1, cast=float
+            "SENTRY_PROFILES_SAMPLE_RATE", default=1.0, cast=float
         ),
-        send_default_pii=False,
+        profile_lifecycle="trace",
         environment=config("ENVIRONMENT", default="development"),
         release=config("RELEASE_VERSION", default="1.0.0"),
         before_send=lambda event, hint: event if not DEBUG else None,

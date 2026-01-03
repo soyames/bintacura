@@ -7,29 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription - BINTACURA</title>
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
-    <!-- hCaptcha JavaScript API - Load before form rendering -->
     <script src="https://hcaptcha.com/1/api.js" async defer></script>
     <script src="{% static 'js/registration.js' %}" defer></script>
-    <style>
-        /* hCaptcha Widget Styles */
-        .form-group > div[class*="h-captcha"],
-        .form-group > div[data-sitekey] {
-            margin: 10px auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 78px;
-            overflow: visible !important;
-        }
-
-        /* Ensure hCaptcha iframe is visible */
-        .form-group iframe[src*="hcaptcha"] {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            min-height: 78px;
-        }
-    </style>
 </head>
 
 <body>

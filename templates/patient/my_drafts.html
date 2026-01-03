@@ -1,0 +1,367 @@
+{% extends "patient/base.html" %}
+{% load static %}
+
+{% block title %}Mes Brouillons{% endblock %}
+
+{% block extra_css %}
+<style>
+    .drafts-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .page-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .page-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+    }
+
+    .drafts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .draft-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .draft-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .draft-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .draft-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        background: #fef5e7;
+        color: #d68910;
+    }
+
+    .draft-info h3 {
+        color: #2d3748;
+        margin: 0 0 1rem 0;
+        font-size: 1.25rem;
+    }
+
+    .draft-detail {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        color: #4a5568;
+    }
+
+    .draft-detail svg {
+        width: 20px;
+        height: 20px;
+        margin-right: 0.5rem;
+        color: #667eea;
+    }
+
+    .expiry-warning {
+        background: #fff5f5;
+        border-left: 4px solid #fc8181;
+        padding: 0.75rem;
+        margin: 1rem 0;
+        border-radius: 4px;
+    }
+
+    .expiry-warning p {
+        margin: 0;
+        color: #c53030;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .draft-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-complete {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-complete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-delete {
+        background: #fff5f5;
+        color: #c53030;
+        border: 2px solid #fc8181;
+    }
+
+    .btn-delete:hover {
+        background: #feb2b2;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .empty-state svg {
+        width: 100px;
+        height: 100px;
+        color: #cbd5e0;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h2 {
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #718096;
+        margin-bottom: 2rem;
+    }
+
+    .btn-create {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+        .drafts-container {
+            padding: 1rem;
+        }
+
+        .drafts-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .draft-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="drafts-container">
+    <div class="page-header">
+        <h1>📝 Mes Brouillons</h1>
+        <p>Complétez vos réservations en attente</p>
+    </div>
+
+    <div id="draftsContainer">
+        <!-- Will be populated by JavaScript -->
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadDrafts();
+});
+
+function loadDrafts() {
+    fetch('/api/appointments/my-drafts/')
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('draftsContainer');
+        
+        if (data.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h2>Aucun brouillon</h2>
+                    <p>Vous n'avez pas de réservations en attente</p>
+                    <a href="/patient/telemedicine/book/" class="btn-create">
+                        Nouvelle Réservation
+                    </a>
+                </div>
+            `;
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'drafts-grid';
+        
+        data.forEach(draft => {
+            const card = createDraftCard(draft);
+            grid.appendChild(card);
+        });
+        
+        container.appendChild(grid);
+    })
+    .catch(error => {
+        console.error('Error loading drafts:', error);
+        document.getElementById('draftsContainer').innerHTML = `
+            <div class="empty-state">
+                <p style="color: #c53030;">❌ Erreur lors du chargement des brouillons</p>
+            </div>
+        `;
+    });
+}
+
+function createDraftCard(draft) {
+    const card = document.createElement('div');
+    card.className = 'draft-card';
+    
+    const expiryTime = new Date(draft.expires_at);
+    const now = new Date();
+    const minutesLeft = Math.floor((expiryTime - now) / 60000);
+    const isExpiringSoon = minutesLeft < 5;
+    
+    card.innerHTML = `
+        <span class="draft-status">🕒 Brouillon</span>
+        
+        <div class="draft-info">
+            <h3>Consultation de Télémédecine</h3>
+            
+            ${draft.doctor ? `
+                <div class="draft-detail">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span>Dr. ${draft.doctor.first_name} ${draft.doctor.last_name}</span>
+                </div>
+            ` : ''}
+            
+            ${draft.appointment_date ? `
+                <div class="draft-detail">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>${formatDate(draft.appointment_date)} à ${draft.appointment_time || '--:--'}</span>
+                </div>
+            ` : ''}
+            
+            ${draft.reason ? `
+                <div class="draft-detail">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    <span>${draft.reason}</span>
+                </div>
+            ` : ''}
+        </div>
+        
+        ${isExpiringSoon ? `
+            <div class="expiry-warning">
+                <p>⏰ Expire dans ${minutesLeft} minute(s)</p>
+            </div>
+        ` : ''}
+        
+        <div class="draft-actions">
+            <a href="/patient/telemedicine/book/?draft=${draft.uid}" class="btn btn-complete">
+                ✅ Compléter
+            </a>
+            <button class="btn btn-delete" onclick="deleteDraft('${draft.uid}')">
+                🗑️ Supprimer
+            </button>
+        </div>
+    `;
+    
+    return card;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+    });
+}
+
+function deleteDraft(uid) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce brouillon ?')) {
+        return;
+    }
+    
+    fetch(`/api/appointments/${uid}/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('✅ Brouillon supprimé');
+            location.reload();
+        } else {
+            alert('❌ Erreur lors de la suppression');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Erreur lors de la suppression');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

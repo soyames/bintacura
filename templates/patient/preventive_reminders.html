@@ -1,0 +1,175 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rappels Préventifs - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/preventive_care.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Rappels Préventifs</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    {% include "components/sidebar.html" %}
+
+    <div class="preventive-container">
+        <div class="page-header">
+            <h1>Mes Rappels de Santé</h1>
+            <button class="btn-primary" onclick="showAddReminderModal()">
+                <span>+</span> Ajouter un rappel
+            </button>
+        </div>
+
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="card-icon icon-orange">⏰</div>
+                <div>
+                    <div class="card-title">Rappels à venir</div>
+                    <div class="card-value">{{ upcoming_reminders.count }}</div>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <div class="card-icon icon-green">✓</div>
+                <div>
+                    <div class="card-title">Complétés</div>
+                    <div class="card-value">{{ completed_reminders.count }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="reminders-section">
+            <h2>Rappels à venir</h2>
+            <div class="reminders-list" id="upcomingReminders">
+                {% if upcoming_reminders %}
+                    {% for reminder in upcoming_reminders %}
+                    <div class="reminder-card" data-id="{{ reminder.id }}">
+                        <div class="reminder-icon">
+                            {% if reminder.reminder_type == 'vaccination' %}🩹
+                            {% elif reminder.reminder_type == 'checkup' %}🏥
+                            {% elif reminder.reminder_type == 'dental' %}🦷
+                            {% elif reminder.reminder_type == 'eye_exam' %}👁️
+                            {% elif reminder.reminder_type == 'mammogram' %}🎗️
+                            {% else %}📋{% endif %}
+                        </div>
+                        <div class="reminder-content">
+                            <h3>{{ reminder.get_reminder_type_display }}</h3>
+                            <p>{{ reminder.description }}</p>
+                            <div class="reminder-date">
+                                <strong>Date prévue:</strong> {{ reminder.due_date|date:"d/m/Y" }}
+                            </div>
+                        </div>
+                        <div class="reminder-actions">
+                            <button class="btn-complete" onclick="completeReminder('{{ reminder.id }}')">
+                                Marquer comme fait
+                            </button>
+                            <button class="btn-edit" onclick="editReminder('{{ reminder.id }}')">Modifier</button>
+                            <button class="btn-delete" onclick="deleteReminder('{{ reminder.id }}')">Supprimer</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-message">Aucun rappel à venir. Cliquez sur "Ajouter un rappel" pour en créer un.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="reminders-section">
+            <h2>Rappels complétés</h2>
+            <div class="reminders-list" id="completedReminders">
+                {% if completed_reminders %}
+                    {% for reminder in completed_reminders %}
+                    <div class="reminder-card completed" data-id="{{ reminder.id }}">
+                        <div class="reminder-icon">✓</div>
+                        <div class="reminder-content">
+                            <h3>{{ reminder.get_reminder_type_display }}</h3>
+                            <p>{{ reminder.description }}</p>
+                            <div class="reminder-date">
+                                <strong>Complété le:</strong> {{ reminder.completed_date|date:"d/m/Y" }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-message">Aucun rappel complété.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Reminder Modal -->
+    <div id="addReminderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ajouter un rappel</h2>
+                <span class="close" onclick="closeAddReminderModal()">&times;</span>
+            </div>
+            <form id="addReminderForm">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="reminderType">Type de rappel *</label>
+                    <select id="reminderType" name="reminder_type" required>
+                        <option value="">Sélectionnez un type</option>
+                        <option value="vaccination">Vaccination</option>
+                        <option value="screening">Dépistage</option>
+                        <option value="checkup">Bilan annuel</option>
+                        <option value="dental">Contrôle dentaire</option>
+                        <option value="eye_exam">Examen de la vue</option>
+                        <option value="mammogram">Mammographie</option>
+                        <option value="cervical_screening">Dépistage du cancer du col</option>
+                        <option value="blood_pressure">Tension artérielle</option>
+                        <option value="diabetes_screening">Dépistage du diabète</option>
+                        <option value="malaria_prophylaxis">Prophylaxie antipaludique</option>
+                        <option value="cholera_vaccination">Vaccination contre le choléra</option>
+                        <option value="tb_screening">Dépistage de la tuberculose</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dueDate">Date prévue *</label>
+                    <input type="date" id="dueDate" name="due_date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description *</label>
+                    <textarea id="description" name="description" rows="3" required 
+                              placeholder="Ex: Rappel de vaccination COVID-19"></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAddReminderModal()">Annuler</button>
+                    <button type="submit" class="btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'js/preventive_reminders.js' %}"></script>
+    <script src="{% static 'js/sidebar.js' %}"></script>
+</body>
+
+</html>

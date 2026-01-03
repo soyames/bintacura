@@ -62,7 +62,7 @@ class HealthRecordSerializer(serializers.ModelSerializer):  # Serializer for Hea
 
         return False
 
-class WearableDataSerializer(serializers.ModelSerializer):  # Serializer for WearableData data
-    class Meta:  # Meta class implementation
-        model = WearableData
-        fields = '__all__'
+# NOTE: Wearable device serializers have been moved to the wearable_devices app
+# Import them from there if needed:
+# from wearable_devices.serializers import WearableDeviceSerializer, WearableDataSerializer
+

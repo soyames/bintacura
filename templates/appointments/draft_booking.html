@@ -1,0 +1,412 @@
+{% extends "patient/base.html" %}
+{% load static %}
+
+{% block title %}Réservation Temporaire - Télémédecine{% endblock %}
+
+{% block extra_css %}
+<style>
+    .draft-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .draft-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .draft-header h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+    }
+
+    .draft-header p {
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    .draft-form {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+    }
+
+    .form-section h3 {
+        color: #2d3748;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        color: #4a5568;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .form-group textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .draft-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e2e8f0;
+    }
+
+    .btn {
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .btn-save-draft {
+        background: #f7fafc;
+        color: #2d3748;
+        border: 2px solid #e2e8f0;
+    }
+
+    .btn-save-draft:hover {
+        background: #edf2f7;
+    }
+
+    .btn-complete {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        flex: 1;
+    }
+
+    .btn-complete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .info-box {
+        background: #ebf8ff;
+        border-left: 4px solid #4299e1;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .info-box p {
+        margin: 0;
+        color: #2c5282;
+    }
+
+    .required {
+        color: #e53e3e;
+        margin-left: 4px;
+    }
+
+    .countdown-timer {
+        background: #fff5f5;
+        border-left: 4px solid #fc8181;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        display: none;
+    }
+
+    .countdown-timer.show {
+        display: block;
+    }
+
+    .countdown-timer p {
+        margin: 0;
+        color: #c53030;
+        font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+        .draft-container {
+            padding: 1rem;
+        }
+
+        .draft-form {
+            padding: 1.5rem;
+        }
+
+        .draft-actions {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="draft-container">
+    <div class="draft-header">
+        <h1>🩺 Réservation Temporaire</h1>
+        <p>Consultez ultérieurement votre rendez-vous de télémédecine</p>
+    </div>
+
+    <div class="countdown-timer" id="countdownTimer">
+        <p>⏰ Temps restant pour compléter votre réservation : <span id="timeLeft"></span></p>
+    </div>
+
+    <div class="info-box">
+        <p><strong>ℹ️ Information :</strong> Vous pouvez sauvegarder votre réservation et la compléter plus tard. Elle sera disponible pendant 15 minutes.</p>
+    </div>
+
+    <form id="draftForm" class="draft-form">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h3>Informations du Médecin</h3>
+            
+            <div class="form-group">
+                <label for="doctor">Médecin <span class="required">*</span></label>
+                <select id="doctor" name="doctor" required>
+                    <option value="">Sélectionner un médecin...</option>
+                    {% for doctor in doctors %}
+                    <option value="{{ doctor.id }}">Dr. {{ doctor.user.first_name }} {{ doctor.user.last_name }} - {{ doctor.specialization }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Date et Heure</h3>
+            
+            <div class="form-group">
+                <label for="appointment_date">Date du Rendez-vous <span class="required">*</span></label>
+                <input type="date" id="appointment_date" name="appointment_date" required min="{{ today }}">
+            </div>
+
+            <div class="form-group">
+                <label for="appointment_time">Heure du Rendez-vous <span class="required">*</span></label>
+                <input type="time" id="appointment_time" name="appointment_time" required>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Motif de la Consultation</h3>
+            
+            <div class="form-group">
+                <label for="reason">Motif de la Consultation <span class="required">*</span></label>
+                <textarea id="reason" name="reason" placeholder="Décrivez brièvement le motif de votre consultation..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="symptoms">Symptômes (Optionnel)</label>
+                <textarea id="symptoms" name="symptoms" placeholder="Décrivez vos symptômes si nécessaire..."></textarea>
+            </div>
+        </div>
+
+        <div class="draft-actions">
+            <button type="button" class="btn btn-save-draft" id="saveDraftBtn">
+                💾 Sauvegarder comme Brouillon
+            </button>
+            <button type="submit" class="btn btn-complete">
+                ✅ Confirmer la Réservation
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('draftForm');
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
+    const countdownTimer = document.getElementById('countdownTimer');
+    const timeLeftSpan = document.getElementById('timeLeft');
+    let draftId = null;
+    let expiryTime = null;
+
+    // Load draft from URL if editing
+    const urlParams = new URLSearchParams(window.location.search);
+    const editDraftId = urlParams.get('draft');
+    
+    if (editDraftId) {
+        loadDraft(editDraftId);
+    }
+
+    // Save as draft
+    saveDraftBtn.addEventListener('click', function() {
+        saveDraft(false);
+    });
+
+    // Complete booking
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (draftId) {
+            completeDraft();
+        } else {
+            saveDraft(true);
+        }
+    });
+
+    function saveDraft(complete = false) {
+        const formData = new FormData(form);
+        const data = {
+            doctor: formData.get('doctor'),
+            appointment_date: formData.get('appointment_date'),
+            appointment_time: formData.get('appointment_time'),
+            reason: formData.get('reason'),
+            symptoms: formData.get('symptoms') || '',
+            appointment_type: 'telemedicine'
+        };
+
+        const url = complete && draftId 
+            ? `/api/appointments/${draftId}/complete-draft/`
+            : '/api/appointments/create-telemedicine-draft/';
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success || data.id) {
+                if (complete) {
+                    alert('✅ Rendez-vous confirmé avec succès!');
+                    window.location.href = '/patient/appointments/';
+                } else {
+                    draftId = data.id;
+                    expiryTime = new Date(data.expires_at);
+                    startCountdown();
+                    alert('💾 Brouillon sauvegardé! Vous pouvez le compléter plus tard.');
+                }
+            } else {
+                alert('❌ Erreur: ' + (data.error || 'Une erreur est survenue'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Erreur lors de la sauvegarde');
+        });
+    }
+
+    function completeDraft() {
+        const formData = new FormData(form);
+        
+        fetch(`/api/appointments/${draftId}/complete-draft/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            },
+            body: JSON.stringify({
+                doctor: formData.get('doctor'),
+                appointment_date: formData.get('appointment_date'),
+                appointment_time: formData.get('appointment_time'),
+                reason: formData.get('reason'),
+                symptoms: formData.get('symptoms') || ''
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Rendez-vous confirmé avec succès!');
+                window.location.href = '/patient/appointments/';
+            } else {
+                alert('❌ Erreur: ' + (data.error || 'Une erreur est survenue'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Erreur lors de la confirmation');
+        });
+    }
+
+    function loadDraft(id) {
+        fetch(`/api/appointments/${id}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'draft') {
+                draftId = id;
+                document.getElementById('doctor').value = data.doctor.id;
+                document.getElementById('appointment_date').value = data.appointment_date;
+                document.getElementById('appointment_time').value = data.appointment_time;
+                document.getElementById('reason').value = data.reason;
+                document.getElementById('symptoms').value = data.symptoms || '';
+                
+                if (data.expires_at) {
+                    expiryTime = new Date(data.expires_at);
+                    startCountdown();
+                }
+            }
+        })
+        .catch(error => console.error('Error loading draft:', error));
+    }
+
+    function startCountdown() {
+        if (!expiryTime) return;
+        
+        countdownTimer.classList.add('show');
+        
+        function updateCountdown() {
+            const now = new Date();
+            const diff = expiryTime - now;
+            
+            if (diff <= 0) {
+                timeLeftSpan.textContent = 'Expiré';
+                alert('⏰ Votre brouillon a expiré. Veuillez créer une nouvelle réservation.');
+                window.location.href = '/patient/telemedicine/';
+                return;
+            }
+            
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            timeLeftSpan.textContent = `${minutes}m ${seconds}s`;
+            
+            setTimeout(updateCountdown, 1000);
+        }
+        
+        updateCountdown();
+    }
+});
+</script>
+{% endblock %}

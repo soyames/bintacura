@@ -1,0 +1,471 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carnet de Santé - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/health_records.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+    
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Carnet de Santé Complet</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    {% include "layout/_sidebar_patient.html" %}
+
+    <div class="records-container">
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <div class="card-header">
+                    <div class="card-icon icon-blue">🏥</div>
+                    <div>
+                        <div class="card-title">Dossiers</div>
+                        <div class="card-value">{{ total_records }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-header">
+                    <div class="card-icon icon-purple">📄</div>
+                    <div>
+                        <div class="card-title">Documents</div>
+                        <div class="card-value">{{ total_documents }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="card-header">
+                    <div class="card-icon icon-orange">📝</div>
+                    <div>
+                        <div class="card-title">Notes</div>
+                        <div class="card-value">{{ total_notes }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if menstrual_cycles %}
+            <div class="summary-card">
+                <div class="card-header">
+                    <div class="card-icon icon-pink">🩸</div>
+                    <div>
+                        <div class="card-title">Cycles</div>
+                        <div class="card-value">{{ menstrual_cycles|length }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">🔍 Rechercher et Filtrer</h3>
+                <button class="download-btn" onclick="downloadAllRecords()">
+                    📥 Télécharger Tout
+                </button>
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Recherche</label>
+                    <input type="text" id="searchInput" placeholder="Rechercher..." onkeyup="filterRecords()">
+                </div>
+                <div class="filter-group">
+                    <label>Type</label>
+                    <select id="typeFilter" onchange="filterRecords()">
+                        <option value="all">Tous les types</option>
+                        <option value="consultation">Consultation</option>
+                        <option value="prescription">Ordonnance</option>
+                        <option value="test">Examen</option>
+                        <option value="vaccination">Vaccination</option>
+                        <option value="note">Note personnelle</option>
+                        <option value="menstruation">Menstruation</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Date début</label>
+                    <input type="date" id="dateStart" onchange="filterRecords()">
+                </div>
+                <div class="filter-group">
+                    <label>Date fin</label>
+                    <input type="date" id="dateEnd" onchange="filterRecords()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="showTab('all')">
+                    📋 Tout <span class="tab-badge">{{ total_records|add:total_notes }}</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('records')">
+                    🏥 Dossiers Médicaux <span class="tab-badge">{{ total_records }}</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('notes')">
+                    📝 Notes Personnelles <span class="tab-badge">{{ total_notes }}</span>
+                </button>
+                {% if menstrual_cycles %}
+                <button class="tab-btn" onclick="showTab('menstruation')">
+                    🩸 Suivi Menstruel <span class="tab-badge">{{ menstrual_cycles|length }}</span>
+                </button>
+                {% endif %}
+                <button class="tab-btn" onclick="showTab('vitals')">
+                    💓 Signes Vitaux <span class="tab-badge">{{ recent_vitals|length }}</span>
+                </button>
+                <button class="tab-btn" onclick="showTab('documents')">
+                    📄 Documents <span class="tab-badge">{{ total_documents }}</span>
+                </button>
+            </div>
+
+            <!-- Tab: All -->
+            <div id="tab-all" class="tab-content active">
+                <h3>Tous les Éléments</h3>
+                <div id="allRecordsList"></div>
+            </div>
+
+            <!-- Tab: Medical Records -->
+            <div id="tab-records" class="tab-content">
+                <h3>Dossiers Médicaux</h3>
+                <div id="medicalRecordsList">
+                    {% if health_records %}
+                    {% for record in health_records %}
+                    <div class="record-card" data-type="medical" data-date="{{ record.date_of_record|date:'Y-m-d' }}">
+                        <div class="record-header">
+                            <div class="record-info">
+                                <h3>{{ record.record_type|title }}</h3>
+                                <div class="record-date">📅 {{ record.date_of_record|date:"d F Y" }}</div>
+                            </div>
+                            <span class="record-type type-{{ record.record_type }}">
+                                {{ record.get_record_type_display }}
+                            </span>
+                        </div>
+
+                        <div class="record-content">
+                            <p><strong>Diagnostic:</strong> {{ record.diagnosis|default:"N/A" }}</p>
+                            <p><strong>Traitement:</strong> {{ record.treatment|default:"N/A" }}</p>
+                        </div>
+
+                        <div class="record-footer">
+                            <div class="doctor-name">
+                                👨‍⚕️ {{ record.created_by.get_full_name|default:"Médecin" }}
+                            </div>
+                            <div class="record-actions">
+                                <button class="action-icon-btn" onclick="downloadRecord('{{ record.id }}')" title="Télécharger">
+                                    📥
+                                </button>
+                                <button class="action-icon-btn" onclick="viewRecord('{{ record.id }}')" title="Voir">
+                                    👁️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏥</div>
+                        <p>Aucun dossier médical</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tab: Personal Notes -->
+            <div id="tab-notes" class="tab-content">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                    <h3>Notes Personnelles</h3>
+                    <button class="btn btn-primary" onclick="window.location.href='/patient/health-journal/'">
+                        ➕ Nouvelle Note
+                    </button>
+                </div>
+
+                {% if personal_notes %}
+                {% for note in personal_notes %}
+                <div class="note-card" data-type="note" data-date="{{ note.created_at|date:'Y-m-d' }}">
+                    <div class="note-header">
+                        <div>
+                            <span class="note-category category-{{ note.category }}">
+                                {{ note.get_category_display }}
+                            </span>
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                📅 {{ note.date|date:"d F Y" }}
+                            </div>
+                        </div>
+                    </div>
+                    <h4 style="margin: 12px 0 8px 0;">{{ note.title }}</h4>
+                    <p style="color: #555; line-height: 1.6;">{{ note.content|truncatewords:50 }}</p>
+                    
+                    {% if note.tags %}
+                    <div style="margin-top: 12px;">
+                        {% for tag in note.tags %}
+                        <span style="background: #e3f2fd; color: #1976d2; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-right: 6px;">
+                            #{{ tag }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <p>Aucune note personnelle</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/patient/health-journal/'">
+                        Créer votre première note
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Tab: Menstruation -->
+            {% if menstrual_cycles %}
+            <div id="tab-menstruation" class="tab-content">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                    <h3>Suivi Menstruel</h3>
+                    <button class="btn btn-primary" onclick="window.location.href='/patient/menstruation/'">
+                        Voir le Calendrier Complet
+                    </button>
+                </div>
+
+                {% for cycle in menstrual_cycles %}
+                <div class="menstrual-cycle-card" data-type="menstruation" data-date="{{ cycle.cycle_start_date|date:'Y-m-d' }}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0;">Cycle du {{ cycle.cycle_start_date|date:"d F Y" }}</h4>
+                            <p style="margin: 4px 0 0 0; opacity: 0.9; font-size: 14px;">
+                                Durée: {{ cycle.cycle_length }} jours | 
+                                Flux: {{ cycle.get_flow_intensity_display }}
+                            </p>
+                        </div>
+                        {% if cycle.is_active_cycle %}
+                        <span style="background: rgba(255,255,255,0.3); padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 600;">
+                            En cours
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="cycle-dates">
+                        <div class="date-item">
+                            <div class="date-label">Début</div>
+                            <div class="date-value">{{ cycle.cycle_start_date|date:"d/m" }}</div>
+                        </div>
+                        {% if cycle.predicted_ovulation_date %}
+                        <div class="date-item">
+                            <div class="date-label">Ovulation</div>
+                            <div class="date-value">{{ cycle.predicted_ovulation_date|date:"d/m" }}</div>
+                        </div>
+                        {% endif %}
+                        {% if cycle.cycle_end_date %}
+                        <div class="date-item">
+                            <div class="date-label">Fin</div>
+                            <div class="date-value">{{ cycle.cycle_end_date|date:"d/m" }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Tab: Vitals -->
+            <div id="tab-vitals" class="tab-content">
+                <h3>Signes Vitaux Récents</h3>
+                {% if recent_vitals %}
+                <div class="vital-grid">
+                    {% for vital in recent_vitals %}
+                    <div class="vital-card">
+                        <div class="vital-label">{{ vital.data_type|title }}</div>
+                        <div class="vital-value">
+                            {{ vital.value }}
+                            <span class="vital-unit">{{ vital.unit }}</span>
+                        </div>
+                        <div style="font-size: 11px; margin-top: 8px; opacity: 0.8;">
+                            {{ vital.timestamp|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">💓</div>
+                    <p>Aucune donnée vitale</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Tab: Documents -->
+            <div id="tab-documents" class="tab-content">
+                <h3>Documents Uploadés</h3>
+                {% if documents %}
+                {% for doc in documents %}
+                <div class="record-card" data-type="document" data-date="{{ doc.uploaded_at|date:'Y-m-d' }}">
+                    <div class="record-header">
+                        <div class="record-info">
+                            <h3>📄 {{ doc.document_name }}</h3>
+                            <div class="record-date">📅 {{ doc.uploaded_at|date:"d F Y" }}</div>
+                        </div>
+                    </div>
+                    <div class="record-content">
+                        <p>{{ doc.description|default:"Aucune description" }}</p>
+                    </div>
+                    <div class="record-footer">
+                        <div class="record-actions">
+                            <button class="action-icon-btn" onclick="downloadDocument('{{ doc.id }}')" title="Télécharger">
+                                📥 Télécharger
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📄</div>
+                    <p>Aucun document uploadé</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/api.js' %}"></script>
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById('tab-' + tabName).classList.add('active');
+
+            // Add active to clicked button
+            event.target.classList.add('active');
+
+            // Load all records if 'all' tab
+            if (tabName === 'all') {
+                loadAllRecords();
+            }
+        }
+
+        function loadAllRecords() {
+            const container = document.getElementById('allRecordsList');
+            const allItems = [];
+
+            // Collect all items from other tabs
+            document.querySelectorAll('.record-card, .note-card, .menstrual-cycle-card').forEach(item => {
+                const clone = item.cloneNode(true);
+                const date = clone.getAttribute('data-date');
+                allItems.push({ element: clone, date: new Date(date || Date.now()) });
+            });
+
+            // Sort by date (newest first)
+            allItems.sort((a, b) => b.date - a.date);
+
+            // Render
+            container.innerHTML = '';
+            allItems.forEach(item => {
+                container.appendChild(item.element);
+            });
+
+            if (allItems.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>Aucune donnée disponible</p>
+                    </div>
+                `;
+            }
+        }
+
+        function filterRecords() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value;
+            const dateStart = document.getElementById('dateStart').value;
+            const dateEnd = document.getElementById('dateEnd').value;
+
+            document.querySelectorAll('.record-card, .note-card, .menstrual-cycle-card').forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const type = item.getAttribute('data-type');
+                const date = item.getAttribute('data-date');
+
+                let show = true;
+
+                // Search filter
+                if (searchTerm && !text.includes(searchTerm)) {
+                    show = false;
+                }
+
+                // Type filter
+                if (typeFilter !== 'all' && type !== typeFilter) {
+                    show = false;
+                }
+
+                // Date range filter
+                if (dateStart && date < dateStart) {
+                    show = false;
+                }
+                if (dateEnd && date > dateEnd) {
+                    show = false;
+                }
+
+                item.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        function downloadRecord(recordId) {
+            window.location.href = `/api/v1/health-records/records/${recordId}/download/`;
+        }
+
+        function viewRecord(recordId) {
+            window.location.href = `/patient/health-record/${recordId}/`;
+        }
+
+        function downloadDocument(docId) {
+            window.location.href = `/api/v1/health-records/documents/${docId}/download/`;
+        }
+
+        function downloadAllRecords() {
+            if (confirm('Télécharger tous vos dossiers médicaux en format PDF?')) {
+                window.location.href = '/api/v1/health-records/records/download_all/';
+            }
+        }
+
+        // Initialize
+        loadAllRecords();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>

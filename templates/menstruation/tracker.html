@@ -99,9 +99,11 @@
             </div>
 
             <div class="cycle-actions">
-                <button class="btn btn-primary" onclick="window.location.href='{% url 'menstruation:log_symptom' %}'">
+                {% if current_cycle.id %}
+                <button class="btn btn-primary" onclick="window.location.href='{% url 'menstruation:log_symptom' cycle_id=current_cycle.id %}'">
                     Ajouter Symptôme
                 </button>
+                {% endif %}
                 <button class="btn btn-secondary" onclick="window.location.href='{% url 'menstruation:log_period' %}'">
                     Fin du Cycle
                 </button>

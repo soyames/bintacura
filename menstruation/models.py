@@ -75,6 +75,12 @@ class MenstrualCycle(SyncMixin):
     
     def save(self, *args, **kwargs):
         """Calculate predictions when saving"""
+        from datetime import datetime, date
+        
+        # Ensure cycle_start_date is a date object
+        if isinstance(self.cycle_start_date, str):
+            self.cycle_start_date = datetime.strptime(self.cycle_start_date, '%Y-%m-%d').date()
+        
         if self.cycle_start_date and not self.predicted_ovulation_date:
             # Ovulation typically occurs 14 days before next period
             self.predicted_ovulation_date = self.cycle_start_date + timedelta(days=(self.cycle_length - 14))
@@ -172,6 +178,18 @@ class CycleReminder(SyncMixin):
     class Meta:
         db_table = 'cycle_reminders'
         ordering = ['reminder_date', 'reminder_time']
+    
+    def save(self, *args, **kwargs):
+        """Ensure dates are date objects before saving"""
+        from datetime import datetime, date
+        
+        # Convert reminder_date if it's a string
+        if isinstance(self.reminder_date, str):
+            self.reminder_date = datetime.strptime(self.reminder_date, '%Y-%m-%d').date()
+        elif isinstance(self.reminder_date, datetime):
+            self.reminder_date = self.reminder_date.date()
+        
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.patient.full_name} - {self.get_reminder_type_display()} on {self.reminder_date}"

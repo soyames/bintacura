@@ -1,0 +1,218 @@
+{% extends "patient/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Mes Favoris - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/patient/favorites.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="favorites-container">
+    <div class="page-header">
+        <h1><i class="fas fa-star"></i> Mes Favoris</h1>
+        <p class="subtitle">Accédez rapidement à vos praticiens favoris</p>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filters-section">
+        <div class="filter-tabs">
+            <button class="filter-tab active" data-type="all">
+                <i class="fas fa-users"></i> Tous ({{ favorites.count }})
+            </button>
+            <button class="filter-tab" data-type="doctor">
+                <i class="fas fa-user-md"></i> Médecins ({{ doctors_count }})
+            </button>
+            <button class="filter-tab" data-type="specialist">
+                <i class="fas fa-stethoscope"></i> Spécialistes ({{ specialists_count }})
+            </button>
+        </div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchFavorites" placeholder="Rechercher un favori...">
+        </div>
+    </div>
+
+    <!-- Liste des favoris -->
+    <div class="favorites-grid" id="favoritesGrid">
+        {% for favorite in favorites %}
+        <div class="favorite-card" data-type="{{ favorite.doctor.specialization.name|lower }}">
+            <div class="card-header">
+                <div class="doctor-avatar">
+                    {% if favorite.doctor.profile_picture %}
+                        <img src="{{ favorite.doctor.profile_picture.url }}" alt="{{ favorite.doctor.user.get_full_name }}">
+                    {% else %}
+                        <div class="avatar-placeholder">
+                            {{ favorite.doctor.user.first_name.0 }}{{ favorite.doctor.user.last_name.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+                <button class="remove-favorite-btn" data-favorite-id="{{ favorite.uid }}" title="Retirer des favoris">
+                    <i class="fas fa-heart"></i>
+                </button>
+            </div>
+            
+            <div class="card-body">
+                <h3 class="doctor-name">
+                    Dr {{ favorite.doctor.user.get_full_name }}
+                </h3>
+                <p class="specialization">
+                    <i class="fas fa-stethoscope"></i> {{ favorite.doctor.specialization.name }}
+                </p>
+                
+                {% if favorite.doctor.hospital %}
+                <p class="location">
+                    <i class="fas fa-hospital"></i> {{ favorite.doctor.hospital.name }}
+                </p>
+                {% endif %}
+                
+                <div class="rating">
+                    <i class="fas fa-star"></i>
+                    <span>{{ favorite.doctor.rating|default:"N/A" }}</span>
+                    <span class="reviews">({{ favorite.doctor.reviews_count|default:0 }} avis)</span>
+                </div>
+                
+                {% if favorite.notes %}
+                <div class="notes">
+                    <i class="fas fa-note-sticky"></i>
+                    <p>{{ favorite.notes|truncatewords:20 }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="last-visit">
+                    <i class="far fa-calendar"></i>
+                    Ajouté le {{ favorite.created_at|date:"d/m/Y" }}
+                </div>
+            </div>
+            
+            <div class="card-footer">
+                <a href="{% url 'appointments:book' %}?doctor={{ favorite.doctor.uid }}" class="btn btn-primary">
+                    <i class="fas fa-calendar-plus"></i> Prendre RDV
+                </a>
+                <a href="{% url 'doctor:profile' favorite.doctor.uid %}" class="btn btn-secondary">
+                    <i class="fas fa-user"></i> Voir profil
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-star-half-alt"></i>
+            <h3>Aucun favori</h3>
+            <p>Vous n'avez pas encore ajouté de praticiens à vos favoris.</p>
+            <a href="{% url 'doctor:search' %}" class="btn btn-primary">
+                <i class="fas fa-search"></i> Rechercher des praticiens
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal pour ajouter une note -->
+<div id="noteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Ajouter une note</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <textarea id="favoriteNote" rows="5" placeholder="Ajoutez une note personnelle..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary cancel-btn">Annuler</button>
+            <button class="btn btn-primary save-note-btn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/patient/favorites.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtrage par type
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            const type = this.dataset.type;
+            const cards = document.querySelectorAll('.favorite-card');
+            
+            cards.forEach(card => {
+                if (type === 'all' || card.dataset.type.includes(type)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Recherche
+    document.getElementById('searchFavorites').addEventListener('input', function(e) {
+        const search = e.target.value.toLowerCase();
+        const cards = document.querySelectorAll('.favorite-card');
+        
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(search) ? 'block' : 'none';
+        });
+    });
+    
+    // Retirer des favoris
+    document.querySelectorAll('.remove-favorite-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const favoriteId = this.dataset.favoriteId;
+            
+            if (confirm('Êtes-vous sûr de vouloir retirer ce praticien de vos favoris ?')) {
+                fetch(`/api/patient/favorites/${favoriteId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        this.closest('.favorite-card').remove();
+                        showNotification('Favori retiré avec succès', 'success');
+                        
+                        // Vérifier si la liste est vide
+                        if (document.querySelectorAll('.favorite-card').length === 0) {
+                            location.reload();
+                        }
+                    }
+                })
+                .catch(error => {
+                    showNotification('Erreur lors de la suppression', 'error');
+                });
+            }
+        });
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type) {
+    // Use existing notification system
+    if (window.showNotification) {
+        window.showNotification(message, type);
+    } else {
+        alert(message);
+    }
+}
+</script>
+{% endblock %}

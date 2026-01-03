@@ -25,7 +25,7 @@ class MenstrualCycleSerializer(serializers.ModelSerializer):
     class Meta:
         model = MenstrualCycle
         fields = [
-            'uid', 'patient', 'patient_name',
+            'id', 'patient', 'patient_name',
             'cycle_start_date', 'cycle_end_date',
             'period_length', 'cycle_length',
             'flow_intensity', 'symptoms', 'mood', 'notes',
@@ -35,7 +35,7 @@ class MenstrualCycleSerializer(serializers.ModelSerializer):
             'daily_symptoms', 'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'uid', 'created_at', 'updated_at',
+            'id', 'created_at', 'updated_at',
             'predicted_ovulation_date', 'predicted_next_period_date',
             'predicted_fertile_window_start', 'predicted_fertile_window_end'
         ]
@@ -56,12 +56,12 @@ class CycleReminderSerializer(serializers.ModelSerializer):
     class Meta:
         model = CycleReminder
         fields = [
-            'uid', 'patient', 'patient_name',
+            'id', 'patient', 'patient_name',
             'reminder_type', 'reminder_date', 'reminder_time',
             'is_sent', 'is_enabled', 'message',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['uid', 'created_at', 'updated_at', 'is_sent']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'is_sent']
 
 
 class CycleStatsSerializer(serializers.Serializer):

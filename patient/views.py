@@ -2,13 +2,14 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
+from django.db import models
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from .models import PatientData, DependentProfile
-from .serializers import PatientDataSerializer, DependentProfileSerializer
+from .models import PatientData, DependentProfile, PreventiveCareReminder, PersonalHealthNote
+from .serializers import PatientDataSerializer, DependentProfileSerializer, PreventiveCareReminderSerializer, PersonalHealthNoteSerializer
 from prescriptions.models import Prescription
 from prescriptions.serializers import PrescriptionSerializer
 from appointments.models import Appointment
@@ -112,6 +113,99 @@ class MyAppointmentsView(TemplateView):
             status__in=['completed', 'cancelled']
         )
         
+        return context
+
+
+class PreventiveCareReminderViewSet(viewsets.ModelViewSet):
+    """
+    API ViewSet for Preventive Care Reminders
+    Patients can manage their preventive care reminders
+    """
+    queryset = PreventiveCareReminder.objects.all()
+    serializer_class = PreventiveCareReminderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return PreventiveCareReminder.objects.none()
+        if self.request.user.role == "patient":
+            return PreventiveCareReminder.objects.filter(patient=self.request.user)
+        elif self.request.user.is_staff:
+            return PreventiveCareReminder.objects.all()
+        return PreventiveCareReminder.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save(patient=self.request.user)
+
+
+class PersonalHealthNoteViewSet(viewsets.ModelViewSet):
+    """
+    API ViewSet for Personal Health Notes
+    Patients can manage their personal health journal
+    """
+    queryset = PersonalHealthNote.objects.all()
+    serializer_class = PersonalHealthNoteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return PersonalHealthNote.objects.none()
+        if self.request.user.role == "patient":
+            queryset = PersonalHealthNote.objects.filter(patient=self.request.user)
+            # Filter by category if provided
+            category = self.request.query_params.get('category', None)
+            if category:
+                queryset = queryset.filter(category=category)
+            # Search by title/content if provided
+            search = self.request.query_params.get('search', None)
+            if search:
+                queryset = queryset.filter(
+                    models.Q(title__icontains=search) | models.Q(content__icontains=search)
+                )
+            return queryset
+        elif self.request.user.is_staff:
+            return PersonalHealthNote.objects.all()
+        return PersonalHealthNote.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save(patient=self.request.user)
+
+
+@method_decorator(login_required, name='dispatch')
+class PreventiveRemindersView(TemplateView):
+    """View for displaying preventive care reminders"""
+    template_name = 'patient/preventive_reminders.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.role == 'patient':
+            reminders = PreventiveCareReminder.objects.filter(patient=self.request.user)
+            context['upcoming_reminders'] = reminders.filter(is_completed=False)
+            context['completed_reminders'] = reminders.filter(is_completed=True)
+        return context
+
+
+@method_decorator(login_required, name='dispatch')
+class HealthJournalView(TemplateView):
+    """View for displaying personal health notes"""
+    template_name = 'patient/health_journal.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.role == 'patient':
+            notes = PersonalHealthNote.objects.filter(patient=self.request.user)
+            context['notes'] = notes
+            context['categories'] = PersonalHealthNote.CATEGORY_CHOICES
+        return context
+
+
+@method_decorator(login_required, name='dispatch')
+class WearableDevicesView(TemplateView):
+    """View for managing wearable devices"""
+    template_name = 'health_records/wearable_devices.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         return context
 
 

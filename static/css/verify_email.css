@@ -1,0 +1,115 @@
+.verify-container {
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 40px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+.verify-container .logo-container {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.verify-container .logo {
+    font-size: 36px;
+    font-weight: 700;
+    color: #2196F3;
+}
+
+.verify-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.verify-subtitle {
+    color: #666;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.verify-container .form-group {
+    margin-bottom: 20px;
+}
+
+.verify-container .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.verify-container .form-input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 16px;
+}
+
+.verify-container .form-input:focus {
+    outline: none;
+    border-color: #2196F3;
+}
+
+.verify-container .submit-btn {
+    width: 100%;
+    padding: 18px;
+    background: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.verify-container .submit-btn:hover {
+    background: #1976D2;
+}
+
+.verify-container .submit-btn.secondary {
+    background: #666;
+}
+
+.verify-container .divider {
+    text-align: center;
+    margin: 30px 0;
+    color: #999;
+}
+
+.verify-container .resend-link {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.verify-container .resend-link a {
+    color: #2196F3;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.verify-container .resend-link.back-link {
+    margin-top: 30px;
+}
+
+.verify-container .message {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.verify-container .success-message {
+    background: #d4edda;
+    color: #155724;
+}
+
+.verify-container .error-message {
+    background: #f8d7da;
+    color: #721c24;
+}

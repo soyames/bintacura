@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 
-def get_logging_config(base_dir, region='default'):
+def get_logging_config(base_dir, region='default', sentry_available=False):
     """
     Get logging configuration for the deployment region
     """
@@ -71,34 +71,41 @@ def get_logging_config(base_dir, region='default'):
                 'formatter': 'verbose',
             },
         },
-        'loggers': {
+    }
+    
+    if sentry_available:
+        config['handlers']['sentry'] = {
+            'level': 'WARNING',
+            'class': 'sentry_sdk.integrations.logging.EventHandler',
+        }
+    
+    config['loggers'] = {
             'django': {
-                'handlers': ['console', 'error_file'],
+                'handlers': ['console', 'error_file'] + (['sentry'] if sentry_available else []),
                 'level': 'INFO',
                 'propagate': False,
             },
             'django.request': {
-                'handlers': ['console', 'error_file'],
+                'handlers': ['console', 'error_file'] + (['sentry'] if sentry_available else []),
                 'level': 'ERROR',
                 'propagate': False,
             },
             'django.security': {
-                'handlers': ['console', 'file'],
+                'handlers': ['console', 'file'] + (['sentry'] if sentry_available else []),
                 'level': 'WARNING',
                 'propagate': False,
             },
             'core.security': {
-                'handlers': ['console', 'file'],
+                'handlers': ['console', 'file'] + (['sentry'] if sentry_available else []),
                 'level': 'WARNING',
                 'propagate': False,
             },
             'BINTACURA': {
-                'handlers': ['console', 'app_file'],
+                'handlers': ['console', 'app_file'] + (['sentry'] if sentry_available else []),
                 'level': 'INFO',
                 'propagate': False,
             },
-        },
-    }
+        }
     
     return config
 

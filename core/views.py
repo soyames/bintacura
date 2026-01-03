@@ -1078,8 +1078,8 @@ class DoctorAppointmentsView(DoctorRequiredMixin, TemplateView):  # View doctor'
         )
 
         context["queue_entries"] = (
-            AppointmentQueue.objects.filter(provider=user, status="waiting")
-            .select_related("appointment__patient")
+            AppointmentQueue.objects.filter(appointment__doctor=user, status="waiting")
+            .select_related("appointment", "participant")
             .order_by("queue_number")
         )
 
@@ -3002,31 +3002,125 @@ class AIAssistantView(PatientRequiredMixin, TemplateView):  # Class for aiassist
 
 
 class HealthRecordsView(PatientRequiredMixin, TemplateView):  # Class for healthrecords
-    template_name = "patient/health_records.html"
+    template_name = "patient/health_records_improved.html"
 
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
         context = super().get_context_data(**kwargs)
 
-        from health_records.models import HealthRecord, DocumentUpload, WearableData
+        from health_records.models import HealthRecord, DocumentUpload
+        from wearable_devices.models import WearableDevice, WearableData
+        from patient.models import PersonalHealthNote
+        from menstruation.models import MenstrualCycle
+        from django.db.models import Avg, Max, Min, Count
+        from datetime import timedelta
+        from django.utils import timezone
 
         patient = self.request.user
 
+        # Get all health records
         health_records = HealthRecord.objects.filter(assigned_to=patient).order_by(
             "-date_of_record"
-        )[:10]
+        )
 
+        # Get documents
         documents = DocumentUpload.objects.filter(uploaded_by=patient).order_by(
             "-uploaded_at"
-        )[:10]
+        )
 
-        recent_vitals = WearableData.objects.filter(patient=patient).order_by("-timestamp")[
-            :5
-        ]
+        # Get connected wearable devices
+        active_devices = WearableDevice.objects.filter(
+            patient=patient,
+            status='active'
+        )
+        
+        # Get recent vitals from wearable devices with aggregation
+        recent_vitals = []
+        vital_summary = {}
+        
+        try:
+            # Get vitals from last 24 hours
+            time_threshold = timezone.now() - timedelta(days=1)
+            recent_data = WearableData.objects.filter(
+                patient=patient,
+                timestamp__gte=time_threshold
+            ).order_by("-timestamp")
+            
+            # Get latest vital for each type
+            vital_types = ['heart_rate', 'steps', 'blood_pressure', 'blood_oxygen', 'body_temperature', 'sleep']
+            for vital_type in vital_types:
+                latest = recent_data.filter(data_type=vital_type).first()
+                if latest:
+                    recent_vitals.append(latest)
+            
+            # Calculate summaries for comparison (last 7 days)
+            week_threshold = timezone.now() - timedelta(days=7)
+            
+            if active_devices.count() > 1:
+                # If multiple devices, show comparative analysis
+                for device in active_devices:
+                    device_stats = {}
+                    for vital_type in vital_types:
+                        stats = WearableData.objects.filter(
+                            patient=patient,
+                            device=device,
+                            data_type=vital_type,
+                            timestamp__gte=week_threshold
+                        ).aggregate(
+                            avg=Avg('value'),
+                            max=Max('value'),
+                            min=Min('value'),
+                            count=Count('id')
+                        )
+                        if stats['count'] and stats['count'] > 0:
+                            device_stats[vital_type] = stats
+                    
+                    if device_stats:
+                        vital_summary[device.device_name] = device_stats
+            else:
+                # Single device summary
+                for vital_type in vital_types:
+                    stats = WearableData.objects.filter(
+                        patient=patient,
+                        data_type=vital_type,
+                        timestamp__gte=week_threshold
+                    ).aggregate(
+                        avg=Avg('value'),
+                        max=Max('value'),
+                        min=Min('value'),
+                        count=Count('id')
+                    )
+                    if stats['count'] and stats['count'] > 0:
+                        vital_summary[vital_type] = stats
+                        
+        except Exception as e:
+            import logging
+            logging.error(f"Error fetching wearable data: {e}")
+            recent_vitals = []
+            vital_summary = {}
+        
+        # Get personal health notes
+        personal_notes = PersonalHealthNote.objects.filter(patient=patient).order_by(
+            "-created_at"
+        )[:10]
+        
+        # Get menstruation cycles (for female patients)
+        menstrual_cycles = None
+        if hasattr(patient, 'gender') and patient.gender == 'female':
+            menstrual_cycles = MenstrualCycle.objects.filter(patient=patient).order_by(
+                "-cycle_start_date"
+            )[:6]
 
         context["health_records"] = health_records
         context["documents"] = documents
         context["recent_vitals"] = recent_vitals
+        context["vital_summary"] = vital_summary
+        context["active_devices"] = active_devices
+        context["has_multiple_devices"] = active_devices.count() > 1
+        context["personal_notes"] = personal_notes
+        context["menstrual_cycles"] = menstrual_cycles
         context["total_records"] = health_records.count()
+        context["total_documents"] = documents.count()
+        context["total_notes"] = personal_notes.count()
 
         return context
 
@@ -4678,4 +4772,114 @@ class DoctorVideoConsultationView(DoctorRequiredMixin, TemplateView):
             context["error"] = "Rendez-vous introuvable ou non disponible"
         
         return context
+
+
+class PriceComparisonView(PatientRequiredMixin, TemplateView):
+    """Compare prices for doctors/hospitals by specialty, location, and services"""
+    template_name = "core/price_comparison.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from doctor.models import DoctorData
+        context["specializations"] = DoctorData.SPECIALIZATION_CHOICES
+        return context
+
+
+@extend_schema(tags=["Price Comparison"])
+class PriceComparisonAPIView(APIView):
+    """API for comparing consultation fees and service prices across providers"""
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(
+        summary="Compare prices across doctors and hospitals",
+        parameters=[
+            OpenApiParameter(name='specialty', description='Medical specialty', required=False, type=str),
+            OpenApiParameter(name='location', description='City or region', required=False, type=str),
+            OpenApiParameter(name='provider_type', description='doctor or hospital', required=False, type=str),
+            OpenApiParameter(name='sort_by', description='price_asc, price_desc, rating', required=False, type=str),
+        ],
+        responses={200: OpenApiResponse(description="Price comparison data")}
+    )
+    def get(self, request):
+        from doctor.models import DoctorData
+        from django.db.models import Q, Avg, Count
+        
+        try:
+            specialty = request.query_params.get('specialty', '').strip()
+            location = request.query_params.get('location', '').strip()
+            provider_type = request.query_params.get('provider_type', '').strip()
+            sort_by = request.query_params.get('sort_by', 'price_asc')
+            
+            doctors = Participant.objects.filter(
+                role='doctor',
+                is_active=True
+            ).select_related('doctor_data')
+            
+            if specialty:
+                doctors = doctors.filter(doctor_data__specialization=specialty)
+            
+            if location:
+                doctors = doctors.filter(
+                    Q(city__icontains=location) |
+                    Q(address__icontains=location) |
+                    Q(region__icontains=location)
+                )
+            
+            comparison_data = []
+            prices = []
+            
+            for doctor in doctors:
+                if not hasattr(doctor, 'doctor_data') or not doctor.doctor_data:
+                    continue
+                    
+                fee = doctor.doctor_data.consultation_fee or Decimal('0')
+                prices.append(float(fee))
+                
+                comparison_data.append({
+                    'uid': str(doctor.uid),
+                    'name': doctor.full_name,
+                    'specialty': doctor.doctor_data.specialization,
+                    'consultation_fee': float(fee),
+                    'currency': doctor.doctor_data.currency or 'XOF',
+                    'location': doctor.city or doctor.address or 'Non spécifié',
+                    'rating': float(doctor.doctor_data.rating or 0),
+                    'total_reviews': doctor.doctor_data.total_reviews or 0,
+                    'years_of_experience': doctor.doctor_data.years_of_experience or 0,
+                    'provider_type': 'doctor',
+                    'phone': doctor.phone_number,
+                    'email': doctor.email,
+                })
+            
+            if sort_by == 'price_asc':
+                comparison_data.sort(key=lambda x: x['consultation_fee'])
+            elif sort_by == 'price_desc':
+                comparison_data.sort(key=lambda x: x['consultation_fee'], reverse=True)
+            elif sort_by == 'rating':
+                comparison_data.sort(key=lambda x: x['rating'], reverse=True)
+            
+            statistics = {
+                'count': len(comparison_data),
+                'avg_price': sum(prices) / len(prices) if prices else 0,
+                'min_price': min(prices) if prices else 0,
+                'max_price': max(prices) if prices else 0,
+                'currency': 'XOF'
+            }
+            
+            return Response({
+                'success': True,
+                'results': comparison_data,
+                'statistics': statistics,
+                'filters': {
+                    'specialty': specialty,
+                    'location': location,
+                    'provider_type': provider_type,
+                    'sort_by': sort_by
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

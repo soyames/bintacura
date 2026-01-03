@@ -211,3 +211,62 @@
             border-radius: 20px;
             font-weight: 500;
         }
+
+        .navbar-logo {
+            height: 35px;
+            vertical-align: middle;
+        }
+
+        .footer-logo {
+            height: 20px;
+            vertical-align: middle;
+        }
+
+        .user-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+        }
+
+        .main-content.with-nav {
+            margin-top: 56px;
+        }
+
+        .page-title {
+            text-align: center;
+            color: #333;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .page-description {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .back-to-login {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .back-link {
+            color: #2196F3;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            color: #1976D2;
+            text-decoration: underline;
+        }

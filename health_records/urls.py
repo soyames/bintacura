@@ -6,7 +6,9 @@ app_name = 'health_records'
 
 router = DefaultRouter()
 router.register(r'records', views.HealthRecordViewSet, basename='record')
-router.register(r'wearable', views.WearableDataViewSet, basename='wearable')
+# NOTE: Wearable device routes have been moved to the wearable_devices app
+router.register(r'documents', views.DocumentUploadViewSet, basename='document')
+router.register(r'notes', views.PersonalHealthNoteViewSet, basename='note')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -12,7 +12,11 @@ from drf_spectacular.views import (
 from . import views
 from communication.views import notifications_list_view, messages_list_view
 
+def trigger_error(request):
+    return 1 / 0
+
 urlpatterns = [
+    path('sentry-debug/', trigger_error, name="trigger_error"),
     path("admin/", admin.site.urls),
     path("health/", views.health_check, name="health_check"),
     path("health-check", views.health_check, name="health_check_render"),
@@ -115,4 +119,8 @@ if settings.DEBUG:
 admin.site.site_header = "BintaCura Administration"
 admin.site.site_title = "BintaCura Admin Portal"
 admin.site.index_title = "Welcome to BintaCura Admin Portal"
+
+handler500 = 'backend.views.handler500'
+handler404 = 'backend.views.handler404'
+handler403 = 'backend.views.handler403'
 

@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 from .system_views import GetConsultationFeeView, GetParticipantServicesView, ConvertCurrencyView
+from .map_views import map_search_view, map_search_api
 
 app_name = "core"
 
@@ -22,4 +23,8 @@ urlpatterns = [
     path("system/convert-currency/", ConvertCurrencyView.as_view(), name="convert-currency"),
     path("participants/<uuid:participant_id>/services/", GetParticipantServicesView.as_view(), name="participant-services"),
     path("contact/", views.ContactFormAPIView.as_view(), name="contact-form"),
+    path("price-comparison/", views.PriceComparisonView.as_view(), name="price-comparison"),
+    path("api/price-comparison/", views.PriceComparisonAPIView.as_view(), name="api-price-comparison"),
+    path("map-search/", map_search_view, name="map-search"),
+    path("api/map-search/", map_search_api, name="api-map-search"),
 ]

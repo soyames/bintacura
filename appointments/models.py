@@ -7,6 +7,7 @@ from core.mixins import SyncMixin
 
 class Appointment(SyncMixin):  # Represents scheduled medical appointments between patients and providers
     STATUS_CHOICES = [
+        ("draft", "Draft"),  # For telemedicine only - incomplete booking
         ("pending", "Pending"),
         ("confirmed", "Confirmed"),
         ("completed", "Completed"),
@@ -136,6 +137,33 @@ class Appointment(SyncMixin):  # Represents scheduled medical appointments betwe
     reminder_sent = models.BooleanField(default=False, null=False)
     rating = models.IntegerField(null=True, blank=True)
     review = models.TextField(default='', blank=True, null=False)
+
+    # Substitute doctor fields
+    substitute_doctor = models.ForeignKey(
+        Participant,
+        on_delete=models.SET_NULL,
+        related_name="substitute_appointments",
+        null=True,
+        blank=True,
+        help_text="Médecin remplaçant assigné"
+    )
+    substitute_reason = models.CharField(
+        max_length=100,
+        choices=[
+            ('absence', 'Absence'),
+            ('congé', 'Congé'),
+            ('urgence', 'Urgence'),
+            ('surcharge', 'Surcharge de travail'),
+            ('autre', 'Autre')
+        ],
+        null=True,
+        blank=True,
+        help_text="Raison du remplacement"
+    )
+    substitute_notification_sent = models.BooleanField(default=False, null=False)
+
+    # Check-in fields
+    checked_in_at = models.DateTimeField(null=True, blank=True, help_text="Heure d'enregistrement par QR code")
 
     class Meta:  # Meta class implementation
         db_table = "appointments"

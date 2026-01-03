@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import PatientData, DependentProfile
+from .models import PatientData, DependentProfile, PreventiveCareReminder, PersonalHealthNote
 from core.models import Participant
 from core.validators import validate_date_of_birth
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -119,3 +119,54 @@ class DependentProfileSerializer(serializers.ModelSerializer):  # Serializer for
                 })
 
         return attrs
+
+
+class PreventiveCareReminderSerializer(serializers.ModelSerializer):
+    """Serializer for Preventive Care Reminders"""
+    reminder_type_display = serializers.CharField(
+        source="get_reminder_type_display", read_only=True
+    )
+    patient_name = serializers.CharField(source="patient.full_name", read_only=True)
+    
+    class Meta:
+        model = PreventiveCareReminder
+        fields = [
+            'id',
+            'patient',
+            'patient_name',
+            'reminder_type',
+            'reminder_type_display',
+            'due_date',
+            'description',
+            'is_completed',
+            'completed_date',
+            'reminder_sent',
+            'last_reminder_date',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'patient', 'reminder_sent', 'last_reminder_date', 'created_at']
+
+
+class PersonalHealthNoteSerializer(serializers.ModelSerializer):
+    """Serializer for Personal Health Notes"""
+    category_display = serializers.CharField(
+        source="get_category_display", read_only=True
+    )
+    patient_name = serializers.CharField(source="patient.full_name", read_only=True)
+    
+    class Meta:
+        model = PersonalHealthNote
+        fields = [
+            'id',
+            'patient',
+            'patient_name',
+            'title',
+            'content',
+            'note_date',
+            'category',
+            'category_display',
+            'tags',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'patient', 'created_at', 'updated_at']

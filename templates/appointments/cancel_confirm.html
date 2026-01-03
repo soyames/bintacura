@@ -1,0 +1,126 @@
+{% extends "patient/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Annuler le Rendez-vous - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+<style>
+    .cancel-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+    }
+    
+    .warning-icon {
+        font-size: 2rem;
+        color: #ffc107;
+        margin-bottom: 1rem;
+    }
+    
+    .appointment-details {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+    
+    .cancel-reason {
+        margin: 1.5rem 0;
+    }
+    
+    .cancel-reason textarea {
+        width: 100%;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn-danger {
+        flex: 1;
+        padding: 1rem;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    
+    .btn-secondary {
+        flex: 1;
+        padding: 1rem;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cancel-container">
+    <h1>Annuler le rendez-vous</h1>
+    
+    <div class="warning-box">
+        <div class="warning-icon">⚠️</div>
+        <h3>Attention</h3>
+        <p>Vous êtes sur le point d'annuler ce rendez-vous. Cette action est irréversible.</p>
+        {% if appointment.is_paid %}
+        <p><strong>Note:</strong> Un remboursement sera traité selon nos conditions d'annulation.</p>
+        {% endif %}
+    </div>
+    
+    <div class="appointment-details">
+        <h3>Détails du rendez-vous</h3>
+        <p><strong>Médecin:</strong> Dr. {{ appointment.doctor.user.get_full_name }}</p>
+        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"d/m/Y" }}</p>
+        <p><strong>Heure:</strong> {{ appointment.start_time|time:"H:i" }}</p>
+        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+        {% if appointment.consultation_fee %}
+        <p><strong>Montant:</strong> {{ appointment.consultation_fee }} {{ appointment.currency }}</p>
+        {% endif %}
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="cancel-reason">
+            <label for="reason"><strong>Raison de l'annulation (optionnel)</strong></label>
+            <textarea name="cancellation_reason" id="reason" 
+                      placeholder="Veuillez indiquer la raison de votre annulation..."></textarea>
+        </div>
+        
+        <div class="action-buttons">
+            <button type="button" class="btn-secondary" onclick="window.history.back()">
+                Retour
+            </button>
+            <button type="submit" class="btn-danger">
+                Confirmer l'annulation
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

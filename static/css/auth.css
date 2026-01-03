@@ -110,7 +110,7 @@ body {
 
 .form-input {
     width: 100%;
-    padding: 16px 20px 16px 55px;
+    padding: 16px 20px;
     border: 2px solid #2196F3;
     border-radius: 25px;
     font-size: 15px;
@@ -118,6 +118,10 @@ body {
     transition: all 0.3s;
     background: white;
     color: #333;
+}
+
+.input-wrapper .form-input {
+    padding-left: 55px;
 }
 
 .form-input::placeholder {
@@ -245,13 +249,29 @@ select.form-input:valid {
         border-radius: 20px;
     }
 
+    .logo-container {
+        margin-bottom: 60px;
+    }
+
     .logo {
         font-size: 32px;
     }
 
+    .page-title {
+        font-size: 20px;
+    }
+
+    .page-description {
+        font-size: 13px;
+    }
+
     .form-input {
-        padding: 14px 18px 14px 50px;
+        padding: 14px 18px;
         font-size: 14px;
+    }
+
+    .input-wrapper .form-input {
+        padding-left: 50px;
     }
 
     .submit-btn {
@@ -311,4 +331,32 @@ select.form-input:valid {
     .register-container {
         padding: 50px 40px;
     }
+}
+
+.forgot-password-link {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.forgot-password-link a {
+    color: #2196F3;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.form-group > div[class*="h-captcha"],
+.form-group > div[data-sitekey] {
+    margin: 10px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 78px;
+    overflow: visible !important;
+}
+
+.form-group iframe[src*="hcaptcha"] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 78px;
 }

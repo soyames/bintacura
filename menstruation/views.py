@@ -74,9 +74,14 @@ def menstruation_tracker(request):
 def log_period(request):
     """Log a new period start"""
     if request.method == 'POST':
-        start_date = request.POST.get('start_date')
+        from datetime import datetime
+        
+        start_date_str = request.POST.get('cycle_start_date')
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        period_length = int(request.POST.get('period_length', 5))
+        cycle_length = int(request.POST.get('cycle_length', 28))
         flow_intensity = request.POST.get('flow_intensity', 'medium')
-        mood = request.POST.get('mood', '')
+        mood = request.POST.get('mood', 'normal')
         notes = request.POST.get('notes', '')
         symptoms = request.POST.getlist('symptoms')  # Multiple selection
         
@@ -90,6 +95,8 @@ def log_period(request):
         cycle = MenstrualCycle.objects.create(
             patient=request.user,
             cycle_start_date=start_date,
+            period_length=period_length,
+            cycle_length=cycle_length,
             flow_intensity=flow_intensity,
             mood=mood,
             notes=notes,
@@ -107,11 +114,11 @@ def log_period(request):
 
 
 @login_required
-def cycle_details(request, cycle_uid):
+def cycle_details(request, cycle_id):
     """View detailed information about a specific cycle"""
     cycle = get_object_or_404(
         MenstrualCycle,
-        uid=cycle_uid,
+        id=cycle_id,
         patient=request.user
     )
     
@@ -127,32 +134,48 @@ def cycle_details(request, cycle_uid):
 
 
 @login_required
-def log_symptom(request, cycle_uid):
+def log_symptom(request, cycle_id):
     """Log daily symptoms for a cycle"""
     cycle = get_object_or_404(
         MenstrualCycle,
-        uid=cycle_uid,
+        id=cycle_id,
         patient=request.user
     )
     
     if request.method == 'POST':
-        symptom_date = request.POST.get('symptom_date')
+        symptom_date_str = request.POST.get('date', '').strip()
         symptom_type = request.POST.get('symptom_type')
         severity = request.POST.get('severity', 1)
         notes = request.POST.get('notes', '')
+        
+        # Convert date string to date object
+        from datetime import datetime
+        symptom_date = None
+        if symptom_date_str:
+            try:
+                symptom_date = datetime.strptime(symptom_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                symptom_date = timezone.now().date()
+        
+        # If no date provided, default to today
+        if symptom_date is None:
+            symptom_date = timezone.now().date()
         
         CycleSymptom.objects.create(
             cycle=cycle,
             date=symptom_date,
             symptom_type=symptom_type,
-            severity=severity,
+            severity=int(severity) if severity else 1,
             notes=notes
         )
         
         messages.success(request, "Symptôme enregistré!")
-        return redirect('menstruation:cycle_details', cycle_uid=cycle.uid)
+        return redirect('menstruation:cycle_details', cycle_id=cycle.id)
     
-    return render(request, 'menstruation/log_symptom.html', {'cycle': cycle})
+    return render(request, 'menstruation/log_symptom.html', {
+        'cycle': cycle,
+        'today': timezone.now().date().isoformat()
+    })
 
 
 @login_required
@@ -306,29 +329,60 @@ def calculate_cycle_stats(user):
 
 def create_cycle_reminders(cycle):
     """Create reminders for a new cycle"""
+    from datetime import datetime, date
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Helper to ensure dates
+    def ensure_date(d):
+        if isinstance(d, str):
+            try:
+                return datetime.strptime(d, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                logger.warning(f"Could not parse date string: {d}")
+                return None
+        elif isinstance(d, datetime):
+            return d.date()
+        return d
+    
     # Period starting reminder (1 day before predicted next period)
     if cycle.predicted_next_period_date:
-        CycleReminder.objects.create(
-            patient=cycle.patient,
-            reminder_type='period_starting',
-            reminder_date=cycle.predicted_next_period_date - timedelta(days=1),
-            message="Vos règles devraient commencer demain."
-        )
+        try:
+            next_period_date = ensure_date(cycle.predicted_next_period_date)
+            if next_period_date:
+                CycleReminder.objects.create(
+                    patient=cycle.patient,
+                    reminder_type='period_starting',
+                    reminder_date=next_period_date - timedelta(days=1),
+                    message="Vos règles devraient commencer demain."
+                )
+        except Exception as e:
+            logger.error(f"Failed to create period_starting reminder: {e}")
     
     # Ovulation reminder
     if cycle.predicted_ovulation_date:
-        CycleReminder.objects.create(
-            patient=cycle.patient,
-            reminder_type='ovulation',
-            reminder_date=cycle.predicted_ovulation_date,
-            message="Jour d'ovulation prédit aujourd'hui."
-        )
+        try:
+            ovulation_date = ensure_date(cycle.predicted_ovulation_date)
+            if ovulation_date:
+                CycleReminder.objects.create(
+                    patient=cycle.patient,
+                    reminder_type='ovulation',
+                    reminder_date=ovulation_date,
+                    message="Jour d'ovulation prédit aujourd'hui."
+                )
+        except Exception as e:
+            logger.error(f"Failed to create ovulation reminder: {e}")
     
     # Fertile window reminder
     if cycle.predicted_fertile_window_start:
-        CycleReminder.objects.create(
-            patient=cycle.patient,
-            reminder_type='fertile_window',
-            reminder_date=cycle.predicted_fertile_window_start,
-            message="Début de votre fenêtre fertile."
-        )
+        try:
+            fertile_start = ensure_date(cycle.predicted_fertile_window_start)
+            if fertile_start:
+                CycleReminder.objects.create(
+                    patient=cycle.patient,
+                    reminder_type='fertile_window',
+                    reminder_date=fertile_start,
+                    message="Début de votre fenêtre fertile."
+                )
+        except Exception as e:
+            logger.error(f"Failed to create fertile_window reminder: {e}")

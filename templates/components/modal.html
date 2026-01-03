@@ -1,4 +1,5 @@
-<div class="modal" id="{{ id }}" style="display: none;">
+{% load static %}
+<div class="modal hidden" id="{{ id }}">
     <div class="modal-overlay" onclick="closeModal('{{ id }}')"></div>
     <div class="modal-content">
         <div class="modal-header">
@@ -18,77 +19,10 @@
 
 <script>
 function closeModal(id) {
-    document.getElementById(id).style.display = 'none';
+    document.getElementById(id).classList.add('hidden');
 }
 
 function openModal(id) {
-    document.getElementById(id).style.display = 'flex';
+    document.getElementById(id).classList.remove('hidden');
 }
 </script>
-
-<style>
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-}
-
-.modal-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.modal-content {
-    position: relative;
-    background: white;
-    border-radius: 12px;
-    max-width: 600px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #e0e0e0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 20px;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #666;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-.modal-footer {
-    padding: 15px 20px;
-    border-top: 1px solid #e0e0e0;
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-}
-</style>

@@ -1,0 +1,280 @@
+{% extends "patient/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Mes Documents Médicaux - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/patient/documents.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="documents-container">
+    <div class="page-header">
+        <h1><i class="fas fa-folder-open"></i> Mes Documents Médicaux</h1>
+        <button class="btn btn-primary" id="uploadDocBtn">
+            <i class="fas fa-upload"></i> Importer un document
+        </button>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <i class="fas fa-file-medical"></i>
+            <div class="stat-info">
+                <h3>{{ total_documents }}</h3>
+                <p>Documents totaux</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-file-prescription"></i>
+            <div class="stat-info">
+                <h3>{{ prescriptions_count }}</h3>
+                <p>Ordonnances</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-x-ray"></i>
+            <div class="stat-info">
+                <h3>{{ lab_results_count }}</h3>
+                <p>Résultats d'examens</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-notes-medical"></i>
+            <div class="stat-info">
+                <h3>{{ reports_count }}</h3>
+                <p>Comptes rendus</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres et recherche -->
+    <div class="filters-section">
+        <div class="filter-group">
+            <label>Type de document:</label>
+            <select id="docTypeFilter">
+                <option value="all">Tous les documents</option>
+                <option value="prescription">Ordonnances</option>
+                <option value="lab_result">Résultats d'examens</option>
+                <option value="imaging">Imagerie médicale</option>
+                <option value="report">Comptes rendus</option>
+                <option value="vaccination">Certificats de vaccination</option>
+                <option value="other">Autres</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label>Période:</label>
+            <select id="periodFilter">
+                <option value="all">Toute période</option>
+                <option value="week">Cette semaine</option>
+                <option value="month">Ce mois</option>
+                <option value="year">Cette année</option>
+            </select>
+        </div>
+        
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchDocs" placeholder="Rechercher un document...">
+        </div>
+    </div>
+
+    <!-- Vue en liste/grille -->
+    <div class="view-controls">
+        <div class="view-toggle">
+            <button class="view-btn active" data-view="grid">
+                <i class="fas fa-th"></i>
+            </button>
+            <button class="view-btn" data-view="list">
+                <i class="fas fa-list"></i>
+            </button>
+        </div>
+        
+        <div class="sort-group">
+            <label>Trier par:</label>
+            <select id="sortBy">
+                <option value="date_desc">Plus récent</option>
+                <option value="date_asc">Plus ancien</option>
+                <option value="name_asc">Nom (A-Z)</option>
+                <option value="name_desc">Nom (Z-A)</option>
+                <option value="type">Type</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Liste des documents -->
+    <div class="documents-grid view-grid" id="documentsGrid">
+        {% for doc in documents %}
+        <div class="document-card" 
+             data-type="{{ doc.document_type }}" 
+             data-date="{{ doc.upload_date|date:'Y-m-d' }}"
+             data-name="{{ doc.name|lower }}">
+            <div class="doc-preview">
+                {% if doc.file_type == 'pdf' %}
+                    <i class="fas fa-file-pdf"></i>
+                {% elif doc.file_type in 'jpg,jpeg,png,gif' %}
+                    <img src="{{ doc.file.url }}" alt="{{ doc.name }}">
+                {% else %}
+                    <i class="fas fa-file"></i>
+                {% endif %}
+                
+                <div class="doc-overlay">
+                    <button class="action-btn" data-action="view" data-doc-id="{{ doc.uid }}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="action-btn" data-action="download" data-doc-id="{{ doc.uid }}">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="action-btn" data-action="share" data-doc-id="{{ doc.uid }}">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="doc-info">
+                <div class="doc-type-badge {{ doc.document_type }}">
+                    {{ doc.get_document_type_display }}
+                </div>
+                <h3 class="doc-name">{{ doc.name }}</h3>
+                <p class="doc-date">
+                    <i class="far fa-calendar"></i> {{ doc.upload_date|date:"d/m/Y" }}
+                </p>
+                {% if doc.doctor %}
+                <p class="doc-doctor">
+                    <i class="fas fa-user-md"></i> Dr {{ doc.doctor.user.get_full_name }}
+                </p>
+                {% endif %}
+                <p class="doc-size">
+                    <i class="fas fa-file"></i> {{ doc.file_size|filesizeformat }}
+                </p>
+            </div>
+            
+            <div class="doc-actions">
+                <button class="btn-icon" title="Supprimer" data-action="delete" data-doc-id="{{ doc.uid }}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>Aucun document</h3>
+            <p>Vous n'avez pas encore de documents médicaux.</p>
+            <button class="btn btn-primary" id="uploadFirstDoc">
+                <i class="fas fa-upload"></i> Importer votre premier document
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal d'upload -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Importer un document</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="uploadForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="upload-zone" id="uploadZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Glissez-déposez vos fichiers ici ou cliquez pour parcourir</p>
+                    <p class="upload-hint">PDF, JPG, PNG (Max 10 Mo)</p>
+                    <input type="file" id="fileInput" name="file" accept=".pdf,.jpg,.jpeg,.png" hidden>
+                </div>
+                
+                <div class="form-group">
+                    <label for="docName">Nom du document *</label>
+                    <input type="text" id="docName" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="docType">Type de document *</label>
+                    <select id="docType" name="document_type" required>
+                        <option value="">Sélectionnez un type</option>
+                        <option value="prescription">Ordonnance</option>
+                        <option value="lab_result">Résultat d'examen</option>
+                        <option value="imaging">Imagerie médicale</option>
+                        <option value="report">Compte rendu</option>
+                        <option value="vaccination">Certificat de vaccination</option>
+                        <option value="other">Autre</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="docDate">Date du document</label>
+                    <input type="date" id="docDate" name="document_date">
+                </div>
+                
+                <div class="form-group">
+                    <label for="docNotes">Notes (optionnel)</label>
+                    <textarea id="docNotes" name="notes" rows="3" placeholder="Ajoutez des notes sur ce document..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary cancel-btn">Annuler</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Importer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de visualisation -->
+<div id="viewModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2 id="viewDocTitle"></h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="docViewer"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de partage -->
+<div id="shareModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Partager le document</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Partager avec un praticien:</label>
+                <select id="shareWithDoctor">
+                    <option value="">Sélectionnez un praticien</option>
+                    {% for doctor in my_doctors %}
+                    <option value="{{ doctor.uid }}">Dr {{ doctor.user.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Message (optionnel):</label>
+                <textarea id="shareMessage" rows="3" placeholder="Ajoutez un message..."></textarea>
+            </div>
+            <div class="share-options">
+                <label>
+                    <input type="checkbox" id="shareExpires" checked>
+                    Accès temporaire (7 jours)
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary cancel-btn">Annuler</button>
+            <button class="btn btn-primary share-btn">
+                <i class="fas fa-share-alt"></i> Partager
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/patient/documents.js' %}"></script>
+{% endblock %}

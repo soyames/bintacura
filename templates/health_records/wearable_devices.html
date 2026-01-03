@@ -1,0 +1,402 @@
+{% extends 'base/dashboard.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Wearable Devices" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/health_records.css' %}">
+<style>
+    .devices-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .device-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .device-info {
+        flex: 1;
+    }
+    
+    .device-name {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .device-type {
+        color: #666;
+        margin-bottom: 10px;
+    }
+    
+    .device-status {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.9em;
+        margin-right: 10px;
+    }
+    
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .status-disconnected {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .battery-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .battery-level {
+        width: 50px;
+        height: 20px;
+        border: 2px solid #333;
+        border-radius: 3px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .battery-fill {
+        height: 100%;
+        transition: width 0.3s;
+    }
+    
+    .battery-good { background: #28a745; }
+    .battery-medium { background: #ffc107; }
+    .battery-low { background: #dc3545; }
+    
+    .device-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+    
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .add-device-btn {
+        background: #007bff;
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        border: none;
+        font-size: 1.1em;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        color: #007bff;
+    }
+    
+    .stat-label {
+        color: #666;
+        margin-top: 5px;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+        background: white;
+        margin: 10% auto;
+        padding: 30px;
+        border-radius: 10px;
+        max-width: 500px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="devices-container">
+    <h1>{% trans "My Wearable Devices" %}</h1>
+    
+    <button class="add-device-btn" onclick="showAddDeviceModal()">
+        {% trans "Add New Device" %}
+    </button>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" id="total-devices">0</div>
+            <div class="stat-label">{% trans "Total Devices" %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="active-devices">0</div>
+            <div class="stat-label">{% trans "Active Devices" %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="connected-devices">0</div>
+            <div class="stat-label">{% trans "Connected" %}</div>
+        </div>
+    </div>
+    
+    <div id="devices-list"></div>
+</div>
+
+<!-- Add Device Modal -->
+<div id="addDeviceModal" class="modal">
+    <div class="modal-content">
+        <h2>{% trans "Add Wearable Device" %}</h2>
+        <form id="addDeviceForm">
+            <div class="form-group">
+                <label>{% trans "Device ID" %}</label>
+                <input type="text" name="device_id" required>
+            </div>
+            <div class="form-group">
+                <label>{% trans "Device Name" %}</label>
+                <input type="text" name="device_name" required>
+            </div>
+            <div class="form-group">
+                <label>{% trans "Device Type" %}</label>
+                <select name="device_type" required>
+                    <option value="smartwatch">{% trans "Smartwatch" %}</option>
+                    <option value="fitness_tracker">{% trans "Fitness Tracker" %}</option>
+                    <option value="smart_ring">{% trans "Smart Ring" %}</option>
+                    <option value="blood_pressure_monitor">{% trans "Blood Pressure Monitor" %}</option>
+                    <option value="glucose_monitor">{% trans "Glucose Monitor" %}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{% trans "Manufacturer" %}</label>
+                <input type="text" name="manufacturer">
+            </div>
+            <div class="form-group">
+                <label>{% trans "Model" %}</label>
+                <input type="text" name="model">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-danger" onclick="closeAddDeviceModal()">
+                    {% trans "Cancel" %}
+                </button>
+                <button type="submit" class="btn btn-success">
+                    {% trans "Add Device" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/api.js' %}"></script>
+<script>
+    const API_BASE = '/api/v1/health-records';
+    
+    async function loadDevices() {
+        try {
+            const response = await api.get(`${API_BASE}/devices/summary/`);
+            const data = await response.json();
+            
+            // Update stats
+            document.getElementById('total-devices').textContent = data.total_devices;
+            document.getElementById('active-devices').textContent = data.active_devices;
+            document.getElementById('connected-devices').textContent = data.connected_devices;
+            
+            // Render devices
+            const devicesList = document.getElementById('devices-list');
+            devicesList.innerHTML = '';
+            
+            data.devices.forEach(device => {
+                devicesList.innerHTML += renderDevice(device);
+            });
+        } catch (error) {
+            console.error('Error loading devices:', error);
+        }
+    }
+    
+    function renderDevice(device) {
+        const statusClass = `status-${device.status}`;
+        const batteryClass = device.battery_level >= 70 ? 'battery-good' : 
+                            device.battery_level >= 30 ? 'battery-medium' : 'battery-low';
+        
+        return `
+            <div class="device-card">
+                <div class="device-info">
+                    <div class="device-name">${device.device_name}</div>
+                    <div class="device-type">${device.manufacturer} ${device.model}</div>
+                    <div>
+                        <span class="device-status ${statusClass}">${device.status}</span>
+                        ${device.battery_level !== null ? `
+                            <span class="battery-indicator">
+                                <span>Battery:</span>
+                                <div class="battery-level">
+                                    <div class="battery-fill ${batteryClass}" 
+                                         style="width: ${device.battery_level}%"></div>
+                                </div>
+                                <span>${device.battery_level}%</span>
+                            </span>
+                        ` : ''}
+                    </div>
+                    <div style="margin-top: 10px; color: #666; font-size: 0.9em;">
+                        Last sync: ${device.last_sync_display}
+                    </div>
+                </div>
+                <div class="device-actions">
+                    <button class="btn btn-primary" onclick="syncDevice('${device.id}')">
+                        Sync Now
+                    </button>
+                    <button class="btn btn-primary" onclick="viewData('${device.id}')">
+                        View Data
+                    </button>
+                    ${device.is_connected ? `
+                        <button class="btn btn-danger" onclick="disconnectDevice('${device.id}')">
+                            Disconnect
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    async function syncDevice(deviceId) {
+        try {
+            const response = await api.post(`${API_BASE}/devices/${deviceId}/sync/`);
+            
+            if (response.ok) {
+                alert('Device synced successfully!');
+                loadDevices();
+            }
+        } catch (error) {
+            console.error('Error syncing device:', error);
+            alert('Failed to sync device');
+        }
+    }
+    
+    async function disconnectDevice(deviceId) {
+        if (!confirm('Are you sure you want to disconnect this device?')) return;
+        
+        try {
+            const response = await api.post(`${API_BASE}/devices/${deviceId}/disconnect/`);
+            
+            if (response.ok) {
+                alert('Device disconnected');
+                loadDevices();
+            }
+        } catch (error) {
+            console.error('Error disconnecting device:', error);
+        }
+    }
+    
+    function viewData(deviceId) {
+        window.location.href = `/patient/health-records/?device=${deviceId}`;
+    }
+    
+    function showAddDeviceModal() {
+        document.getElementById('addDeviceModal').style.display = 'block';
+    }
+    
+    function closeAddDeviceModal() {
+        document.getElementById('addDeviceModal').style.display = 'none';
+        document.getElementById('addDeviceForm').reset();
+    }
+    
+    document.getElementById('addDeviceForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+        
+        try {
+            const response = await api.post(`${API_BASE}/devices/`, data);
+            
+            if (response.ok) {
+                alert('Device added successfully!');
+                closeAddDeviceModal();
+                loadDevices();
+            } else {
+                const error = await response.json();
+                alert('Error: ' + JSON.stringify(error));
+            }
+        } catch (error) {
+            console.error('Error adding device:', error);
+            alert('Failed to add device');
+        }
+    });
+    
+    // Load devices on page load
+    loadDevices();
+</script>
+{% endblock %}

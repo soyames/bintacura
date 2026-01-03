@@ -1,0 +1,416 @@
+{% load static %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Wearable Devices" %} - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/wearable_devices.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    {% include "components/top_nav.html" with user_type="patient" page_title="Appareils Connectés" %}
+
+    {% include "layout/_sidebar_patient.html" %}
+
+    <div class="devices-container">
+    
+    {% if devices %}
+    <div class="device-grid" id="devicesGrid">
+        {% for device in devices %}
+        <div class="device-card" data-device-id="{{ device.id }}">
+            <div class="device-header">
+                <div>
+                    <div class="device-icon">
+                        {% if device.device_type == 'google_fit' %}📱
+                        {% elif device.device_type == 'fitbit' %}⌚
+                        {% elif device.device_type == 'apple_health' %}
+                        {% elif device.device_type == 'garmin' %}🏃
+                        {% else %}📊
+                        {% endif %}
+                    </div>
+                    <h3>{{ device.device_name }}</h3>
+                    <p class="device-type-label">{{ device.get_device_type_display }}</p>
+                </div>
+                <span class="device-status status-{{ device.status }}">
+                    {% if device.status == 'active' %}
+                        {% trans "Connecté" %}
+                    {% elif device.status == 'pending' %}
+                        {% trans "En attente..." %}
+                    {% else %}
+                        {% trans "Déconnecté" %}
+                    {% endif %}
+                </span>
+            </div>
+            
+            <div class="device-info">
+                <div class="info-row">
+                    <span>{% trans "Dernière synchronisation:" %}</span>
+                    <strong>
+                        {% if device.last_sync %}
+                            {{ device.last_sync|date:"d M Y H:i" }}
+                        {% else %}
+                            {% trans "Jamais" %}
+                        {% endif %}
+                    </strong>
+                </div>
+                <div class="info-row">
+                    <span>{% trans "Synchronisation automatique:" %}</span>
+                    <strong>{{ device.auto_sync_enabled|yesno:"Activée,Désactivée" }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>{% trans "Fréquence de synchronisation:" %}</span>
+                    <strong>{% trans "Toutes les" %} {{ device.sync_frequency }} min</strong>
+                </div>
+            </div>
+            
+            <div class="device-actions">
+                {% if device.status == 'active' %}
+                <button class="btn btn-primary btn-sync" data-device-id="{{ device.id }}">
+                    🔄 {% trans "Synchroniser" %}
+                </button>
+                <button class="btn btn-secondary btn-settings" data-device-id="{{ device.id }}">
+                    ⚙️ {% trans "Paramètres" %}
+                </button>
+                <button class="btn btn-danger btn-disconnect" data-device-id="{{ device.id }}">
+                    🔌 {% trans "Déconnecter" %}
+                </button>
+                {% else %}
+                <button class="btn btn-primary btn-reconnect" data-device-type="{{ device.device_type }}">
+                    🔗 {% trans "Connecter" %}
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">📱</div>
+        <h3>{% trans "Aucun appareil connecté" %}</h3>
+        <p>{% trans "Connectez vos appareils portables pour suivre automatiquement vos données de santé" %}</p>
+    </div>
+    {% endif %}
+    
+    <div class="connect-section">
+        <h3>{% trans "Connecter un nouvel appareil" %}</h3>
+        <p>{% trans "Choisissez un type d'appareil à connecter" %}</p>
+        
+        <div class="connect-grid">
+            <div class="connect-button" data-device-type="google_fit">
+                <div class="connect-icon">📱</div>
+                <strong>Google Fit</strong>
+                <small>Android & iOS</small>
+            </div>
+            
+            <div class="connect-button" data-device-type="fitbit">
+                <div class="connect-icon">⌚</div>
+                <strong>Fitbit</strong>
+                <small>Fitness Tracker</small>
+            </div>
+            
+            <div class="connect-button" data-device-type="apple_health">
+                <div class="connect-icon"></div>
+                <strong>Apple Health</strong>
+                <small>{% trans "iOS uniquement" %}</small>
+            </div>
+            
+            <div class="connect-button" data-device-type="garmin">
+                <div class="connect-icon">🏃</div>
+                <strong>Garmin</strong>
+                <small>{% trans "Montre de sport" %}</small>
+            </div>
+            
+            <div class="connect-button" data-device-type="samsung_health">
+                <div class="connect-icon">📊</div>
+                <strong>Samsung Health</strong>
+                <small>{% trans "Appareils Samsung" %}</small>
+            </div>
+            
+            <div class="connect-button" data-device-type="other">
+                <div class="connect-icon">🔗</div>
+                <strong>{% trans "Autre" %}</strong>
+                <small>{% trans "Saisie manuelle" %}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>⚙️ {% trans "Paramètres de l'appareil" %}</h2>
+        
+        <form id="settingsForm">
+            <div class="form-group">
+                <label for="autoSync">
+                    <input type="checkbox" id="autoSync" name="auto_sync_enabled" checked>
+                    {% trans "Synchronisation automatique" %}
+                </label>
+                <small class="help-text">{% trans "Synchroniser automatiquement les données à intervalle régulier" %}</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="syncFrequency">{% trans "Fréquence de synchronisation (minutes)" %}</label>
+                <select id="syncFrequency" name="sync_frequency">
+                    <option value="15">15 min</option>
+                    <option value="30">30 min</option>
+                    <option value="60" selected>60 min</option>
+                    <option value="120">120 min</option>
+                    <option value="180">180 min</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="dataTypes">{% trans "Types de données à synchroniser" %}</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="sync_heart_rate" checked> ❤️ {% trans "Fréquence cardiaque" %}</label>
+                    <label><input type="checkbox" name="sync_steps" checked> 👣 {% trans "Pas" %}</label>
+                    <label><input type="checkbox" name="sync_sleep" checked> 😴 {% trans "Sommeil" %}</label>
+                    <label><input type="checkbox" name="sync_activity" checked> 🏃 {% trans "Activité" %}</label>
+                    <label><input type="checkbox" name="sync_calories" checked> 🔥 {% trans "Calories" %}</label>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Enregistrer" %}</button>
+                <button type="button" class="btn btn-secondary close-modal">{% trans "Annuler" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+    
+    // Connect device
+    document.querySelectorAll('.connect-button').forEach(button => {
+        button.addEventListener('click', async function() {
+            const deviceType = this.dataset.deviceType;
+            
+            if (deviceType === 'google_fit') {
+                try {
+                    const response = await fetch('/patient/wearable-devices/api/devices/connect_google_fit/', {
+                        headers: {
+                            'X-CSRFToken': csrftoken
+                        }
+                    });
+                    const data = await response.json();
+                    
+                    if (data.authorization_url) {
+                        window.location.href = data.authorization_url;
+                    }
+                } catch (error) {
+                    alert('Failed to connect to Google Fit. Please try again.');
+                }
+            } else if (deviceType === 'fitbit') {
+                window.location.href = `/patient/wearable-devices/connect/fitbit/`;
+            } else {
+                alert(`Intégration ${deviceType} bientôt disponible!`);
+            }
+        });
+    });
+    
+    // Sync device
+    document.querySelectorAll('.btn-sync').forEach(button => {
+        button.addEventListener('click', async function() {
+            const deviceId = this.dataset.deviceId;
+            this.disabled = true;
+            this.textContent = '🔄 Synchronisation...';
+            
+            try {
+                const response = await fetch(`/patient/wearable-devices/api/devices/${deviceId}/sync/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert(`Synchronisation terminée! ${data.records_synced} enregistrements synchronisés.`);
+                    location.reload();
+                } else {
+                    alert(`Échec de la synchronisation: ${data.message}`);
+                }
+            } catch (error) {
+                alert('Échec de la synchronisation. Veuillez réessayer.');
+            } finally {
+                this.disabled = false;
+                this.textContent = '🔄 Synchroniser';
+            }
+        });
+    });
+    
+    // Disconnect device
+    document.querySelectorAll('.btn-disconnect').forEach(button => {
+        button.addEventListener('click', async function() {
+            if (!confirm('Êtes-vous sûr de vouloir déconnecter cet appareil?')) {
+                return;
+            }
+            
+            const deviceId = this.dataset.deviceId;
+            
+            try {
+                const response = await fetch(`/patient/wearable-devices/api/devices/${deviceId}/disconnect/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('Appareil déconnecté avec succès!');
+                    location.reload();
+                } else {
+                    alert(`Échec de la déconnexion: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Échec de la déconnexion. Veuillez réessayer.');
+            }
+        });
+    });
+    
+    // Reconnect device
+    document.querySelectorAll('.btn-reconnect').forEach(button => {
+        button.addEventListener('click', function() {
+            const deviceType = this.dataset.deviceType;
+            
+            if (deviceType === 'google_fit') {
+                fetch('/patient/wearable-devices/api/devices/connect_google_fit/', {
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.authorization_url) {
+                        window.location.href = data.authorization_url;
+                    }
+                })
+                .catch(error => {
+                    alert('Échec de connexion à Google Fit. Veuillez réessayer.');
+                });
+            } else if (deviceType === 'fitbit') {
+                window.location.href = `/patient/wearable-devices/connect/fitbit/`;
+            } else {
+                alert(`Intégration ${deviceType} bientôt disponible!`);
+            }
+        });
+    });
+    
+    // Settings modal
+    const settingsModal = document.getElementById('settingsModal');
+    let currentDeviceId = null;
+    
+    document.querySelectorAll('.btn-settings').forEach(button => {
+        button.addEventListener('click', async function() {
+            currentDeviceId = this.dataset.deviceId;
+            
+            // Fetch current settings
+            try {
+                const response = await fetch(`/patient/wearable-devices/api/devices/${currentDeviceId}/wearable_settings/`, {
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Populate form
+                document.getElementById('autoSync').checked = data.auto_sync || false;
+                document.getElementById('syncFrequency').value = data.sync_frequency || 60;
+                
+                settingsModal.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                alert(`Erreur lors du chargement des paramètres: ${error.message}`);
+            }
+        });
+    });
+    
+    // Close modal
+    document.querySelectorAll('.close, .close-modal').forEach(element => {
+        element.addEventListener('click', function() {
+            settingsModal.style.display = 'none';
+        });
+    });
+    
+    // Close modal on outside click
+    window.addEventListener('click', function(event) {
+        if (event.target === settingsModal) {
+            settingsModal.style.display = 'none';
+        }
+    });
+    
+    // Save settings
+    document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            auto_sync: document.getElementById('autoSync').checked,
+            sync_frequency: parseInt(document.getElementById('syncFrequency').value),
+            device_name: document.getElementById('deviceName')?.value
+        };
+        
+        try {
+            const response = await fetch(`/patient/wearable-devices/api/devices/${currentDeviceId}/wearable_settings/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                alert('Paramètres enregistrés avec succès!');
+                settingsModal.style.display = 'none';
+                location.reload();
+            } else {
+                alert(`Erreur: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Erreur lors de l\'enregistrement des paramètres');
+        }
+    });
+</script>
+</body>
+</html>

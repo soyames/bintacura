@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Recherche sur Carte - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="{% static 'css/map_search.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="map-search-container">
+    <div class="map-header">
+        <h1>
+            <i class="fas fa-map-marked-alt"></i>
+            Recherche sur Carte
+        </h1>
+        <p class="subtitle">Trouvez des médecins et hôpitaux près de vous</p>
+    </div>
+
+    <div class="map-layout">
+        <!-- Sidebar with filters -->
+        <aside class="map-sidebar">
+            <div class="filter-section">
+                <h3><i class="fas fa-filter"></i> Filtres</h3>
+                
+                <!-- Location search -->
+                <div class="filter-group">
+                    <label for="location-search">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Localisation
+                    </label>
+                    <div class="location-input-group">
+                        <input 
+                            type="text" 
+                            id="location-search" 
+                            class="form-control"
+                            placeholder="Entrez une adresse ou ville..."
+                        >
+                        <button type="button" id="use-my-location" class="btn-location" title="Utiliser ma position">
+                            <i class="fas fa-crosshairs"></i>
+                        </button>
+                    </div>
+                    <small class="location-info">
+                        <i class="fas fa-info-circle"></i>
+                        Cliquez sur l'icône pour utiliser votre position
+                    </small>
+                </div>
+
+                <!-- Radius -->
+                <div class="filter-group">
+                    <label for="radius">
+                        <i class="fas fa-circle-notch"></i>
+                        Rayon de recherche
+                    </label>
+                    <div class="radius-slider-container">
+                        <input 
+                            type="range" 
+                            id="radius" 
+                            min="1" 
+                            max="100" 
+                            value="50"
+                            class="radius-slider"
+                        >
+                        <span class="radius-value">50 km</span>
+                    </div>
+                </div>
+
+                <!-- Search term -->
+                <div class="filter-group">
+                    <label for="search">
+                        <i class="fas fa-search"></i>
+                        Recherche
+                    </label>
+                    <input 
+                        type="text" 
+                        id="search" 
+                        class="form-control"
+                        placeholder="Nom, ville, adresse..."
+                    >
+                </div>
+
+                <!-- Specialty filter -->
+                <div class="filter-group">
+                    <label for="specialty">
+                        <i class="fas fa-stethoscope"></i>
+                        Spécialité
+                    </label>
+                    <select id="specialty" class="form-control">
+                        <option value="">Toutes les spécialités</option>
+                        {% for specialty in specialties %}
+                        <option value="{{ specialty }}">{{ specialty }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Rating filter -->
+                <div class="filter-group">
+                    <label for="min-rating">
+                        <i class="fas fa-star"></i>
+                        Note minimale
+                    </label>
+                    <div class="rating-filter">
+                        {% for i in "12345" %}
+                        <button type="button" class="star-btn" data-rating="{{ forloop.counter }}">
+                            <i class="far fa-star"></i>
+                        </button>
+                        {% endfor %}
+                        <span class="rating-text">Toutes</span>
+                    </div>
+                    <input type="hidden" id="min-rating" value="0">
+                </div>
+
+                <!-- Apply filters button -->
+                <button type="button" id="apply-filters" class="btn-primary btn-block">
+                    <i class="fas fa-search"></i>
+                    Rechercher
+                </button>
+
+                <button type="button" id="reset-filters" class="btn-secondary btn-block">
+                    <i class="fas fa-redo"></i>
+                    Réinitialiser
+                </button>
+            </div>
+
+            <!-- Results list -->
+            <div class="results-section">
+                <h3>
+                    <i class="fas fa-list"></i>
+                    Résultats
+                    <span class="result-count">0</span>
+                </h3>
+                <div id="results-list" class="results-list">
+                    <p class="no-results">
+                        <i class="fas fa-info-circle"></i>
+                        Utilisez les filtres pour rechercher
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map container -->
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-loading" id="map-loading">
+                <div class="spinner"></div>
+                <p>Chargement de la carte...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/map_search.js' %}"></script>
+{% endblock %}

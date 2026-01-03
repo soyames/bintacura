@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import HealthRecord, WearableDevice, WearableData, DocumentUpload, TelemedicineSession
+from .models import HealthRecord, DocumentUpload, TelemedicineSession
+# NOTE: Wearable device models are now in the wearable_devices app
 
 @admin.register(HealthRecord)
 class HealthRecordAdmin(admin.ModelAdmin):  # Admin configuration for HealthRecord model
@@ -8,18 +9,7 @@ class HealthRecordAdmin(admin.ModelAdmin):  # Admin configuration for HealthReco
     search_fields = ('assigned_to__email', 'title')
     date_hierarchy = 'date_of_record'
 
-@admin.register(WearableDevice)
-class WearableDeviceAdmin(admin.ModelAdmin):  # Admin configuration for WearableDevice model
-    list_display = ('id', 'patient', 'device_name', 'device_type', 'manufacturer', 'status', 'is_connected', 'battery_level', 'last_sync_time')
-    list_filter = ('device_type', 'status', 'is_connected')
-    search_fields = ('patient__email', 'device_id', 'device_name')
-
-@admin.register(WearableData)
-class WearableDataAdmin(admin.ModelAdmin):  # Admin configuration for WearableData model
-    list_display = ('id', 'patient', 'device', 'steps', 'heart_rate', 'blood_oxygen', 'timestamp', 'synced_at')
-    list_filter = ('device_type',)
-    search_fields = ('patient__email',)
-    date_hierarchy = 'timestamp'
+# NOTE: Wearable device admin has been moved to wearable_devices.admin
 
 # NOTE: MenstrualCycle admin has been moved to menstruation.admin
 

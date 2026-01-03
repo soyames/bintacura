@@ -1,0 +1,375 @@
+.substitute-management-container {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    color: #1e40af;
+    font-size: 28px;
+    margin-bottom: 5px;
+}
+
+.page-header .subtitle {
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* Filters */
+.filters-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #334155;
+    font-size: 14px;
+}
+
+/* Appointments Grid */
+.appointments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.appointment-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border-left: 4px solid #1e40af;
+}
+
+.appointment-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.appointment-card.has-substitute {
+    border-left-color: #10b981;
+}
+
+.appointment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.appointment-date {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.appointment-time {
+    color: #1e40af;
+    font-size: 14px;
+    margin-top: 3px;
+}
+
+.status-badge {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-confirmed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.patient-info {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.patient-name {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 5px;
+}
+
+.appointment-type {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.substitute-info {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 15px;
+}
+
+.substitute-info .label {
+    font-size: 12px;
+    color: #065f46;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.substitute-info .doctor-name {
+    color: #047857;
+    font-weight: 500;
+}
+
+.substitute-info .reason {
+    font-size: 13px;
+    color: #059669;
+    margin-top: 5px;
+}
+
+.card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-assign,
+.btn-cancel-substitute {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-assign {
+    background: #1e40af;
+    color: white;
+}
+
+.btn-assign:hover {
+    background: #1e3a8a;
+}
+
+.btn-cancel-substitute {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-cancel-substitute:hover {
+    background: #dc2626;
+}
+
+.btn-view {
+    background: #64748b;
+    color: white;
+}
+
+.btn-view:hover {
+    background: #475569;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content.small {
+    max-width: 450px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h2 {
+    font-size: 20px;
+    color: #1e293b;
+    margin: 0;
+}
+
+.close {
+    font-size: 28px;
+    font-weight: bold;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close:hover {
+    color: #475569;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.info-display {
+    background: #f1f5f9;
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: #1e293b;
+    font-weight: 500;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #334155;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #1e40af;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 25px;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #1e40af;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1e3a8a;
+}
+
+.btn-secondary {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.btn-secondary:hover {
+    background: #cbd5e1;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.warning-text {
+    color: #dc2626;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .appointments-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        min-width: 100%;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+    }
+
+    .card-actions {
+        flex-direction: column;
+    }
+}

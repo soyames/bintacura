@@ -1,0 +1,199 @@
+{% extends "patient/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Reprogrammer le Rendez-vous - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/appointments.css' %}">
+<style>
+    .reschedule-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .appointment-summary {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    
+    .reason-section {
+        margin: 2rem 0;
+    }
+    
+    .reason-option {
+        display: block;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .reason-option:hover {
+        border-color: #4CAF50;
+        background: #f1f8f4;
+    }
+    
+    .reason-option input[type="radio"] {
+        margin-right: 1rem;
+    }
+    
+    .new-slot-section {
+        margin: 2rem 0;
+    }
+    
+    .time-slots {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .time-slot {
+        padding: 1rem;
+        text-align: center;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .time-slot:hover {
+        border-color: #4CAF50;
+        background: #f1f8f4;
+    }
+    
+    .time-slot.selected {
+        background: #4CAF50;
+        color: white;
+        border-color: #4CAF50;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn-confirm {
+        flex: 1;
+        padding: 1rem;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    
+    .btn-cancel {
+        flex: 1;
+        padding: 1rem;
+        background: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reschedule-container">
+    <h1>Reprogrammer votre rendez-vous</h1>
+    
+    <div class="appointment-summary">
+        <h3>Rendez-vous actuel</h3>
+        <p><strong>Médecin:</strong> Dr. {{ appointment.doctor.user.get_full_name }}</p>
+        <p><strong>Date:</strong> {{ appointment.appointment_date|date:"d/m/Y" }}</p>
+        <p><strong>Heure:</strong> {{ appointment.start_time|time:"H:i" }}</p>
+        <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+    </div>
+    
+    <form method="post" id="rescheduleForm">
+        {% csrf_token %}
+        
+        <div class="reason-section">
+            <h3>Raison de la reprogrammation</h3>
+            <label class="reason-option">
+                <input type="radio" name="reason" value="schedule_conflict" required>
+                Conflit d'emploi du temps
+            </label>
+            <label class="reason-option">
+                <input type="radio" name="reason" value="personal" required>
+                Raison personnelle
+            </label>
+            <label class="reason-option">
+                <input type="radio" name="reason" value="health" required>
+                Problème de santé
+            </label>
+            <label class="reason-option">
+                <input type="radio" name="reason" value="other" required>
+                Autre raison
+            </label>
+        </div>
+        
+        <div class="new-slot-section">
+            <h3>Choisir une nouvelle date</h3>
+            <input type="date" name="new_date" id="newDate" 
+                   min="{{ min_date|date:'Y-m-d' }}" 
+                   class="form-control" required>
+            
+            <div id="timeSlotsContainer" class="time-slots" style="display:none;">
+                <!-- Time slots loaded via AJAX -->
+            </div>
+            <input type="hidden" name="new_time" id="newTime">
+        </div>
+        
+        <div class="action-buttons">
+            <button type="button" class="btn-cancel" onclick="window.history.back()">
+                Annuler
+            </button>
+            <button type="submit" class="btn-confirm">
+                Confirmer la reprogrammation
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('newDate').addEventListener('change', function() {
+    const date = this.value;
+    const doctorId = {{ appointment.doctor.id }};
+    
+    fetch(`/api/appointments/available-slots/?doctor_id=${doctorId}&date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('timeSlotsContainer');
+            container.innerHTML = '';
+            
+            if (data.slots && data.slots.length > 0) {
+                container.style.display = 'grid';
+                data.slots.forEach(slot => {
+                    const div = document.createElement('div');
+                    div.className = 'time-slot';
+                    div.textContent = slot;
+                    div.onclick = function() {
+                        document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                        this.classList.add('selected');
+                        document.getElementById('newTime').value = slot;
+                    };
+                    container.appendChild(div);
+                });
+            } else {
+                container.innerHTML = '<p>Aucun créneau disponible pour cette date</p>';
+                container.style.display = 'block';
+            }
+        });
+});
+</script>
+{% endblock %}

@@ -745,6 +745,287 @@ class AvailabilityViewSet(viewsets.ModelViewSet):  # View for AvailabilitySet op
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=False, methods=['post'], url_path='create-telemedicine-draft')
+    def create_telemedicine_draft(self, request):
+        """
+        Create draft appointment for telemedicine - patient can save incomplete booking
+        Only for telemedicine appointments
+        """
+        try:
+            if request.user.role != "patient":
+                return Response(
+                    {"error": "Seuls les patients peuvent créer des brouillons de rendez-vous"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            
+            patient = request.user
+            doctor_id = request.data.get("doctor_id")
+            
+            # Doctor is optional for draft
+            doctor = None
+            if doctor_id:
+                try:
+                    doctor = Participant.objects.get(uid=doctor_id, role="doctor")
+                except Participant.DoesNotExist:
+                    return Response(
+                        {"error": "Médecin non trouvé"}, 
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+            
+            # Create draft appointment - minimal required fields
+            appointment_data = {
+                "patient": patient,
+                "doctor": doctor,
+                "appointment_date": request.data.get("appointment_date") or timezone.now().date(),
+                "appointment_time": request.data.get("appointment_time") or timezone.now().time(),
+                "reason": request.data.get("reason", ""),
+                "notes": request.data.get("notes", ""),
+                "symptoms": request.data.get("symptoms", ""),
+                "status": "draft",  # Draft status
+                "type": "telemedicine",  # Only for telemedicine
+                "consultation_fee": Decimal('0.00'),
+                "currency": CurrencyConverterService.get_participant_currency(patient),
+                "additional_services_total": Decimal('0.00'),
+                "original_price": Decimal('0.00'),
+                "final_price": Decimal('0.00'),
+                "payment_status": "pending",
+                "payment_method": request.data.get("payment_method", "cash"),
+            }
+
+            appointment = Appointment.objects.create(**appointment_data)
+            
+            serializer = self.get_serializer(appointment)
+            return Response({
+                "message": "Brouillon de rendez-vous créé avec succès",
+                "appointment": serializer.data,
+                "draft_id": str(appointment.uid)
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error creating telemedicine draft: {str(e)}")
+            return Response(
+                {"error": f"Erreur lors de la création du brouillon: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=True, methods=['patch'], url_path='complete-draft')
+    def complete_draft(self, request, pk=None):
+        """
+        Complete a draft telemedicine appointment and convert to pending
+        Validates all required fields before conversion
+        """
+        try:
+            appointment = self.get_object()
+            
+            if appointment.status != "draft":
+                return Response(
+                    {"error": "Seuls les brouillons peuvent être complétés"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            if appointment.type != "telemedicine":
+                return Response(
+                    {"error": "Cette fonction est réservée aux téléconsultations"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            if request.user.role != "patient" or appointment.patient != request.user:
+                return Response(
+                    {"error": "Permission refusée"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            
+            # Validate required fields
+            doctor_id = request.data.get("doctor_id") or appointment.doctor_id
+            appointment_date = request.data.get("appointment_date") or appointment.appointment_date
+            appointment_time = request.data.get("appointment_time") or appointment.appointment_time
+            
+            if not doctor_id:
+                return Response(
+                    {"error": "Le médecin est requis pour compléter le rendez-vous"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            # Get doctor and calculate fees
+            try:
+                doctor = Participant.objects.get(uid=doctor_id, role="doctor")
+            except Participant.DoesNotExist:
+                return Response(
+                    {"error": "Médecin non trouvé"}, 
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            
+            # Check slot availability
+            existing_appointment = Appointment.objects.filter(
+                doctor=doctor,
+                appointment_date=appointment_date,
+                appointment_time=appointment_time,
+                status__in=['pending', 'confirmed', 'in_progress']
+            ).exclude(uid=appointment.uid).exists()
+            
+            if existing_appointment:
+                return Response(
+                    {"error": "Ce créneau horaire n'est plus disponible"},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            
+            # Calculate consultation fee
+            try:
+                doctor_data = DoctorData.objects.get(participant=doctor)
+                consultation_fee_xof = doctor_data.get_consultation_fee()
+            except DoctorData.DoesNotExist:
+                from django.conf import settings
+                consultation_fee_xof = getattr(settings, 'DEFAULT_CONSULTATION_FEE_XOF', 3500)
+            
+            patient_currency = CurrencyConverterService.get_participant_currency(request.user)
+            conversion_result = CurrencyConverterService.convert_amount(
+                Decimal(str(consultation_fee_xof)),
+                'XOF',
+                patient_currency
+            )
+            consultation_fee = conversion_result['converted_amount']
+            
+            transaction_fee = consultation_fee * Decimal('0.01')
+            total_amount = consultation_fee + transaction_fee
+            
+            # Update appointment
+            appointment.doctor = doctor
+            appointment.appointment_date = appointment_date
+            appointment.appointment_time = appointment_time
+            appointment.status = "pending"
+            appointment.consultation_fee = consultation_fee
+            appointment.currency = patient_currency
+            appointment.original_price = consultation_fee
+            appointment.final_price = total_amount
+            appointment.reason = request.data.get("reason", appointment.reason)
+            appointment.notes = request.data.get("notes", appointment.notes)
+            appointment.symptoms = request.data.get("symptoms", appointment.symptoms)
+            appointment.payment_method = request.data.get("payment_method", appointment.payment_method)
+            appointment.save()
+            
+            # Generate QR code
+            try:
+                from payments.universal_payment_service import UniversalPaymentService
+                qr_code = UniversalPaymentService.generate_payment_qr('appointment', appointment, request.user)
+            except Exception as qr_error:
+                logger.warning(f'Failed to generate QR code: {str(qr_error)}')
+            
+            # Notify doctor
+            NotificationService.create_notification({
+                "recipient": doctor,
+                "notification_type": "appointment",
+                "title": "Nouvelle demande de téléconsultation",
+                "message": f"{request.user.full_name or request.user.email} a demandé une téléconsultation pour le {appointment.appointment_date} à {appointment.appointment_time}",
+                "action_url": f"/doctor/appointments/{appointment.id}/",
+                "metadata": {
+                    "appointment_id": str(appointment.id),
+                    "appointment_type": "telemedicine"
+                },
+            })
+            
+            serializer = self.get_serializer(appointment)
+            return Response({
+                "message": "Rendez-vous complété et soumis avec succès",
+                "appointment": serializer.data
+            })
+            
+        except Exception as e:
+            logger.error(f"Error completing draft: {str(e)}")
+            return Response(
+                {"error": f"Erreur lors de la complétion: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+    
+    @action(detail=True, methods=['post'], url_path='assign-substitute')
+    def assign_substitute(self, request, pk=None):
+        """Assign a substitute doctor to an appointment"""
+        from .substitute_service import SubstituteService
+        
+        appointment = self.get_object()
+        
+        if appointment.doctor != request.user:
+            return Response(
+                {"error": "Seul le médecin peut assigner un remplaçant"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
+        substitute_doctor_id = request.data.get("substitute_doctor")
+        reason = request.data.get("reason")
+        
+        if not substitute_doctor_id or not reason:
+            return Response(
+                {"error": "Le médecin remplaçant et la raison sont requis"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        try:
+            substitute_doctor = Participant.objects.get(uid=substitute_doctor_id, role="doctor")
+        except Participant.DoesNotExist:
+            return Response(
+                {"error": "Médecin remplaçant non trouvé"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        try:
+            SubstituteService.assign_substitute(
+                appointment=appointment,
+                substitute_doctor=substitute_doctor,
+                reason=reason,
+                assigned_by=request.user
+            )
+            
+            serializer = self.get_serializer(appointment)
+            return Response({
+                "success": True,
+                "message": "Médecin remplaçant assigné avec succès",
+                "appointment": serializer.data
+            })
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.error(f"Error assigning substitute: {str(e)}")
+            return Response(
+                {"error": "Erreur lors de l'assignation du remplaçant"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+    
+    @action(detail=True, methods=['post'], url_path='cancel-substitute')
+    def cancel_substitute(self, request, pk=None):
+        """Cancel substitute assignment"""
+        from .substitute_service import SubstituteService
+        
+        appointment = self.get_object()
+        
+        if appointment.doctor != request.user:
+            return Response(
+                {"error": "Seul le médecin peut annuler le remplacement"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
+        try:
+            SubstituteService.cancel_substitute(appointment)
+            
+            serializer = self.get_serializer(appointment)
+            return Response({
+                "success": True,
+                "message": "Remplacement annulé avec succès",
+                "appointment": serializer.data
+            })
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.error(f"Error canceling substitute: {str(e)}")
+            return Response(
+                {"error": "Erreur lors de l'annulation du remplacement"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
 
 class AppointmentQueueViewSet(viewsets.ModelViewSet):  # View for AppointmentQueueSet operations
     queryset = AppointmentQueue.objects.all()

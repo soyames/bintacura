@@ -143,7 +143,7 @@
         <div class="symptoms-card">
             <div class="section-header">
                 <h3>Symptômes Enregistrés</h3>
-                <button class="btn btn-sm btn-primary" onclick="window.location.href='{% url 'menstruation:log_symptom' %}?cycle={{ cycle.id }}'">
+                <button class="btn btn-sm btn-primary" onclick="window.location.href='{% url 'menstruation:log_symptom' cycle.id %}'">
                     + Ajouter
                 </button>
             </div>
@@ -183,7 +183,7 @@
             {% else %}
             <div class="empty-state-small">
                 <p>Aucun symptôme quotidien enregistré</p>
-                <button class="btn btn-sm btn-link" onclick="window.location.href='{% url 'menstruation:log_symptom' %}?cycle={{ cycle.id }}'">
+                <button class="btn btn-sm btn-link" onclick="window.location.href='{% url 'menstruation:log_symptom' cycle.id %}'">
                     Enregistrer un symptôme
                 </button>
             </div>

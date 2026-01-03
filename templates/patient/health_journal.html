@@ -1,0 +1,192 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal de Santé - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/health_journal.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Journal de Santé</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="journal-container">
+        <div class="page-header">
+            <h1>Mon Journal de Santé</h1>
+            <button class="btn-primary" onclick="showAddNoteModal()">
+                <span>+</span> Nouvelle note
+            </button>
+        </div>
+
+        <div class="filter-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Rechercher dans mes notes...">
+                <button onclick="searchNotes()">🔍</button>
+            </div>
+            <div class="category-filters">
+                <button class="filter-btn active" data-category="all" onclick="filterByCategory('all')">Tout</button>
+                {% for cat_value, cat_label in categories %}
+                <button class="filter-btn" data-category="{{ cat_value }}" onclick="filterByCategory('{{ cat_value }}')">
+                    {{ cat_label }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="notes-grid" id="notesGrid">
+            {% if notes %}
+                {% for note in notes %}
+                <div class="note-card" data-id="{{ note.id }}" data-category="{{ note.category }}">
+                    <div class="note-header">
+                        <span class="note-category category-{{ note.category }}">
+                            {{ note.get_category_display }}
+                        </span>
+                        <span class="note-date">{{ note.note_date|date:"d/m/Y" }}</span>
+                    </div>
+                    <h3 class="note-title">{{ note.title }}</h3>
+                    <p class="note-content">{{ note.content|truncatewords:30 }}</p>
+                    {% if note.tags %}
+                    <div class="note-tags">
+                        {% for tag in note.tags %}
+                        <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="note-actions">
+                        <button class="btn-view" onclick="viewNote('{{ note.id }}')">Voir</button>
+                        <button class="btn-edit" onclick="editNote('{{ note.id }}')">Modifier</button>
+                        <button class="btn-delete" onclick="deleteNote('{{ note.id }}')">Supprimer</button>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">📓</div>
+                    <h2>Votre journal est vide</h2>
+                    <p>Commencez à documenter votre santé en ajoutant votre première note</p>
+                    <button class="btn-primary" onclick="showAddNoteModal()">Créer ma première note</button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add/Edit Note Modal -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Ajouter une note</h2>
+                <span class="close" onclick="closeNoteModal()">&times;</span>
+            </div>
+            <form id="noteForm">
+                {% csrf_token %}
+                <input type="hidden" id="noteId" name="note_id">
+                
+                <div class="form-group">
+                    <label for="noteTitle">Titre *</label>
+                    <input type="text" id="noteTitle" name="title" required 
+                           placeholder="Ex: Maux de tête ce matin">
+                </div>
+                
+                <div class="form-group">
+                    <label for="noteDate">Date *</label>
+                    <input type="date" id="noteDate" name="note_date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="noteCategory">Catégorie *</label>
+                    <select id="noteCategory" name="category" required>
+                        <option value="">Sélectionnez une catégorie</option>
+                        <option value="symptom">Symptôme</option>
+                        <option value="medication">Médicament</option>
+                        <option value="side_effect">Effet secondaire</option>
+                        <option value="mood">Humeur</option>
+                        <option value="diet">Alimentation</option>
+                        <option value="exercise">Exercice</option>
+                        <option value="sleep">Sommeil</option>
+                        <option value="general">Général</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="noteContent">Contenu *</label>
+                    <textarea id="noteContent" name="content" rows="6" required 
+                              placeholder="Décrivez en détail ce que vous voulez noter..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="noteTags">Étiquettes (séparées par des virgules)</label>
+                    <input type="text" id="noteTags" name="tags" 
+                           placeholder="Ex: migraine, fatigue, stress">
+                    <small>Les étiquettes facilitent la recherche de vos notes</small>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeNoteModal()">Annuler</button>
+                    <button type="submit" class="btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Note Modal -->
+    <div id="viewNoteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="viewNoteTitle"></h2>
+                <span class="close" onclick="closeViewNoteModal()">&times;</span>
+            </div>
+            <div class="note-detail">
+                <div class="detail-row">
+                    <span class="detail-label">Date:</span>
+                    <span id="viewNoteDate"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Catégorie:</span>
+                    <span id="viewNoteCategory"></span>
+                </div>
+                <div class="detail-content">
+                    <h3>Contenu</h3>
+                    <p id="viewNoteContent"></p>
+                </div>
+                <div id="viewNoteTags" class="detail-tags"></div>
+                <div class="detail-meta">
+                    <small>Créée le: <span id="viewNoteCreated"></span></small>
+                    <small>Modifiée le: <span id="viewNoteUpdated"></span></small>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeViewNoteModal()">Fermer</button>
+                <button class="btn-primary" onclick="editNoteFromView()">Modifier</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/health_journal.js' %}"></script>
+</body>
+
+</html>

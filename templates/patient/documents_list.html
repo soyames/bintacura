@@ -1,0 +1,212 @@
+{% extends "patient/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Mes Documents - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/patient/documents.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="documents-container">
+    <div class="documents-header">
+        <h1>Mes Documents Médicaux</h1>
+        <button class="upload-btn" onclick="openUploadModal()">
+            <span>📤</span> Télécharger un document
+        </button>
+    </div>
+    
+    <div class="documents-filters">
+        <div class="filter-group">
+            <div class="filter-item">
+                <label>Type de document</label>
+                <select id="typeFilter" class="form-control">
+                    <option value="">Tous les types</option>
+                    <option value="prescription">Ordonnances</option>
+                    <option value="lab_result">Résultats d'analyses</option>
+                    <option value="imaging">Imagerie médicale</option>
+                    <option value="report">Rapports médicaux</option>
+                    <option value="insurance">Documents d'assurance</option>
+                    <option value="other">Autres</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label>Date</label>
+                <input type="date" id="dateFilter" class="form-control">
+            </div>
+            <div class="filter-item">
+                <label>Recherche</label>
+                <input type="text" id="searchFilter" class="form-control" 
+                       placeholder="Rechercher un document...">
+            </div>
+        </div>
+    </div>
+    
+    {% if documents %}
+    <div class="documents-grid" id="documentsGrid">
+        {% for doc in documents %}
+        <div class="document-card" data-type="{{ doc.document_type }}" data-date="{{ doc.uploaded_at|date:'Y-m-d' }}">
+            <div class="document-icon">
+                {% if doc.document_type == 'prescription' %}📋
+                {% elif doc.document_type == 'lab_result' %}🔬
+                {% elif doc.document_type == 'imaging' %}🔍
+                {% elif doc.document_type == 'report' %}📄
+                {% elif doc.document_type == 'insurance' %}🏥
+                {% else %}📁{% endif %}
+            </div>
+            <div class="document-info">
+                <h4>{{ doc.title }}</h4>
+                <p class="document-meta">
+                    Type: {{ doc.get_document_type_display }}<br>
+                    Date: {{ doc.uploaded_at|date:"d/m/Y" }}<br>
+                    {% if doc.related_appointment %}
+                    Lié à: Consultation du {{ doc.related_appointment.appointment_date|date:"d/m/Y" }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="document-actions">
+                <button class="doc-btn btn-view" onclick="viewDocument({{ doc.id }})">
+                    👁️ Voir
+                </button>
+                <button class="doc-btn btn-download" onclick="downloadDocument({{ doc.id }})">
+                    ⬇️
+                </button>
+                <button class="doc-btn btn-delete" onclick="deleteDocument({{ doc.id }})">
+                    🗑️
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">📂</div>
+        <h2>Aucun document</h2>
+        <p>Vous n'avez pas encore téléchargé de documents médicaux.</p>
+        <button class="upload-btn" onclick="openUploadModal()">
+            Télécharger votre premier document
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content">
+        <h2>Télécharger un document</h2>
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Type de document</label>
+                <select name="document_type" class="form-control" required>
+                    <option value="">Sélectionner...</option>
+                    <option value="prescription">Ordonnance</option>
+                    <option value="lab_result">Résultat d'analyse</option>
+                    <option value="imaging">Imagerie médicale</option>
+                    <option value="report">Rapport médical</option>
+                    <option value="insurance">Document d'assurance</option>
+                    <option value="other">Autre</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Titre du document</label>
+                <input type="text" name="title" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Description (optionnel)</label>
+                <textarea name="description" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="upload-area" id="uploadArea">
+                <input type="file" name="file" id="fileInput" style="display:none" required>
+                <p>📤 Cliquez ou glissez un fichier ici</p>
+                <small>PDF, JPG, PNG (Max 10MB)</small>
+            </div>
+            <div class="action-buttons" style="margin-top: 1rem;">
+                <button type="button" class="btn-secondary" onclick="closeUploadModal()">Annuler</button>
+                <button type="submit" class="btn-confirm">Télécharger</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openUploadModal() {
+    document.getElementById('uploadModal').style.display = 'block';
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').style.display = 'none';
+}
+
+// File upload handling
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+
+uploadArea.onclick = () => fileInput.click();
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    fileInput.files = e.dataTransfer.files;
+    uploadArea.querySelector('p').textContent = '✓ ' + fileInput.files[0].name;
+});
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+        uploadArea.querySelector('p').textContent = '✓ ' + fileInput.files[0].name;
+    }
+});
+
+// Filter functions
+document.getElementById('typeFilter').addEventListener('change', filterDocuments);
+document.getElementById('dateFilter').addEventListener('change', filterDocuments);
+document.getElementById('searchFilter').addEventListener('input', filterDocuments);
+
+function filterDocuments() {
+    const typeFilter = document.getElementById('typeFilter').value;
+    const dateFilter = document.getElementById('dateFilter').value;
+    const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+    
+    document.querySelectorAll('.document-card').forEach(card => {
+        const type = card.dataset.type;
+        const date = card.dataset.date;
+        const text = card.textContent.toLowerCase();
+        
+        const matchType = !typeFilter || type === typeFilter;
+        const matchDate = !dateFilter || date === dateFilter;
+        const matchSearch = !searchFilter || text.includes(searchFilter);
+        
+        card.style.display = (matchType && matchDate && matchSearch) ? 'block' : 'none';
+    });
+}
+
+function viewDocument(id) {
+    window.open(`/api/patient/documents/${id}/view/`, '_blank');
+}
+
+function downloadDocument(id) {
+    window.location.href = `/api/patient/documents/${id}/download/`;
+}
+
+function deleteDocument(id) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+        fetch(`/api/patient/documents/${id}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        }).then(() => location.reload());
+    }
+}
+</script>
+{% endblock %}

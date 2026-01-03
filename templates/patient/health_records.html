@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{% static 'css/health_records.css' %}">
     <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
     {% include "components/translation_script.html" %}
+    
 </head>
 
 <body>
@@ -40,8 +41,8 @@
                 <div class="card-header">
                     <div class="card-icon icon-blue">🏥</div>
                     <div>
-                        <div class="card-title">Consultations</div>
-                        <div class="card-value" id="consultationsCount">0</div>
+                        <div class="card-title">Dossiers Médicaux</div>
+                        <div class="card-value" id="medicalRecordsCount">0</div>
                     </div>
                 </div>
             </div>
@@ -58,35 +59,78 @@
 
             <div class="summary-card">
                 <div class="card-header">
-                    <div class="card-icon icon-orange">🔬</div>
+                    <div class="card-icon icon-pink">🩸</div>
                     <div>
-                        <div class="card-title">Examens</div>
-                        <div class="card-value" id="testsCount">0</div>
+                        <div class="card-title">Cycles Menstruels</div>
+                        <div class="card-value" id="menstrualCyclesCount">0</div>
                     </div>
                 </div>
             </div>
 
             <div class="summary-card">
                 <div class="card-header">
-                    <div class="card-icon icon-green">💉</div>
+                    <div class="card-icon icon-orange">📝</div>
                     <div>
-                        <div class="card-title">Vaccinations</div>
-                        <div class="card-value" id="vaccinationsCount">0</div>
+                        <div class="card-title">Notes Personnelles</div>
+                        <div class="card-value" id="personalNotesCount">0</div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <div class="action-toolbar">
+            <button class="btn-download-all" onclick="downloadAllRecords()">
+                📥 Télécharger Tout
+            </button>
+            <button class="btn-add-note" onclick="window.location.href='/personal-notes/create/'">
+                ➕ Nouvelle Note
+            </button>
+            <button class="filter-btn" onclick="toggleFilters()">
+                🔍 Filtrer
+            </button>
+        </div>
+
+        <div class="filter-panel" id="filterPanel">
+            <div class="filter-group">
+                <label>Type de Dossier</label>
+                <select id="filterType">
+                    <option value="">Tous les types</option>
+                    <option value="lab_result">Résultats d'analyse</option>
+                    <option value="prescription">Prescriptions</option>
+                    <option value="diagnosis">Diagnostics</option>
+                    <option value="imaging">Imagerie</option>
+                    <option value="vaccination">Vaccinations</option>
+                    <option value="menstrual">Cycles menstruels</option>
+                    <option value="personal_note">Notes personnelles</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Date de début</label>
+                <input type="date" id="filterStartDate">
+            </div>
+            <div class="filter-group">
+                <label>Date de fin</label>
+                <input type="date" id="filterEndDate">
+            </div>
+            <div class="filter-group">
+                <label>Rechercher</label>
+                <input type="text" id="filterSearch" placeholder="Mots-clés...">
+            </div>
+            <div class="filter-actions">
+                <button class="btn-apply" onclick="applyFilters()">Appliquer</button>
+                <button class="btn-reset" onclick="resetFilters()">Réinitialiser</button>
+            </div>
+        </div>
+
         <div class="records-section">
             <div class="section-header">
-                <h2 class="section-title">Historique médical</h2>
-                <button class="filter-btn" onclick="showFilters()">🔍 Filtrer</button>
+                <h2 class="section-title">Historique Complet</h2>
             </div>
 
             <div class="records-list" id="recordsList">
                 <div class="empty-state">
                     <div class="empty-icon">📋</div>
-                    <p>Chargement de vos dossiers médicaux...</p>
+                    <p>Chargement de vos dossiers...</p>
                 </div>
             </div>
         </div>
@@ -94,6 +138,360 @@
 
     <script src="{% static 'js/api.js' %}"></script>
     <script>
+        let allRecords = [];
+        let filteredRecords = [];
+
+        async function loadAllData() {
+            try {
+                // Load health records
+                const healthRecordsResponse = await fetchApi('health-records/records/');
+                const healthRecords = healthRecordsResponse.results || healthRecordsResponse;
+                
+                // Load menstrual cycles (if female patient)
+                let menstrualCycles = [];
+                try {
+                    // Note: Adjust the API endpoint as needed
+                    // const cyclesResponse = await fetchApi('menstruation/cycles/');
+                    // menstrualCycles = cyclesResponse.results || cyclesResponse;
+                } catch (e) {
+                    console.log('No menstrual data available');
+                }
+                
+                // Load personal notes
+                let personalNotes = [];
+                try {
+                    const notesResponse = await fetchApi('personal-notes/');
+                    personalNotes = notesResponse.results || notesResponse;
+                } catch (e) {
+                    console.log('No personal notes available');
+                }
+                
+                // Combine all records
+                allRecords = [
+                    ...healthRecords.map(r => ({...r, source: 'health_record'})),
+                    ...menstrualCycles.map(r => ({...r, source: 'menstrual_cycle'})),
+                    ...personalNotes.map(r => ({...r, source: 'personal_note'}))
+                ];
+                
+                // Sort by date (most recent first)
+                allRecords.sort((a, b) => {
+                    const dateA = new Date(a.date_of_record || a.cycle_start_date || a.created_at);
+                    const dateB = new Date(b.date_of_record || b.cycle_start_date || b.created_at);
+                    return dateB - dateA;
+                });
+                
+                filteredRecords = [...allRecords];
+                updateCounts();
+                renderRecords(filteredRecords);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showEmptyState('Erreur de chargement des données');
+            }
+        }
+
+        function updateCounts() {
+            const counts = {
+                medicalRecords: allRecords.filter(r => r.source === 'health_record').length,
+                prescriptions: allRecords.filter(r => r.type === 'prescription').length,
+                menstrualCycles: allRecords.filter(r => r.source === 'menstrual_cycle').length,
+                personalNotes: allRecords.filter(r => r.source === 'personal_note').length
+            };
+
+            document.getElementById('medicalRecordsCount').textContent = counts.medicalRecords;
+            document.getElementById('prescriptionsCount').textContent = counts.prescriptions;
+            document.getElementById('menstrualCyclesCount').textContent = counts.menstrualCycles;
+            document.getElementById('personalNotesCount').textContent = counts.personalNotes;
+        }
+
+        function renderRecords(records) {
+            const list = document.getElementById('recordsList');
+
+            if (!records || records.length === 0) {
+                showEmptyState('Aucun dossier trouvé');
+                return;
+            }
+
+            list.innerHTML = records.map(record => {
+                const date = getRecordDate(record);
+                const formattedDate = date.toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                const icon = getRecordIcon(record);
+                const badge = getRecordBadge(record);
+                const title = getRecordTitle(record);
+                const description = getRecordDescription(record);
+
+                return `
+                    <div class="record-card" onclick="viewRecord('${record.id}', '${record.source}')">
+                        <div class="record-header">
+                            <div class="record-info">
+                                <h3>${icon} ${title}${badge}</h3>
+                                <div class="record-date">📅 ${formattedDate}</div>
+                            </div>
+                            <span class="record-type type-${record.type || record.source}">
+                                ${getRecordTypeText(record)}
+                            </span>
+                        </div>
+
+                        <div class="record-content">
+                            ${description}
+                        </div>
+
+                        <div class="record-footer">
+                            <div class="doctor-name">
+                                ${getCreatorInfo(record)}
+                            </div>
+                            <div class="record-actions">
+                                ${getRecordActions(record)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getRecordDate(record) {
+            return new Date(record.date_of_record || record.cycle_start_date || record.created_at);
+        }
+
+        function getRecordIcon(record) {
+            const icons = {
+                'health_record': '🏥',
+                'menstrual_cycle': '🩸',
+                'personal_note': '📝',
+                'lab_result': '🔬',
+                'prescription': '💊',
+                'diagnosis': '🩺',
+                'imaging': '📷',
+                'vaccination': '💉'
+            };
+            return icons[record.source] || icons[record.type] || '📄';
+        }
+
+        function getRecordBadge(record) {
+            if (record.source === 'menstrual_cycle') {
+                return '<span class="record-badge badge-menstruation">Menstruation</span>';
+            }
+            if (record.source === 'personal_note') {
+                return '<span class="record-badge badge-note">Note</span>';
+            }
+            return '';
+        }
+
+        function getRecordTitle(record) {
+            if (record.source === 'menstrual_cycle') {
+                return `Cycle du ${new Date(record.cycle_start_date).toLocaleDateString('fr-FR')}`;
+            }
+            if (record.source === 'personal_note') {
+                return record.title || 'Note personnelle';
+            }
+            return record.title || getDefaultTitle(record.type);
+        }
+
+        function getDefaultTitle(type) {
+            const titles = {
+                'lab_result': 'Résultat d\'analyse',
+                'prescription': 'Ordonnance',
+                'diagnosis': 'Diagnostic',
+                'imaging': 'Imagerie médicale',
+                'vaccination': 'Vaccination',
+                'allergy': 'Allergie',
+                'surgery': 'Intervention chirurgicale',
+                'visit_summary': 'Compte-rendu de visite',
+                'referral': 'Référence médicale',
+                'discharge_summary': 'Lettre de sortie'
+            };
+            return titles[type] || 'Dossier médical';
+        }
+
+        function getRecordDescription(record) {
+            if (record.source === 'menstrual_cycle') {
+                const details = [];
+                if (record.cycle_length) details.push(`Durée: ${record.cycle_length} jours`);
+                if (record.flow_intensity) details.push(`Flux: ${record.flow_intensity}`);
+                if (record.symptoms && record.symptoms.length > 0) {
+                    details.push(`Symptômes: ${record.symptoms.slice(0, 3).join(', ')}`);
+                }
+                return details.join(' • ') || 'Cycle menstruel';
+            }
+            if (record.source === 'personal_note') {
+                return (record.content || record.notes || '').substring(0, 150) + '...';
+            }
+            return record.diagnosis || record.notes || record.description || 'Aucune description';
+        }
+
+        function getRecordTypeText(record) {
+            if (record.source === 'menstrual_cycle') return 'Menstruation';
+            if (record.source === 'personal_note') return 'Note';
+            
+            const types = {
+                'lab_result': 'Analyse',
+                'prescription': 'Prescription',
+                'diagnosis': 'Diagnostic',
+                'imaging': 'Imagerie',
+                'vaccination': 'Vaccin',
+                'allergy': 'Allergie',
+                'surgery': 'Chirurgie',
+                'visit_summary': 'Visite',
+                'referral': 'Référence',
+                'discharge_summary': 'Sortie'
+            };
+            return types[record.type] || record.type;
+        }
+
+        function getCreatorInfo(record) {
+            if (record.source === 'personal_note') {
+                return '👤 Moi';
+            }
+            if (record.created_by && record.created_by.full_name) {
+                return `👨‍⚕️ ${record.created_by.full_name}`;
+            }
+            return '👨‍⚕️ Équipe médicale';
+        }
+
+        function getRecordActions(record) {
+            let actions = '';
+            
+            if (record.source === 'health_record') {
+                actions += `
+                    <button class="action-icon-btn" onclick="downloadRecord(event, '${record.id}')" title="Télécharger">
+                        📥
+                    </button>
+                `;
+            }
+            
+            if (record.source === 'personal_note') {
+                actions += `
+                    <button class="action-icon-btn" onclick="editNote(event, '${record.id}')" title="Modifier">
+                        ✏️
+                    </button>
+                `;
+            }
+            
+            actions += `
+                <button class="action-icon-btn" onclick="shareRecord(event, '${record.id}', '${record.source}')" title="Partager">
+                    🔗
+                </button>
+            `;
+            
+            return actions;
+        }
+
+        function showEmptyState(message) {
+            const list = document.getElementById('recordsList');
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function viewRecord(recordId, source) {
+            if (source === 'health_record') {
+                window.location.href = `/patient/health-record/${recordId}/`;
+            } else if (source === 'menstrual_cycle') {
+                window.location.href = `/patient/menstruation/cycle/${recordId}/`;
+            } else if (source === 'personal_note') {
+                window.location.href = `/personal-notes/${recordId}/`;
+            }
+        }
+
+        function downloadRecord(event, recordId) {
+            event.stopPropagation();
+            window.open(`/api/v1/health-records/records/${recordId}/download/`, '_blank');
+        }
+
+        function downloadAllRecords() {
+            window.open('/api/v1/health-records/records/download_all/', '_blank');
+        }
+
+        function shareRecord(event, recordId, source) {
+            event.stopPropagation();
+            let url = '';
+            if (source === 'health_record') {
+                url = `${window.location.origin}/patient/health-record/${recordId}/`;
+            } else if (source === 'menstrual_cycle') {
+                url = `${window.location.origin}/patient/menstruation/cycle/${recordId}/`;
+            } else if (source === 'personal_note') {
+                url = `${window.location.origin}/personal-notes/${recordId}/`;
+            }
+            
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Lien copié dans le presse-papier!');
+            });
+        }
+
+        function editNote(event, noteId) {
+            event.stopPropagation();
+            window.location.href = `/personal-notes/${noteId}/edit/`;
+        }
+
+        function toggleFilters() {
+            const panel = document.getElementById('filterPanel');
+            panel.classList.toggle('active');
+        }
+
+        function applyFilters() {
+            const type = document.getElementById('filterType').value;
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+            const search = document.getElementById('filterSearch').value.toLowerCase();
+
+            filteredRecords = allRecords.filter(record => {
+                // Filter by type
+                if (type) {
+                    if (type === 'menstrual' && record.source !== 'menstrual_cycle') return false;
+                    if (type === 'personal_note' && record.source !== 'personal_note') return false;
+                    if (type !== 'menstrual' && type !== 'personal_note' && record.type !== type) return false;
+                }
+
+                // Filter by date range
+                const recordDate = getRecordDate(record);
+                if (startDate && recordDate < new Date(startDate)) return false;
+                if (endDate && recordDate > new Date(endDate)) return false;
+
+                // Filter by search term
+                if (search) {
+                    const searchableText = [
+                        record.title,
+                        record.diagnosis,
+                        record.notes,
+                        record.symptoms,
+                        record.treatment,
+                        record.content
+                    ].join(' ').toLowerCase();
+                    
+                    if (!searchableText.includes(search)) return false;
+                }
+
+                return true;
+            });
+
+            renderRecords(filteredRecords);
+            toggleFilters();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            document.getElementById('filterSearch').value = '';
+            
+            filteredRecords = [...allRecords];
+            renderRecords(filteredRecords);
+        }
+
+        // Initialize
+        loadAllData();
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+</body>
+
+</html>
         async function loadHealthRecords() {
             try {
                 const response = await fetchApi('health-records/records/');

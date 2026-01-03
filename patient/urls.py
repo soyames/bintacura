@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from core import views
 from django.views.generic import TemplateView
 from patient import views as patient_views
@@ -123,4 +123,13 @@ urlpatterns = [
         views.PharmacyOrdersAPIView.as_view(),
         name="api_pharmacy_orders",
     ),
+    
+    # Preventive Care Reminders
+    path("preventive-reminders/", patient_views.PreventiveRemindersView.as_view(), name="preventive_reminders"),
+    
+    # Health Journal (Personal Health Notes)
+    path("health-journal/", patient_views.HealthJournalView.as_view(), name="health_journal"),
+    
+    # Wearable Devices
+    path("wearable-devices/", include(("wearable_devices.urls", "wearable_devices"))),
 ]

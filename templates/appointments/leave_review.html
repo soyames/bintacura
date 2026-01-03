@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Laisser un Avis - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<style>
+.review-container { max-width: 800px; margin: 40px auto; padding: 20px; }
+.review-card { background: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.review-header { margin-bottom: 30px; }
+.review-header h1 { color: #2c3e50; margin-bottom: 10px; }
+.appointment-info { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+.appointment-info h3 { color: #34495e; margin: 0 0 15px 0; font-size: 16px; }
+.info-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: #555; }
+.rating-section { margin-bottom: 30px; }
+.rating-section label { display: block; color: #34495e; font-weight: 600; margin-bottom: 10px; }
+.star-rating { display: flex; gap: 10px; }
+.star-btn { background: none; border: none; font-size: 40px; color: #ddd; cursor: pointer; transition: all 0.2s; padding: 0; }
+.star-btn:hover, .star-btn.active { color: #f39c12; }
+.form-group { margin-bottom: 25px; }
+.form-group label { display: block; color: #34495e; font-weight: 600; margin-bottom: 8px; }
+.form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+.form-control:focus { outline: none; border-color: #3498db; }
+textarea.form-control { min-height: 120px; resize: vertical; }
+.btn-submit { width: 100%; padding: 14px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+.btn-submit:hover { background: #2980b9; }
+.btn-submit:disabled { background: #95a5a6; cursor: not-allowed; }
+.existing-review { background: #fff3cd; border: 2px solid #ffc107; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+.existing-review h3 { color: #856404; margin: 0 0 10px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-container">
+    <div class="review-card">
+        <div class="review-header">
+            <h1><i class="fas fa-star"></i> Laisser un Avis</h1>
+            <p>Votre avis aide les autres patients à faire le bon choix</p>
+        </div>
+
+        {% if existing_review %}
+        <div class="existing-review">
+            <h3><i class="fas fa-info-circle"></i> Vous avez déjà laissé un avis pour ce rendez-vous</h3>
+            <p>Note: {{ existing_review.rating }}/5 ★</p>
+        </div>
+        {% endif %}
+
+        <div class="appointment-info">
+            <h3>Détails du Rendez-vous</h3>
+            <div class="info-row"><i class="fas fa-user-md"></i> <strong>Médecin:</strong> {{ appointment.doctor.full_name }}</div>
+            <div class="info-row"><i class="fas fa-calendar"></i> <strong>Date:</strong> {{ appointment.date|date:"d/m/Y" }}</div>
+            <div class="info-row"><i class="fas fa-clock"></i> <strong>Heure:</strong> {{ appointment.time }}</div>
+        </div>
+
+        <form id="review-form">
+            {% csrf_token %}
+            
+            <div class="rating-section">
+                <label>Note Globale *</label>
+                <div class="star-rating" id="overall-rating">
+                    {% for i in "12345" %}
+                    <button type="button" class="star-btn" data-rating="{{ forloop.counter }}">
+                        <i class="far fa-star"></i>
+                    </button>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="rating" id="rating-value" required>
+            </div>
+
+            <div class="form-group">
+                <label>Type de Service *</label>
+                <select name="service_type" class="form-control" required>
+                    <option value="">-- Sélectionnez --</option>
+                    <option value="consultation">Consultation</option>
+                    <option value="telemedicine">Télémédecine</option>
+                    <option value="emergency">Urgence</option>
+                    <option value="surgery">Chirurgie</option>
+                    <option value="diagnostic">Diagnostic</option>
+                    <option value="other">Autre</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Votre Avis</label>
+                <textarea name="review_text" class="form-control" placeholder="Partagez votre expérience..."></textarea>
+            </div>
+
+            <h3 style="margin: 30px 0 20px 0; color: #34495e;">Notes Détaillées (Optionnel)</h3>
+
+            <div class="form-group">
+                <label>Professionnalisme (1-5)</label>
+                <input type="number" name="professionalism_rating" class="form-control" min="1" max="5">
+            </div>
+
+            <div class="form-group">
+                <label>Communication (1-5)</label>
+                <input type="number" name="communication_rating" class="form-control" min="1" max="5">
+            </div>
+
+            <div class="form-group">
+                <label>Propreté des Installations (1-5)</label>
+                <input type="number" name="facility_rating" class="form-control" min="1" max="5">
+            </div>
+
+            <div class="form-group">
+                <label>Temps d'Attente (1-5)</label>
+                <input type="number" name="wait_time_rating" class="form-control" min="1" max="5">
+            </div>
+
+            <div class="form-group">
+                <label>Rapport Qualité/Prix (1-5)</label>
+                <input type="number" name="value_rating" class="form-control" min="1" max="5">
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <i class="fas fa-paper-plane"></i> Soumettre l'Avis
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const starButtons = document.querySelectorAll('.star-btn');
+    const ratingValue = document.getElementById('rating-value');
+    
+    starButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const rating = parseInt(this.dataset.rating);
+            ratingValue.value = rating;
+            
+            starButtons.forEach(b => {
+                const btnRating = parseInt(b.dataset.rating);
+                if (btnRating <= rating) {
+                    b.classList.add('active');
+                    b.querySelector('i').classList.remove('far');
+                    b.querySelector('i').classList.add('fas');
+                } else {
+                    b.classList.remove('active');
+                    b.querySelector('i').classList.remove('fas');
+                    b.querySelector('i').classList.add('far');
+                }
+            });
+        });
+    });
+    
+    document.getElementById('review-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!ratingValue.value) {
+            alert('Veuillez sélectionner une note');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        const data = {
+            reviewed_type: 'doctor',
+            reviewed_id: '{{ appointment.doctor.uid }}',
+            appointment_id: '{{ appointment.uid }}',
+            rating: parseInt(formData.get('rating')),
+            service_type: formData.get('service_type'),
+            review_text: formData.get('review_text'),
+            professionalism_rating: formData.get('professionalism_rating') ? parseInt(formData.get('professionalism_rating')) : null,
+            communication_rating: formData.get('communication_rating') ? parseInt(formData.get('communication_rating')) : null,
+            facility_rating: formData.get('facility_rating') ? parseInt(formData.get('facility_rating')) : null,
+            wait_time_rating: formData.get('wait_time_rating') ? parseInt(formData.get('wait_time_rating')) : null,
+            value_rating: formData.get('value_rating') ? parseInt(formData.get('value_rating')) : null,
+        };
+        
+        try {
+            const response = await fetch('/appointments/reviews/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                alert('Avis soumis avec succès !');
+                window.location.href = '/patient/appointments/';
+            } else {
+                const error = await response.json();
+                alert('Erreur: ' + JSON.stringify(error));
+            }
+        } catch (error) {
+            alert('Erreur lors de la soumission: ' + error.message);
+        }
+    });
+});
+</script>
+{% endblock %}

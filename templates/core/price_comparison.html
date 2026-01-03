@@ -1,0 +1,161 @@
+{% extends "base_generic.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/price_comparison.css' %}">
+{% endblock %}
+
+{% block title %}Comparateur de Prix - BINTACURA{% endblock %}
+
+{% block content %}
+<div class="price-comparison-container">
+    <div class="page-header">
+        <h1><i class="fas fa-chart-line"></i> Comparateur de Prix</h1>
+        <p class="subtitle">Comparez les tarifs de consultation des praticiens</p>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section card">
+        <div class="filters-grid">
+            <div class="filter-group">
+                <label for="specialty-filter"><i class="fas fa-stethoscope"></i> Spécialité</label>
+                <select id="specialty-filter" class="form-control">
+                    <option value="">Toutes les spécialités</option>
+                    {% for code, name in specializations %}
+                    <option value="{{ code }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="location-filter"><i class="fas fa-map-marker-alt"></i> Localisation</label>
+                <input type="text" id="location-filter" class="form-control" placeholder="Ville ou région...">
+            </div>
+
+            <div class="filter-group">
+                <label for="sort-filter"><i class="fas fa-sort"></i> Trier par</label>
+                <select id="sort-filter" class="form-control">
+                    <option value="price_asc">Prix croissant</option>
+                    <option value="price_desc">Prix décroissant</option>
+                    <option value="rating">Note décroissante</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <button id="search-btn" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Rechercher
+                </button>
+                <button id="reset-btn" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> Réinitialiser
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div id="statistics-section" class="statistics-section" style="display: none;">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-calculator"></i>
+                <div class="stat-content">
+                    <span class="stat-label">Prix Moyen</span>
+                    <span class="stat-value" id="avg-price">-</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <i class="fas fa-arrow-down"></i>
+                <div class="stat-content">
+                    <span class="stat-label">Prix Minimum</span>
+                    <span class="stat-value" id="min-price">-</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <i class="fas fa-arrow-up"></i>
+                <div class="stat-content">
+                    <span class="stat-label">Prix Maximum</span>
+                    <span class="stat-value" id="max-price">-</span>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <div class="stat-content">
+                    <span class="stat-label">Praticiens Trouvés</span>
+                    <span class="stat-value" id="total-count">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results-section" class="results-section">
+        <div id="loading-spinner" class="loading-spinner" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Chargement des résultats...</p>
+        </div>
+
+        <div id="no-results" class="no-results" style="display: none;">
+            <i class="fas fa-search"></i>
+            <p>Aucun résultat trouvé</p>
+            <small>Essayez de modifier vos critères de recherche</small>
+        </div>
+
+        <div id="results-grid" class="results-grid"></div>
+    </div>
+</div>
+
+<!-- Result Card Template -->
+<template id="result-card-template">
+    <div class="result-card">
+        <div class="card-header">
+            <div class="provider-info">
+                <div class="provider-avatar">
+                    <i class="fas fa-user-md"></i>
+                </div>
+                <div class="provider-details">
+                    <h3 class="provider-name"></h3>
+                    <p class="provider-specialty"></p>
+                </div>
+            </div>
+            <div class="provider-rating">
+                <div class="stars"></div>
+                <span class="rating-text"></span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="info-row">
+                <i class="fas fa-map-marker-alt"></i>
+                <span class="location-text"></span>
+            </div>
+
+            <div class="info-row">
+                <i class="fas fa-briefcase"></i>
+                <span class="experience-text"></span>
+            </div>
+
+            <div class="info-row">
+                <i class="fas fa-phone"></i>
+                <span class="phone-text"></span>
+            </div>
+
+            <div class="price-display">
+                <span class="price-label">Tarif de consultation</span>
+                <span class="price-value"></span>
+            </div>
+        </div>
+
+        <div class="card-footer">
+            <button class="btn btn-book">
+                <i class="fas fa-calendar-check"></i> Prendre rendez-vous
+            </button>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/price_comparison.js' %}"></script>
+{% endblock %}

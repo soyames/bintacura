@@ -1,0 +1,138 @@
+{% extends 'hospital/base.html' %}
+{% load static %}
+
+{% block title %}Scanner QR - Enregistrement Patients - BINTACURA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/qr_scanner.css' %}">
+<style>
+    #qr-video {
+        width: 100%;
+        max-width: 500px;
+        border-radius: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="qr-scanner-container">
+    <div class="page-header">
+        <h1><i class="fas fa-qrcode"></i> Scanner QR - Enregistrement</h1>
+        <p class="subtitle">Scannez le code QR du patient pour l'enregistrer</p>
+    </div>
+
+    <!-- Stats Card -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="stat-total">0</div>
+                <div class="stat-label">Rendez-vous aujourd'hui</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="stat-checked-in">0</div>
+                <div class="stat-label">Enregistrés</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="stat-waiting">0</div>
+                <div class="stat-label">En attente</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="fas fa-user-md"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-value" id="stat-in-progress">0</div>
+                <div class="stat-label">En consultation</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scanner Card -->
+    <div class="scanner-card">
+        <div class="scanner-header">
+            <h2>Scanner le Code QR</h2>
+            <button id="toggle-camera" class="btn-secondary">
+                <i class="fas fa-camera"></i> Activer la caméra
+            </button>
+        </div>
+        
+        <div class="scanner-body">
+            <div id="scanner-container" style="display: none;">
+                <video id="qr-video" playsinline></video>
+                <canvas id="qr-canvas" style="display: none;"></canvas>
+            </div>
+            
+            <div id="scanner-placeholder" class="scanner-placeholder">
+                <i class="fas fa-camera fa-3x"></i>
+                <p>Cliquez sur "Activer la caméra" pour commencer</p>
+            </div>
+            
+            <div id="scan-status" class="scan-status"></div>
+        </div>
+
+        <div class="manual-entry">
+            <p>Ou entrez manuellement :</p>
+            <div class="input-group">
+                <input type="text" id="manual-uid" class="form-control" placeholder="ID du rendez-vous">
+                <button onclick="manualCheckin()" class="btn-primary">
+                    <i class="fas fa-check"></i> Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Check-ins -->
+    <div class="recent-checkins-card">
+        <h2><i class="fas fa-history"></i> Enregistrements Récents</h2>
+        <div id="recent-checkins-list">
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>Aucun enregistrement récent</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div id="successModal" class="modal">
+    <div class="modal-content success">
+        <div class="modal-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h2>Enregistrement Réussi</h2>
+        <div id="checkin-details"></div>
+        <button onclick="closeSuccessModal()" class="btn-primary">OK</button>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div id="errorModal" class="modal">
+    <div class="modal-content error">
+        <div class="modal-icon">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <h2>Erreur</h2>
+        <div id="error-message"></div>
+        <button onclick="closeErrorModal()" class="btn-secondary">Fermer</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="{% static 'js/qr_scanner.js' %}"></script>
+{% endblock %}

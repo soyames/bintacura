@@ -35,19 +35,24 @@ body {
             font-size: 14px;
         }
 
-        .add-btn {
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.2s;
+        .beneficiaries-container .header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.beneficiaries-container .header-section h1 {
+    margin: 0;
+    font-size: 24px;
+    color: #1a1a1a;
+}
+
+.beneficiaries-container .header-section .add-btn {
+    margin: 0;
+}
         }
 
         .add-btn:hover {
