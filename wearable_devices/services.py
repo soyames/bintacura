@@ -1,9 +1,12 @@
 import requests
+import logging
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils import timezone
 from zoneinfo import ZoneInfo
 from .models import WearableDevice, WearableData, WearableSyncLog
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleFitService:
@@ -186,10 +189,10 @@ class GoogleFitService:
         if timezone.is_naive(end_date):
             end_date = timezone.make_aware(end_date, ZoneInfo('UTC'))
         
+        # Build the request body without dataSourceId
         body = {
             "aggregateBy": [{
-                "dataTypeName": data_type_name,
-                "dataSourceId": f"derived:com.google.{data_type}:com.google.android.gms:merge_{data_type}"
+                "dataTypeName": data_type_name
             }],
             "bucketByTime": {"durationMillis": 86400000},  # 1 day
             "startTimeMillis": int(start_date.timestamp() * 1000),
@@ -200,10 +203,8 @@ class GoogleFitService:
             response = requests.post(url, headers=self._get_headers(), json=body)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            # Try without specific dataSourceId
-            body["aggregateBy"][0].pop("dataSourceId", None)
-            response = requests.post(url, headers=self._get_headers(), json=body)
-            response.raise_for_status()
+            logger.error(f"Google Fit API error for {data_type}: {e.response.text if e.response else str(e)}")
+            raise
         
         data = response.json()
         records_created = 0

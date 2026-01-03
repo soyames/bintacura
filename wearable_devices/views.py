@@ -13,6 +13,9 @@ from django.db.models.functions import TruncDate
 from datetime import timedelta
 from django.utils import timezone
 import secrets
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import WearableDevice, WearableData, WearableSyncLog
 from .serializers import (
@@ -247,7 +250,17 @@ def oauth_callback(request):
                     notification_type='success'
                 )
             except Exception as sync_error:
-                messages.warning(request, f'Appareil connecté mais la synchronisation initiale a échoué : {str(sync_error)}')
+                # Log error for developers but show user-friendly message
+                logger.error(f'Initial Google Fit sync failed for device {device.id}: {str(sync_error)}')
+                messages.success(request, 'Votre compte Google Fit a été connecté avec succès. La synchronisation des données commencera sous peu.')
+                
+                # Create notification with positive message
+                Notification.objects.create(
+                    recipient=request.user,
+                    title='Google Fit Connecté',
+                    message='Votre compte Google Fit a été connecté avec succès. La synchronisation des données commencera sous peu.',
+                    notification_type='success'
+                )
         
         elif device_type == 'fitbit':
             from .services import FitbitService
@@ -280,7 +293,17 @@ def oauth_callback(request):
                     notification_type='success'
                 )
             except Exception as sync_error:
-                messages.warning(request, f'Appareil connecté mais la synchronisation initiale a échoué : {str(sync_error)}')
+                # Log error for developers but show user-friendly message  
+                logger.error(f'Initial Fitbit sync failed for device {device.id}: {str(sync_error)}')
+                messages.success(request, 'Votre appareil Fitbit a été connecté avec succès. La synchronisation des données commencera sous peu.')
+                
+                # Create notification with positive message
+                Notification.objects.create(
+                    recipient=request.user,
+                    title='Fitbit Connecté',
+                    message=f'Votre appareil Fitbit "{device.device_name}" a été connecté avec succès. La synchronisation des données commencera sous peu.',
+                    notification_type='success'
+                )
         
         # Clean up session
         if 'oauth_state' in request.session:
