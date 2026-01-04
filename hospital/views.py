@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
@@ -9,13 +9,16 @@ from django.db import models
 from django.contrib.auth.hashers import make_password
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
 import uuid
 import secrets
 import string
 from .models import HospitalStaff, Bed, Admission, DepartmentTask
 from .service_models import HospitalService
-from core.models import Department, Participant
+from core.models import Department, Participant, MedicalEquipment
 from core.serializers import ParticipantSerializer
+from transport.models import TransportRequest
+from transport.serializers import TransportRequestSerializer
 from .serializers import (
     HospitalStaffSerializer, BedSerializer, AdmissionSerializer,
     DepartmentTaskSerializer, DepartmentSerializer
@@ -28,6 +31,84 @@ class HospitalQueueView(LoginRequiredMixin, TemplateView):  # View for HospitalQ
     def get_context_data(self, **kwargs):  # Get context data
         context = super().get_context_data(**kwargs)
         context['page_title'] = "File d'attente"
+        return context
+
+
+class HospitalTransportDashboardView(LoginRequiredMixin, TemplateView):
+    """Hospital transport requests dashboard"""
+    template_name = 'hospital/transport_dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Demandes de Transport"
+        
+        # Get transport requests for this hospital's region
+        if self.request.user.role == 'hospital':
+            hospital = self.request.user
+            from django.db.models import Q
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            # Auto-release expired accepted requests (30 min timeout)
+            expired_time = timezone.now() - timedelta(minutes=30)
+            TransportRequest.objects.filter(
+                status='accepted',
+                payment_status='pending',
+                accepted_at__lt=expired_time
+            ).update(
+                status='pending',
+                assigned_hospital=None,
+                accepted_at=None
+            )
+            
+            # Get ALL pending requests (not yet accepted by anyone OR by this hospital)
+            all_requests = TransportRequest.objects.filter(
+                Q(status='pending', assigned_hospital__isnull=True) |
+                Q(status='accepted', assigned_hospital=hospital)
+            ).select_related('patient').order_by('-created_at')
+            
+            # Get accepted requests by THIS hospital (waiting for payment or staff assignment)
+            my_accepted_requests = TransportRequest.objects.filter(
+                assigned_hospital=hospital,
+                status='accepted'
+            ).select_related('patient').order_by('-created_at')
+            
+            # Get active requests assigned to this hospital (driver assigned, in progress)
+            active_requests = TransportRequest.objects.filter(
+                assigned_hospital=hospital,
+                status__in=['driver_assigned', 'en_route', 'arrived', 'in_transit']
+            ).select_related('patient').order_by('-created_at')
+            
+            # Get completed requests for this hospital
+            completed_requests = TransportRequest.objects.filter(
+                assigned_hospital_id=hospital.uid,
+                status__in=['completed', 'cancelled']
+            ).select_related('patient').order_by('-created_at')[:10]
+            
+            # Get drivers for staff assignment
+            from hospital.models import HospitalStaff
+            drivers = HospitalStaff.objects.filter(
+                hospital=hospital,
+                role='DRIVER',
+                is_active=True
+            ).select_related('participant')
+            
+            # Get vehicles for this hospital (hardcoded for now - can be moved to database later)
+            import json
+            vehicles = [
+                {'id': 'AMB-101-VTC', 'name': 'Ambulance A-101', 'plate': 'AMB-101-VTC', 'type': 'ambulance'},
+                {'id': 'AMB-102-VTC', 'name': 'Ambulance A-102', 'plate': 'AMB-102-VTC', 'type': 'ambulance'},
+                {'id': 'AMB-103-VTC', 'name': 'Ambulance A-103', 'plate': 'AMB-103-VTC', 'type': 'ambulance'},
+            ]
+            
+            context['pending_requests'] = all_requests
+            context['my_accepted_requests'] = my_accepted_requests
+            context['active_requests'] = active_requests
+            context['completed_requests'] = completed_requests
+            context['hospital'] = hospital
+            context['drivers'] = drivers
+            context['vehicles'] = json.dumps(vehicles)
+        
         return context
 
 
@@ -445,3 +526,377 @@ class HospitalServiceViewSet(viewsets.ModelViewSet):
             serializer = ServiceSerializer(services, many=True)
             return Response(serializer.data)
         return Response({'error': 'category required'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Transport Request API Endpoints
+from communication.models import Notification
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def transport_requests(request):
+    """Get transport requests for the hospital's region"""
+    if request.user.role != 'hospital':
+        return Response({'error': 'Only hospitals can access this endpoint'}, status=status.HTTP_403_FORBIDDEN)
+    
+    hospital = request.user
+    status_filter = request.GET.get('status', 'pending')
+    
+    if status_filter == 'pending':
+        requests = TransportRequest.objects.filter(
+            status='pending',
+            pickup_address__icontains=hospital.region
+        ).select_related('patient').order_by('-created_at')
+    elif status_filter == 'accepted':
+        requests = TransportRequest.objects.filter(
+            assigned_hospital=hospital,
+            status__in=['driver_assigned', 'en_route', 'arrived', 'in_transit']
+        ).select_related('patient').order_by('-created_at')
+    elif status_filter == 'completed':
+        requests = TransportRequest.objects.filter(
+            assigned_hospital=hospital,
+            status__in=['completed', 'cancelled']
+        ).select_related('patient').order_by('-created_at')[:20]
+    else:
+        requests = TransportRequest.objects.filter(
+            assigned_hospital=hospital
+        ).select_related('patient').order_by('-created_at')
+    
+    serializer = TransportRequestSerializer(requests, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@transaction.atomic
+def accept_transport_request(request, request_id):
+    """Step 1: Accept/claim a transport request - locks it for this hospital ONLY"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"✅ Accept request called for {request_id} by {request.user.email}")
+    
+    if request.user.role != 'hospital':
+        logger.warning(f"Non-hospital user {request.user.email} tried to accept request")
+        return Response({'error': 'Seuls les hôpitaux peuvent accepter les demandes'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        with transaction.atomic():
+            # Lock ONLY this specific request by id
+            transport_request = TransportRequest.objects.select_for_update().get(id=request_id)
+            logger.info(f"Found request {request_id}, current status: {transport_request.status}, patient: {transport_request.patient.full_name}")
+            
+            if transport_request.status != 'pending':
+                logger.warning(f"Request {request_id} is not pending, status: {transport_request.status}")
+                return Response({
+                    'error': 'Cette demande a déjà été acceptée par un autre hôpital'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if transport_request.assigned_hospital:
+                logger.warning(f"Request {request_id} already assigned to {transport_request.assigned_hospital.full_name}")
+                return Response({
+                    'error': f'Cette demande a déjà été acceptée par {transport_request.assigned_hospital.full_name}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # STEP 1: Lock the request to this hospital
+            transport_request.assigned_hospital_id = request.user.uid
+            transport_request.status = 'accepted'
+            transport_request.accepted_at = timezone.now()
+            
+            # Save ONLY these fields
+            transport_request.save(update_fields=[
+                'assigned_hospital_id', 'status', 'accepted_at', 'updated_at'
+            ])
+            logger.info(f"✅ Request {request_id} ACCEPTED by {request.user.full_name}. Status: {transport_request.status}")
+            
+            # Send notification to patient
+            from communication.models import Notification
+            Notification.objects.create(
+                recipient=transport_request.patient,
+                title="Demande de Transport Acceptée",
+                message=f"L'hôpital {request.user.full_name} a accepté votre demande de transport du {transport_request.scheduled_pickup_time.strftime('%d/%m/%Y à %H:%M')}. "
+                       f"Le personnel sera assigné sous peu.",
+                notification_type='system',
+                metadata={'transport_request_id': str(transport_request.id), 'priority': 'high'}
+            )
+            logger.info("Patient notification sent")
+            
+            from transport.serializers import TransportRequestSerializer
+            serializer = TransportRequestSerializer(transport_request)
+            return Response({
+                'message': 'Transport accepté avec succès. Veuillez maintenant assigner le personnel.',
+                'request': serializer.data
+            })
+        
+    except TransportRequest.DoesNotExist:
+        logger.error(f"Request {request_id} not found")
+        return Response({'error': 'Demande non trouvée'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Unexpected error accepting request {request_id}: {e}")
+        return Response({'error': f'Erreur inattendue: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@transaction.atomic
+def assign_staff_to_transport(request, request_id):
+    """Step 2: Assign staff (driver & vehicle) to an accepted transport request"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Assign staff called for {request_id} by {request.user.email}")
+    
+    if request.user.role != 'hospital':
+        logger.warning(f"Non-hospital user tried to assign staff")
+        return Response({'error': 'Seuls les hôpitaux peuvent assigner du personnel'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        with transaction.atomic():
+            transport_request = TransportRequest.objects.select_for_update().get(id=request_id)
+            
+            # Verify this hospital has accepted the request
+            if transport_request.assigned_hospital != request.user:
+                return Response({
+                    'error': 'Vous ne pouvez assigner du personnel qu\'aux demandes que vous avez acceptées'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Verify status is 'accepted' (not already assigned)
+            if transport_request.status not in ['accepted', 'driver_assigned']:
+                return Response({
+                    'error': f'Cette demande ne peut plus être modifiée (statut: {transport_request.get_status_display()})'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get assignment data
+            driver_id = request.data.get('driver_id')
+            vehicle_id = request.data.get('vehicle_id')
+            notes = request.data.get('notes', '')
+            
+            logger.info(f"Assignment data: driver={driver_id}, vehicle={vehicle_id}")
+            
+            # Assign driver if provided
+            if driver_id:
+                try:
+                    driver = HospitalStaff.objects.get(id=driver_id, hospital=request.user, is_active=True)
+                    transport_request.driver_id = driver.staff_participant.uid
+                    transport_request.driver_name = driver.full_name
+                    transport_request.driver_phone = driver.phone_number
+                    logger.info(f"Driver assigned: {driver.full_name}")
+                except HospitalStaff.DoesNotExist:
+                    logger.error(f"Driver {driver_id} not found")
+                    return Response({'error': 'Chauffeur non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+            
+            # Assign vehicle if provided
+            if vehicle_id:
+                transport_request.vehicle_number = vehicle_id
+                logger.info(f"Vehicle assigned: {vehicle_id}")
+            
+            # Add assignment notes
+            if notes:
+                current_notes = transport_request.patient_notes or ''
+                transport_request.patient_notes = f"{current_notes}\n\nNotes d'assignation: {notes}".strip()
+            
+            # Update status to driver_assigned
+            transport_request.status = 'driver_assigned'
+            
+            # Save with specific fields
+            transport_request.save(update_fields=[
+                'driver_id', 'driver_name', 'driver_phone',
+                'vehicle_number', 'patient_notes', 'status', 'updated_at'
+            ])
+            logger.info(f"✅ Staff assigned to request {request_id}. Status: {transport_request.status}")
+            
+            # Notify patient about driver assignment
+            from communication.models import Notification
+            Notification.objects.create(
+                recipient=transport_request.patient,
+                title="Personnel Assigné à Votre Transport",
+                message=f"L'hôpital {request.user.full_name} a assigné le chauffeur {transport_request.driver_name} "
+                       f"pour votre transport du {transport_request.scheduled_pickup_time.strftime('%d/%m/%Y à %H:%M')}.",
+                notification_type='system',
+                metadata={'transport_request_id': str(transport_request.id), 'driver_name': transport_request.driver_name}
+            )
+            
+            # Notify driver
+            if driver_id:
+                try:
+                    Notification.objects.create(
+                        recipient=driver.staff_participant,
+                        title="Nouvelle Mission de Transport",
+                        message=f"Vous avez été assigné à une mission de transport pour {transport_request.patient.full_name}. "
+                               f"Départ: {transport_request.pickup_address}. Heure: {transport_request.scheduled_pickup_time.strftime('%H:%M')}",
+                        notification_type='system',
+                        metadata={'transport_request_id': str(transport_request.id), 'patient_name': transport_request.patient.full_name}
+                    )
+                    logger.info("Driver notification sent")
+                except Exception as e:
+                    logger.error(f"Error sending driver notification: {e}")
+            
+            from transport.serializers import TransportRequestSerializer
+            serializer = TransportRequestSerializer(transport_request)
+            return Response({
+                'message': 'Personnel assigné avec succès',
+                'request': serializer.data
+            })
+            
+    except TransportRequest.DoesNotExist:
+        logger.error(f"Request {request_id} not found")
+        return Response({'error': 'Demande non trouvée'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"Unexpected error assigning staff to {request_id}: {e}")
+        return Response({'error': f'Erreur inattendue: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@transaction.atomic
+def transfer_transport_request(request, request_id):
+    """Transfer a transport request to another hospital or transport service"""
+    if request.user.role != 'hospital':
+        return Response({'error': 'Only hospitals can transfer requests'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        transport_request = TransportRequest.objects.select_for_update().get(id=request_id)
+        target_hospital_id = request.data.get('target_hospital_id')
+        transfer_notes = request.data.get('notes', '')
+        
+        # Verify this hospital has accepted the request
+        if transport_request.assigned_hospital != request.user:
+            return Response({
+                'error': 'Vous ne pouvez transférer que les demandes que vous avez acceptées'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        if not target_hospital_id:
+            return Response({'error': 'target_hospital_id requis'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get target hospital
+        try:
+            target_hospital = Participant.objects.get(uid=target_hospital_id, role='hospital')
+        except Participant.DoesNotExist:
+            return Response({'error': 'Hôpital cible non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Reset to pending and clear assignment
+        old_hospital = transport_request.assigned_hospital
+        transport_request.assigned_hospital = None
+        transport_request.status = 'pending'
+        transport_request.transfer_history = transport_request.transfer_history or []
+        transport_request.transfer_history.append({
+            'from_hospital': str(old_hospital.uid),
+            'from_hospital_name': old_hospital.full_name,
+            'to_hospital': str(target_hospital.uid),
+            'to_hospital_name': target_hospital.full_name,
+            'transferred_at': timezone.now().isoformat(),
+            'notes': transfer_notes
+        })
+        transport_request.save()
+        
+        # Notify target hospital
+        from communication.models import Notification
+        Notification.objects.create(
+            recipient=target_hospital,
+            title="Demande de Transport Transférée",
+            message=f"L'hôpital {old_hospital.full_name} vous a transféré une demande de transport pour {transport_request.patient.full_name}. Notes: {transfer_notes}",
+            notification_type='system',
+            metadata={'transport_request_id': str(transport_request.id), 'priority': 'high', 'transfer_notes': transfer_notes}
+        )
+        
+        # Notify patient
+        Notification.objects.create(
+            recipient=transport_request.patient,
+            title="Demande de Transport Transférée",
+            message=f"Votre demande de transport a été transférée de {old_hospital.full_name} à {target_hospital.full_name}.",
+            notification_type='system',
+            metadata={'transport_request_id': str(transport_request.id), 'priority': 'medium', 'old_hospital': old_hospital.full_name, 'new_hospital': target_hospital.full_name}
+        )
+        
+        from transport.serializers import TransportRequestSerializer
+        serializer = TransportRequestSerializer(transport_request)
+        return Response({
+            'message': f'Demande transférée avec succès à {target_hospital.full_name}',
+            'request': serializer.data
+        })
+        
+    except TransportRequest.DoesNotExist:
+        return Response({'error': 'Demande non trouvée'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class HospitalEquipmentView(LoginRequiredMixin, TemplateView):
+    """Hospital equipment management view"""
+    template_name = 'hospital/equipment.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = "Gestion des Équipements"
+        
+        if self.request.user.role == 'hospital':
+            hospital = self.request.user
+            
+            # Get all equipment for this hospital
+            equipment_list = MedicalEquipment.objects.filter(
+                hospital=hospital,
+                is_deleted=False
+            ).order_by('-created_at')
+            
+            context['equipment_list'] = equipment_list
+            context['total_equipment'] = equipment_list.count()
+            context['available_count'] = equipment_list.filter(status='available').count()
+            context['in_use_count'] = equipment_list.filter(status='in_use').count()
+            context['maintenance_count'] = equipment_list.filter(status='maintenance').count()
+            
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Handle equipment CRUD operations"""
+        import json
+        
+        if request.user.role != 'hospital':
+            return JsonResponse({'success': False, 'message': 'Non autorisé'}, status=403)
+        
+        try:
+            data = json.loads(request.body)
+            action = data.get('action')
+            hospital = request.user
+            
+            if action == 'create':
+                equipment = MedicalEquipment.objects.create(
+                    hospital=hospital,
+                    name=data.get('name'),
+                    category=data.get('category'),
+                    manufacturer=data.get('manufacturer', ''),
+                    model_number=data.get('model_number', ''),
+                    location=data.get('location', ''),
+                    department=data.get('department', ''),
+                    notes=data.get('notes', ''),
+                    status=data.get('status', 'available'),
+                    is_active=True
+                )
+                return JsonResponse({'success': True, 'message': 'Équipement créé avec succès'})
+            
+            elif action == 'update':
+                equipment_id = data.get('equipment_id')
+                equipment = MedicalEquipment.objects.get(id=equipment_id, hospital=hospital, is_deleted=False)
+                
+                equipment.name = data.get('name', equipment.name)
+                equipment.category = data.get('category', equipment.category)
+                equipment.location = data.get('location', equipment.location)
+                equipment.department = data.get('department', equipment.department)
+                equipment.status = data.get('status', equipment.status)
+                equipment.notes = data.get('notes', equipment.notes)
+                equipment.save()
+                
+                return JsonResponse({'success': True, 'message': 'Équipement mis à jour avec succès'})
+            
+            elif action == 'delete':
+                equipment_id = data.get('equipment_id')
+                equipment = MedicalEquipment.objects.get(id=equipment_id, hospital=hospital, is_deleted=False)
+                equipment.is_deleted = True
+                equipment.save()
+                
+                return JsonResponse({'success': True, 'message': 'Équipement supprimé avec succès'})
+            
+            else:
+                return JsonResponse({'success': False, 'message': 'Action non reconnue'}, status=400)
+                
+        except MedicalEquipment.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Équipement non trouvé'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)

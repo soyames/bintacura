@@ -4,9 +4,10 @@ API Views for System Configuration and Currency
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from decimal import Decimal
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from django.conf import settings
 
 from core.system_config import SystemConfiguration
 from currency_converter.services import CurrencyConverterService
@@ -264,6 +265,44 @@ class ConvertCurrencyView(APIView):
                 'converted_currency': to_currency,
                 'exchange_rate': str(rate),
                 'formatted': formatted
+            })
+        
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    responses={200: dict},
+    summary="Get platform fee percentage",
+    description="Returns the platform fee percentage applied to all transactions"
+)
+class GetPlatformFeeView(APIView):
+    """
+    Get the platform fee percentage
+    
+    GET /api/v1/core/settings/platform-fee/
+    
+    Response:
+    {
+        "success": true,
+        "fee_percentage": 1.0,
+        "fee_rate": 0.01
+    }
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        try:
+            fee_rate = getattr(settings, 'PLATFORM_FEE_RATE', 0.01)
+            fee_percentage = fee_rate * 100
+            
+            return Response({
+                'success': True,
+                'fee_percentage': fee_percentage,
+                'fee_rate': fee_rate
             })
         
         except Exception as e:

@@ -1,0 +1,24 @@
+{% load static %}
+<!-- Universal Payment Modal Component - BINTACURA Platform -->
+<!-- Include this component once in your page to enable payment functionality -->
+
+<link rel="stylesheet" href="{% static 'css/universal-payment-modal.css' %}">
+<script src="{% static 'js/universal-payment-modal.js' %}"></script>
+
+<!-- Usage Example:
+    // Show payment modal
+    const paymentMethod = await window.universalPaymentModal.show(
+        receiptId,      // Receipt/Invoice ID
+        totalAmount,    // Amount to pay
+        'XOF',         // Currency code
+        (method) => {  // Optional callback
+            console.log('Payment method selected:', method);
+        }
+    );
+    
+    if (paymentMethod === 'online') {
+        // Process online payment
+    } else if (paymentMethod === 'cash') {
+        // Process cash payment
+    }
+-->

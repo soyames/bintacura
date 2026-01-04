@@ -1355,8 +1355,54 @@ class DoctorBonusesView(DoctorRequiredMixin, TemplateView):  # View doctor bonus
     template_name = "doctor/bonuses.html"
 
 
-class HospitalPatientsView(HospitalRequiredMixin, TemplateView):  # View hospital patient list
+class HospitalPatientsView(HospitalRequiredMixin, TemplateView):
+    """Hospital appointment management - assign appointments to departments and doctors"""
     template_name = "hospital/patients.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from appointments.models import Appointment
+        from core.models import Department
+        from django.db.models import Q
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        hospital = self.request.user
+        today = timezone.now().date()
+        
+        # Get all appointments for this hospital
+        appointments = Appointment.objects.filter(
+            Q(hospital=hospital) | Q(doctor__affiliated_provider_id=hospital.uid)
+        ).select_related('patient', 'doctor', 'hospital').order_by('-appointment_date')
+        
+        # Stats
+        context['pending_count'] = appointments.filter(status='pending').count()
+        context['confirmed_count'] = appointments.filter(status='confirmed').count()
+        
+        # Today count - appointment_date is DateTimeField, so we can use date()
+        context['today_count'] = appointments.filter(
+            appointment_date__gte=timezone.make_aware(timezone.datetime.combine(today, timezone.datetime.min.time())),
+            appointment_date__lt=timezone.make_aware(timezone.datetime.combine(today + timedelta(days=1), timezone.datetime.min.time()))
+        ).count()
+        
+        # Week count
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=7)
+        context['week_count'] = appointments.filter(
+            appointment_date__gte=timezone.make_aware(timezone.datetime.combine(week_start, timezone.datetime.min.time())),
+            appointment_date__lt=timezone.make_aware(timezone.datetime.combine(week_end, timezone.datetime.min.time()))
+        ).count()
+        
+        # Appointments list
+        context['appointments'] = appointments[:50]
+        
+        # Departments for assignment
+        context['departments'] = Department.objects.filter(
+            hospital=hospital, 
+            is_active=True
+        ).order_by('name')
+        
+        return context
 
 
 class HospitalAdmissionsView(HospitalRequiredMixin, TemplateView):  # View hospital patient admissions
@@ -1750,6 +1796,7 @@ class HospitalServicesView(HospitalRequiredMixin, TemplateView):  # Manage hospi
     template_name = "hospital/services.html"
 
     def get_context_data(self, **kwargs):  # Add additional context data for template rendering
+        from django.conf import settings
         context = super().get_context_data(**kwargs)
         from core.models import ParticipantService
 
@@ -1760,6 +1807,7 @@ class HospitalServicesView(HospitalRequiredMixin, TemplateView):  # Manage hospi
         context["services"] = services
         context["total_services"] = services.count()
         context["active_services"] = services.filter(is_active=True).count()
+        context["default_currency"] = settings.DEFAULT_CURRENCY
 
         return context
 
@@ -3033,55 +3081,38 @@ class HealthRecordsView(PatientRequiredMixin, TemplateView):  # Class for health
             status='active'
         )
         
-        # Get recent vitals from wearable devices with aggregation
+        # Get recent vitals from wearable devices
         recent_vitals = []
         vital_summary = {}
         
         try:
-            # Get vitals from last 24 hours
-            time_threshold = timezone.now() - timedelta(days=1)
-            recent_data = WearableData.objects.filter(
-                patient=patient,
-                timestamp__gte=time_threshold
-            ).order_by("-timestamp")
+            # Get all data types that have actual data
+            available_data_types = WearableData.objects.filter(
+                patient=patient
+            ).values_list('data_type', flat=True).distinct()
             
-            # Get latest vital for each type
-            vital_types = ['heart_rate', 'steps', 'blood_pressure', 'blood_oxygen', 'body_temperature', 'sleep']
-            for vital_type in vital_types:
-                latest = recent_data.filter(data_type=vital_type).first()
-                if latest:
-                    recent_vitals.append(latest)
-            
-            # Calculate summaries for comparison (last 7 days)
-            week_threshold = timezone.now() - timedelta(days=7)
-            
-            if active_devices.count() > 1:
-                # If multiple devices, show comparative analysis
-                for device in active_devices:
-                    device_stats = {}
-                    for vital_type in vital_types:
-                        stats = WearableData.objects.filter(
-                            patient=patient,
-                            device=device,
-                            data_type=vital_type,
-                            timestamp__gte=week_threshold
-                        ).aggregate(
-                            avg=Avg('value'),
-                            max=Max('value'),
-                            min=Min('value'),
-                            count=Count('id')
-                        )
-                        if stats['count'] and stats['count'] > 0:
-                            device_stats[vital_type] = stats
+            if available_data_types:
+                # Get vitals from last 7 days (extended window to capture more data)
+                time_threshold = timezone.now() - timedelta(days=7)
+                
+                # Get the latest reading for each data type
+                for data_type in available_data_types:
+                    latest = WearableData.objects.filter(
+                        patient=patient,
+                        data_type=data_type,
+                        timestamp__gte=time_threshold
+                    ).order_by('-timestamp').first()
                     
-                    if device_stats:
-                        vital_summary[device.device_name] = device_stats
-            else:
-                # Single device summary
-                for vital_type in vital_types:
+                    if latest:
+                        recent_vitals.append(latest)
+                
+                # Calculate 7-day summaries for each data type
+                week_threshold = timezone.now() - timedelta(days=7)
+                
+                for data_type in available_data_types:
                     stats = WearableData.objects.filter(
                         patient=patient,
-                        data_type=vital_type,
+                        data_type=data_type,
                         timestamp__gte=week_threshold
                     ).aggregate(
                         avg=Avg('value'),
@@ -3090,13 +3121,82 @@ class HealthRecordsView(PatientRequiredMixin, TemplateView):  # Class for health
                         count=Count('id')
                     )
                     if stats['count'] and stats['count'] > 0:
-                        vital_summary[vital_type] = stats
+                        vital_summary[data_type] = stats
                         
         except Exception as e:
             import logging
             logging.error(f"Error fetching wearable data: {e}")
             recent_vitals = []
             vital_summary = {}
+        
+        # Get doctor-entered vitals from health records
+        doctor_vitals = {}
+        doctor_vitals_summary = {}
+        
+        try:
+            # Get records from last 30 days with vital signs
+            from django.db.models import Q
+            thirty_days_ago = timezone.now() - timedelta(days=30)
+            
+            # Get records that have AT LEAST ONE vital sign filled
+            records_with_vitals = health_records.filter(
+                date_of_record__gte=thirty_days_ago.date()
+            ).filter(
+                Q(blood_pressure_systolic__isnull=False) |
+                Q(blood_pressure_diastolic__isnull=False) |
+                Q(heart_rate__isnull=False) |
+                Q(temperature__isnull=False) |
+                Q(weight__isnull=False)
+            )
+            
+            # Calculate averages for doctor-entered vitals
+            if records_with_vitals.exists():
+                doctor_vitals_summary = {
+                    'blood_pressure': records_with_vitals.exclude(
+                        blood_pressure_systolic__isnull=True
+                    ).aggregate(
+                        avg_systolic=Avg('blood_pressure_systolic'),
+                        avg_diastolic=Avg('blood_pressure_diastolic'),
+                        count=Count('id')
+                    ),
+                    'heart_rate': records_with_vitals.exclude(
+                        heart_rate__isnull=True
+                    ).aggregate(
+                        avg=Avg('heart_rate'),
+                        min=Min('heart_rate'),
+                        max=Max('heart_rate'),
+                        count=Count('id')
+                    ),
+                    'temperature': records_with_vitals.exclude(
+                        temperature__isnull=True
+                    ).aggregate(
+                        avg=Avg('temperature'),
+                        min=Min('temperature'),
+                        max=Max('temperature'),
+                        count=Count('id')
+                    ),
+                    'weight': records_with_vitals.exclude(
+                        weight__isnull=True
+                    ).aggregate(
+                        avg=Avg('weight'),
+                        min=Min('weight'),
+                        max=Max('weight'),
+                        count=Count('id')
+                    ),
+                }
+                
+                # Get latest values
+                latest_record = records_with_vitals.order_by('-date_of_record').first()
+                doctor_vitals = {
+                    'latest_record': latest_record,
+                    'total_consultations': records_with_vitals.count(),
+                }
+                
+        except Exception as e:
+            import logging
+            logging.error(f"Error fetching doctor vitals: {e}")
+            doctor_vitals = {}
+            doctor_vitals_summary = {}
         
         # Get personal health notes
         personal_notes = PersonalHealthNote.objects.filter(patient=patient).order_by(
@@ -3116,6 +3216,8 @@ class HealthRecordsView(PatientRequiredMixin, TemplateView):  # Class for health
         context["vital_summary"] = vital_summary
         context["active_devices"] = active_devices
         context["has_multiple_devices"] = active_devices.count() > 1
+        context["doctor_vitals"] = doctor_vitals
+        context["doctor_vitals_summary"] = doctor_vitals_summary
         context["personal_notes"] = personal_notes
         context["menstrual_cycles"] = menstrual_cycles
         context["total_records"] = health_records.count()

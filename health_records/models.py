@@ -38,6 +38,13 @@ class HealthRecord(SyncMixin):  # Stores patient health records and medical docu
     encrypted_data = models.TextField(blank=True)
 
     date_of_record = models.DateField()
+    
+    # Vital signs entered by doctor during consultation
+    blood_pressure_systolic = models.IntegerField(null=True, blank=True, help_text="Systolic BP in mmHg")
+    blood_pressure_diastolic = models.IntegerField(null=True, blank=True, help_text="Diastolic BP in mmHg")
+    heart_rate = models.IntegerField(null=True, blank=True, help_text="Heart rate in bpm")
+    temperature = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, help_text="Temperature in °C")
+    weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Weight in kg")
 
     class Meta:  # Meta class implementation
         db_table = 'health_records'
@@ -84,10 +91,79 @@ class DocumentUpload(SyncMixin):  # Manages uploaded medical documents and verif
     verified_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True)
     uploaded_at = models.DateTimeField(default=timezone.now)
+    
+    # Sharing and encryption
+    is_shareable = models.BooleanField(default=True, help_text="Can this document be shared?")
+    share_count = models.IntegerField(default=0, help_text="Number of times shared")
 
     class Meta:  # Meta class implementation
         db_table = 'document_uploads'
         ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['uploaded_by', 'status']),
+            models.Index(fields=['document_type']),
+        ]
+
+
+class DocumentShare(SyncMixin):
+    """Tracks document sharing between participants"""
+    PERMISSION_CHOICES = [
+        ('view', 'View Only'),
+        ('download', 'View & Download'),
+        ('edit', 'View, Download & Edit'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+        ('revoked', 'Revoked'),
+        ('expired', 'Expired'),
+    ]
+    
+    document = models.ForeignKey(DocumentUpload, on_delete=models.CASCADE, related_name='shares')
+    shared_by = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='documents_shared')
+    shared_with = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='documents_received')
+    permission_level = models.CharField(max_length=20, choices=PERMISSION_CHOICES, default='view')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    message = models.TextField(blank=True, help_text="Optional message to recipient")
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="When this share expires")
+    
+    shared_at = models.DateTimeField(auto_now_add=True)
+    accessed_at = models.DateTimeField(null=True, blank=True, help_text="When recipient first accessed")
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'document_shares'
+        ordering = ['-shared_at']
+        unique_together = [['document', 'shared_with']]
+        indexes = [
+            models.Index(fields=['shared_by', 'status']),
+            models.Index(fields=['shared_with', 'status']),
+            models.Index(fields=['expires_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.document.file_name} shared with {self.shared_with.full_name}"
+    
+    def is_active(self):
+        """Check if share is still valid"""
+        if self.status not in ['accepted', 'pending']:
+            return False
+        if self.expires_at and self.expires_at < timezone.now():
+            self.status = 'expired'
+            self.save()
+            return False
+        return True
+    
+    def mark_accessed(self):
+        """Record when recipient first accesses the document"""
+        if not self.accessed_at:
+            self.accessed_at = timezone.now()
+            if self.status == 'pending':
+                self.status = 'accepted'
+            self.save()
 
 class TelemedicineSession(SyncMixin):  # Manages video consultation sessions between doctors and patients
     STATUS_CHOICES = [

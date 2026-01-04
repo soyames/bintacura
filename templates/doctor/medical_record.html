@@ -115,6 +115,19 @@
                         </div>
                     </div>
 
+                    <!-- Patient's Recent Wearable Vitals for Reference -->
+                    <div class="form-section {% if not patient %}hidden{% endif %}" id="patientVitalsSection">
+                        <h3>📱 Signes Vitaux du Patient (Appareils Connectés)</h3>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">
+                            Données récentes des appareils portables du patient (derniers 7 jours)
+                        </p>
+                        <div id="patientWearableVitals">
+                            <p style="color: #999; text-align: center; padding: 20px;">
+                                Chargement des données...
+                            </p>
+                        </div>
+                    </div>
+
                     <div class="form-section">
                         <h3>Signes Vitaux</h3>
                         <div class="form-row">
@@ -213,11 +226,18 @@
             }
         }
         loadPatients();
+        {% else %}
+        // If patient is pre-selected (from URL), load their wearable vitals
+        const patientId = document.getElementById('patientId').value;
+        if (patientId) {
+            loadPatientWearableVitals(patientId);
+        }
         {% endif %}
 
         async function loadPatientRecords(patientId) {
             if (!patientId) {
                 document.getElementById('existingRecordsSection').classList.add('hidden');
+                document.getElementById('patientVitalsSection').classList.add('hidden');
                 return;
             }
             try {
@@ -259,6 +279,78 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
+            }
+            
+            // Load patient's wearable vitals
+            loadPatientWearableVitals(patientId);
+        }
+
+        async function loadPatientWearableVitals(patientId) {
+            try {
+                const vitalsSection = document.getElementById('patientVitalsSection');
+                const vitalsContainer = document.getElementById('patientWearableVitals');
+                
+                vitalsSection.classList.remove('hidden');
+                
+                // Get latest wearable vitals for the patient
+                const response = await fetch(`/api/v1/wearable-devices/data/latest/?patient_id=${patientId}`, { 
+                    credentials: 'same-origin' 
+                });
+                
+                if (!response.ok) {
+                    vitalsContainer.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Aucun appareil connecté</p>';
+                    return;
+                }
+                
+                const vitalsData = await response.json();
+                
+                if (!vitalsData || Object.keys(vitalsData).length === 0) {
+                    vitalsContainer.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Aucune donnée disponible</p>';
+                    return;
+                }
+                
+                // Display vitals in a grid
+                let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">';
+                
+                const vitalLabels = {
+                    'heart_rate': '❤️ Fréquence Cardiaque',
+                    'steps': '👟 Pas',
+                    'blood_pressure': '🩺 Tension',
+                    'blood_oxygen': '🫁 Oxygène',
+                    'body_temperature': '🌡️ Température',
+                    'weight': '⚖️ Poids',
+                    'sleep': '😴 Sommeil',
+                    'calories': '🔥 Calories',
+                    'distance': '📏 Distance'
+                };
+                
+                for (const [type, data] of Object.entries(vitalsData)) {
+                    const label = vitalLabels[type] || type;
+                    const date = new Date(data.timestamp).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    html += `
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; border-radius: 8px;">
+                            <div style="font-size: 10px; opacity: 0.9; margin-bottom: 4px;">${label}</div>
+                            <div style="font-size: 18px; font-weight: 700;">
+                                ${data.value} <span style="font-size: 11px; opacity: 0.8;">${data.unit}</span>
+                            </div>
+                            <div style="font-size: 9px; opacity: 0.7; margin-top: 4px;">${date}</div>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+                vitalsContainer.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading wearable vitals:', error);
+                document.getElementById('patientWearableVitals').innerHTML = 
+                    '<p style="color: #999; text-align: center; padding: 20px;">Erreur de chargement</p>';
             }
         }
 
@@ -337,12 +429,55 @@
             const hr = document.getElementById('heartRate').value;
             const temp = document.getElementById('temperature').value;
             const weight = document.getElementById('weight').value;
+            
+            // Parse vital signs for text display
             if (bp) vitalSigns.push(`Tension: ${bp}`);
             if (hr) vitalSigns.push(`FC: ${hr}`);
             if (temp) vitalSigns.push(`Temp: ${temp}`);
             if (weight) vitalSigns.push(`Poids: ${weight}`);
             const vitalSignsText = vitalSigns.length > 0 ? `Signes Vitaux: ${vitalSigns.join(', ')}\n\n` : '';
             const notes = vitalSignsText + (document.getElementById('notes').value || '');
+            
+            // Parse vitals for structured storage
+            let bloodPressureSystolic = null;
+            let bloodPressureDiastolic = null;
+            let heartRateValue = null;
+            let temperatureValue = null;
+            let weightValue = null;
+            
+            // Parse blood pressure (format: "120/80" or "120/80 mmHg")
+            if (bp) {
+                const bpMatch = bp.match(/(\d+)\s*\/\s*(\d+)/);
+                if (bpMatch) {
+                    bloodPressureSystolic = parseInt(bpMatch[1]);
+                    bloodPressureDiastolic = parseInt(bpMatch[2]);
+                }
+            }
+            
+            // Parse heart rate (format: "72" or "72 bpm")
+            if (hr) {
+                const hrMatch = hr.match(/(\d+)/);
+                if (hrMatch) {
+                    heartRateValue = parseInt(hrMatch[1]);
+                }
+            }
+            
+            // Parse temperature (format: "37" or "37°C" or "37.5°C")
+            if (temp) {
+                const tempMatch = temp.match(/(\d+\.?\d*)/);
+                if (tempMatch) {
+                    temperatureValue = parseFloat(tempMatch[1]);
+                }
+            }
+            
+            // Parse weight (format: "70" or "70 kg" or "70.5kg")
+            if (weight) {
+                const weightMatch = weight.match(/(\d+\.?\d*)/);
+                if (weightMatch) {
+                    weightValue = parseFloat(weightMatch[1]);
+                }
+            }
+            
             const formData = {
                 assigned_to: patientId,
                 type: document.getElementById('recordType').value,
@@ -353,7 +488,13 @@
                 treatment: document.getElementById('treatment').value,
                 medications: document.getElementById('medications').value,
                 notes: notes,
-                participants: [patientId]
+                participants: [patientId],
+                // Add structured vital signs
+                blood_pressure_systolic: bloodPressureSystolic,
+                blood_pressure_diastolic: bloodPressureDiastolic,
+                heart_rate: heartRateValue,
+                temperature: temperatureValue,
+                weight: weightValue
             };
 
             console.log('Submitting medical record:', formData);

@@ -942,6 +942,7 @@ class MedicalEquipment(SyncMixin):
         ("monitoring", "Monitoring"),
         ("therapeutic", "Therapeutic"),
         ("laboratory", "Laboratory"),
+        ("vehicle", "Vehicle"),
         ("other", "Other"),
     ]
 

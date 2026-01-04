@@ -45,8 +45,15 @@
             <!-- Left Panel - Booking Form -->
             <div class="booking-panel">
                 <div class="booking-header">
-                    <h1>Réserver un transport</h1>
-                    <p>Service médical d'urgence 24/7</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div>
+                            <h1>Réserver un transport</h1>
+                            <p>Service médical d'urgence 24/7</p>
+                        </div>
+                        <button type="button" class="btn-my-requests" onclick="window.location.href='/api/v1/transport/my-requests/'" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                            📋 Mes Demandes
+                        </button>
+                    </div>
                 </div>
 
                 <form id="transportForm" class="booking-form" onsubmit="submitTransportRequest(event)">

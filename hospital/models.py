@@ -107,6 +107,7 @@ class HospitalStaff(SyncMixin):  # Manages hospital staff members with roles and
         ('lab_technician', 'Technicien de laboratoire'),
         ('pharmacist', 'Pharmacien'),
         ('receptionist', 'Réceptionniste'),
+        ('driver', 'Chauffeur'),
         ('janitor', 'Agent d\'entretien'),
         ('security', 'Sécurité'),
         ('it_staff', 'Personnel IT'),

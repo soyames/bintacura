@@ -1,0 +1,511 @@
+{% extends 'hospital/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Demandes de Transport" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .transport-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .transport-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    
+    .transport-card.emergency {
+        border-left: 4px solid #dc3545;
+    }
+    
+    .transport-card.urgent {
+        border-left: 4px solid #ff9800;
+    }
+    
+    .transport-card.scheduled {
+        border-left: 4px solid #2196F3;
+    }
+    
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-accepted {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-en-route {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .status-completed {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .map-container {
+        height: 300px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
+    
+    .urgency-icon {
+        font-size: 24px;
+        margin-right: 10px;
+    }
+    
+    .emergency-icon { color: #dc3545; }
+    .urgent-icon { color: #ff9800; }
+    .scheduled-icon { color: #2196F3; }
+    
+    .filter-tabs {
+        margin-bottom: 20px;
+    }
+    
+    .filter-tab {
+        padding: 10px 20px;
+        border: none;
+        background: #f8f9fa;
+        cursor: pointer;
+        border-radius: 5px;
+        margin-right: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .filter-tab.active {
+        background: #007bff;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>🚑 {% trans "Demandes de Transport Ambulance" %}</h2>
+            <p class="text-muted">{% trans "Gérez les demandes de transport médical d'urgence" %}</p>
+        </div>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "En Attente" %}</h5>
+                    <h2 id="pending-count">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "En Route" %}</h5>
+                    <h2 id="enroute-count">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Urgences" %}</h5>
+                    <h2 id="emergency-count">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">{% trans "Complétés Aujourd'hui" %}</h5>
+                    <h2 id="completed-count">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">{% trans "Tous" %}</button>
+        <button class="filter-tab" data-filter="pending">{% trans "En Attente" %}</button>
+        <button class="filter-tab" data-filter="emergency">{% trans "Urgences" %}</button>
+        <button class="filter-tab" data-filter="accepted">{% trans "Acceptées" %}</button>
+    </div>
+    
+    <!-- Transport Requests List -->
+    <div id="transport-requests-container">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">{% trans "Chargement..." %}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Accept Modal -->
+<div class="modal fade" id="acceptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "Accepter la Demande de Transport" %}</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="accept-form">
+                    <input type="hidden" id="request-id" name="request_id">
+                    <div class="form-group">
+                        <label>{% trans "Chauffeur/Ambulance Assigné" %}</label>
+                        <select class="form-control" id="driver-select" required>
+                            <option value="">{% trans "Sélectionner un chauffeur" %}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>{% trans "Temps estimé d'arrivée (minutes)" %}</label>
+                        <input type="number" class="form-control" id="eta-input" min="1" value="15" required>
+                    </div>
+                    <div class="form-group">
+                        <label>{% trans "Notes" %}</label>
+                        <textarea class="form-control" id="notes-input" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans "Annuler" %}</button>
+                <button type="button" class="btn btn-primary" id="confirm-accept">{% trans "Accepter" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let currentFilter = 'all';
+let transportRequests = [];
+let maps = {};
+
+// Load transport requests
+function loadTransportRequests() {
+    fetch('/api/v1/transport/hospital/requests/')
+        .then(response => response.json())
+        .then(data => {
+            transportRequests = data;
+            updateStats();
+            renderTransportRequests();
+        })
+        .catch(error => {
+            console.error('Error loading transport requests:', error);
+            document.getElementById('transport-requests-container').innerHTML = `
+                <div class="alert alert-danger">
+                    {% trans "Erreur lors du chargement des demandes de transport" %}
+                </div>
+            `;
+        });
+}
+
+// Update statistics
+function updateStats() {
+    const pending = transportRequests.filter(r => r.status === 'pending').length;
+    const enroute = transportRequests.filter(r => r.status === 'en_route' || r.status === 'driver_assigned').length;
+    const emergency = transportRequests.filter(r => r.urgency === 'emergency').length;
+    const completed = transportRequests.filter(r => r.status === 'completed' && isToday(r.completed_at)).length;
+    
+    document.getElementById('pending-count').textContent = pending;
+    document.getElementById('enroute-count').textContent = enroute;
+    document.getElementById('emergency-count').textContent = emergency;
+    document.getElementById('completed-count').textContent = completed;
+}
+
+// Check if date is today
+function isToday(dateString) {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+}
+
+// Render transport requests
+function renderTransportRequests() {
+    const container = document.getElementById('transport-requests-container');
+    let filtered = transportRequests;
+    
+    // Apply filter
+    if (currentFilter !== 'all') {
+        if (currentFilter === 'pending') {
+            filtered = transportRequests.filter(r => r.status === 'pending');
+        } else if (currentFilter === 'emergency') {
+            filtered = transportRequests.filter(r => r.urgency === 'emergency');
+        } else if (currentFilter === 'accepted') {
+            filtered = transportRequests.filter(r => ['driver_assigned', 'en_route', 'arrived', 'in_transit'].includes(r.status));
+        }
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                {% trans "Aucune demande de transport pour le moment" %}
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filtered.map(request => createRequestCard(request)).join('');
+    
+    // Initialize maps
+    setTimeout(() => {
+        filtered.forEach(request => {
+            if (request.pickup_latitude && request.pickup_longitude) {
+                initMap(request.id, request.pickup_latitude, request.pickup_longitude, request.destination_latitude, request.destination_longitude);
+            }
+        });
+    }, 100);
+}
+
+// Create request card HTML
+function createRequestCard(request) {
+    const urgencyClass = request.urgency;
+    const urgencyIcon = request.urgency === 'emergency' ? '🚨' : request.urgency === 'urgent' ? '⚠️' : '📅';
+    const statusClass = `status-${request.status.replace('_', '-')}`;
+    const statusText = getStatusText(request.status);
+    
+    return `
+        <div class="transport-card ${urgencyClass}" data-request-id="${request.id}">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="urgency-icon">${urgencyIcon}</span>
+                        <div>
+                            <h5 class="mb-0">${request.request_number}</h5>
+                            <small class="text-muted">${request.patient_name}</small>
+                        </div>
+                        <span class="status-badge ${statusClass} ml-auto">${statusText}</span>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <strong>📍 {% trans "Départ:" %}</strong> ${request.pickup_address}
+                    </div>
+                    <div class="mb-2">
+                        <strong>🏥 {% trans "Destination:" %}</strong> ${request.destination_address || '{% trans "Non spécifiée" %}'}
+                    </div>
+                    <div class="mb-2">
+                        <strong>📞 {% trans "Contact:" %}</strong> ${request.contact_phone}
+                    </div>
+                    ${request.special_requirements ? `
+                        <div class="mb-2">
+                            <strong>ℹ️ {% trans "Besoins spéciaux:" %}</strong> ${request.special_requirements}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="mt-3">
+                        ${request.status === 'pending' ? `
+                            <button class="btn btn-success" onclick="acceptRequest('${request.id}')">
+                                ✓ {% trans "Accepter" %}
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="declineRequest('${request.id}')">
+                                ✗ {% trans "Décliner" %}
+                            </button>
+                        ` : request.status === 'driver_assigned' ? `
+                            <button class="btn btn-primary" onclick="updateStatus('${request.id}', 'en_route')">
+                                🚗 {% trans "En Route" %}
+                            </button>
+                        ` : request.status === 'en_route' ? `
+                            <button class="btn btn-info" onclick="updateStatus('${request.id}', 'arrived')">
+                                📍 {% trans "Arrivé" %}
+                            </button>
+                        ` : request.status === 'arrived' ? `
+                            <button class="btn btn-warning" onclick="updateStatus('${request.id}', 'in_transit')">
+                                🚑 {% trans "Patient à Bord" %}
+                            </button>
+                        ` : request.status === 'in_transit' ? `
+                            <button class="btn btn-success" onclick="updateStatus('${request.id}', 'completed')">
+                                ✓ {% trans "Terminé" %}
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div id="map-${request.id}" class="map-container"></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Initialize map
+function initMap(requestId, pickupLat, pickupLng, destLat, destLng) {
+    if (maps[requestId]) {
+        maps[requestId].remove();
+    }
+    
+    const map = L.map(`map-${requestId}`).setView([pickupLat, pickupLng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Add pickup marker
+    L.marker([pickupLat, pickupLng], {
+        icon: L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41]
+        })
+    }).addTo(map).bindPopup('{% trans "Point de départ" %}');
+    
+    // Add destination marker if available
+    if (destLat && destLng) {
+        L.marker([destLat, destLng], {
+            icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41]
+            })
+        }).addTo(map).bindPopup('{% trans "Destination" %}');
+        
+        // Fit bounds to show both markers
+        map.fitBounds([[pickupLat, pickupLng], [destLat, destLng]]);
+    }
+    
+    maps[requestId] = map;
+}
+
+// Get status text
+function getStatusText(status) {
+    const statusTexts = {
+        'pending': '{% trans "En Attente" %}',
+        'driver_assigned': '{% trans "Chauffeur Assigné" %}',
+        'en_route': '{% trans "En Route" %}',
+        'arrived': '{% trans "Arrivé" %}',
+        'in_transit': '{% trans "En Transit" %}',
+        'completed': '{% trans "Terminé" %}',
+        'cancelled': '{% trans "Annulé" %}'
+    };
+    return statusTexts[status] || status;
+}
+
+// Accept request
+function acceptRequest(requestId) {
+    document.getElementById('request-id').value = requestId;
+    $('#acceptModal').modal('show');
+}
+
+// Confirm accept
+document.getElementById('confirm-accept').addEventListener('click', function() {
+    const requestId = document.getElementById('request-id').value;
+    const driver = document.getElementById('driver-select').value;
+    const eta = document.getElementById('eta-input').value;
+    const notes = document.getElementById('notes-input').value;
+    
+    if (!driver) {
+        alert('{% trans "Veuillez sélectionner un chauffeur" %}');
+        return;
+    }
+    
+    fetch(`/api/v1/transport/hospital/requests/${requestId}/accept/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            driver_id: driver,
+            estimated_arrival: eta,
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        $('#acceptModal').modal('hide');
+        alert('{% trans "Demande acceptée avec succès!" %}');
+        loadTransportRequests();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{% trans "Erreur lors de l\'acceptation de la demande" %}');
+    });
+});
+
+// Update status
+function updateStatus(requestId, newStatus) {
+    if (confirm('{% trans "Êtes-vous sûr de vouloir mettre à jour le statut?" %}')) {
+        fetch(`/api/v1/transport/hospital/requests/${requestId}/update_status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ status: newStatus })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('{% trans "Statut mis à jour!" %}');
+            loadTransportRequests();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('{% trans "Erreur lors de la mise à jour" %}');
+        });
+    }
+}
+
+// Decline request
+function declineRequest(requestId) {
+    const reason = prompt('{% trans "Raison du refus (optionnel):" %}');
+    if (reason !== null) {
+        fetch(`/api/v1/transport/hospital/requests/${requestId}/decline/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ reason: reason })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert('{% trans "Demande déclinée" %}');
+            loadTransportRequests();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('{% trans "Erreur" %}');
+        });
+    }
+}
+
+// Filter tabs
+document.querySelectorAll('.filter-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        currentFilter = this.dataset.filter;
+        renderTransportRequests();
+    });
+});
+
+// Auto-refresh every 30 seconds
+setInterval(loadTransportRequests, 30000);
+
+// Initial load
+loadTransportRequests();
+</script>
+{% endblock %}

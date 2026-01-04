@@ -22,6 +22,7 @@ class TransportRequest(SyncMixin):  # Manages patient medical transport and ambu
     
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
         ('driver_assigned', 'Driver Assigned'),
         ('en_route', 'En Route'),
         ('arrived', 'Arrived'),
@@ -40,10 +41,12 @@ class TransportRequest(SyncMixin):  # Manages patient medical transport and ambu
     region_code = models.CharField(max_length=50, default="global", db_index=True)
     request_number = models.CharField(max_length=50, unique=True)
     patient = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='transport_requests')
+    assigned_hospital = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_transports')
     
     transport_type = models.CharField(max_length=50, choices=TRANSPORT_TYPE_CHOICES)
     urgency = models.CharField(max_length=20, choices=URGENCY_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    contact_phone = models.CharField(max_length=20, blank=True)
     
     pickup_address = models.TextField()
     pickup_latitude = models.FloatField(null=True, blank=True)
@@ -80,6 +83,10 @@ class TransportRequest(SyncMixin):  # Manages patient medical transport and ambu
     current_latitude = models.FloatField(null=True, blank=True)
     current_longitude = models.FloatField(null=True, blank=True)
     last_location_update = models.DateTimeField(null=True, blank=True)
+    
+    # Acceptance and transfer tracking
+    accepted_at = models.DateTimeField(null=True, blank=True, help_text="When the request was accepted by a hospital")
+    transfer_history = models.JSONField(default=list, blank=True, help_text="History of transfers between hospitals")
     
     rating = models.IntegerField(null=True, blank=True)
     feedback = models.TextField(blank=True)

@@ -295,37 +295,248 @@ class HealthRecordViewSet(viewsets.ModelViewSet):  # View for HealthRecordSet op
 
 
 class DocumentUploadViewSet(viewsets.ModelViewSet):
-    """ViewSet for document uploads"""
+    """ViewSet for document uploads with sharing support"""
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return DocumentUpload.objects.none()
-        return DocumentUpload.objects.filter(uploaded_by=self.request.user)
+        
+        participant = self.request.user
+        # Include both owned documents and shared documents
+        from django.db.models import Q
+        return DocumentUpload.objects.filter(
+            Q(uploaded_by=participant) |
+            Q(shares__shared_with=participant, shares__status__in=['pending', 'accepted'])
+        ).distinct()
     
     def get_serializer_class(self):
         # You'll need to create a serializer for DocumentUpload
         from rest_framework import serializers
         
         class DocumentUploadSerializer(serializers.ModelSerializer):
+            can_share = serializers.SerializerMethodField()
+            shared_with_count = serializers.SerializerMethodField()
+            
             class Meta:
                 model = DocumentUpload
                 fields = '__all__'
-                read_only_fields = ['uploaded_by', 'uploaded_at']
+                read_only_fields = ['uploaded_by', 'uploaded_at', 'share_count']
+            
+            def get_can_share(self, obj):
+                request = self.context.get('request')
+                return obj.uploaded_by == request.user if request else False
+            
+            def get_shared_with_count(self, obj):
+                return obj.shares.filter(status__in=['pending', 'accepted']).count()
         
         return DocumentUploadSerializer
+    
+    @action(detail=True, methods=['post'])
+    def share(self, request, pk=None):
+        """Share a document with another participant"""
+        document = self.get_object()
+        
+        # Only owner can share
+        if document.uploaded_by != request.user:
+            return Response(
+                {"detail": "Vous ne pouvez partager que vos propres documents"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if not document.is_shareable:
+            return Response(
+                {"detail": "Ce document ne peut pas être partagé"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        shared_with_uid = request.data.get('shared_with_uid')
+        permission_level = request.data.get('permission_level', 'view')
+        message = request.data.get('message', '')
+        expires_in_days = request.data.get('expires_in_days')
+        
+        if not shared_with_uid:
+            return Response(
+                {"detail": "shared_with_uid est requis"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from core.models import Participant
+            shared_with = Participant.objects.get(uid=shared_with_uid)
+            
+            # Can't share with yourself
+            if shared_with == request.user:
+                return Response(
+                    {"detail": "Vous ne pouvez pas partager un document avec vous-même"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Import and use service
+            from .document_sharing import DocumentShareService
+            share = DocumentShareService.share_document(
+                document=document,
+                shared_by=request.user,
+                shared_with=shared_with,
+                permission_level=permission_level,
+                message=message,
+                expires_in_days=expires_in_days
+            )
+            
+            # Update share count
+            document.share_count = document.shares.filter(status__in=['pending', 'accepted']).count()
+            document.save()
+            
+            return Response({
+                "detail": "Document partagé avec succès",
+                "share_id": str(share.id),
+                "shared_with": shared_with.full_name,
+                "expires_at": share.expires_at
+            })
+            
+        except Participant.DoesNotExist:
+            return Response(
+                {"detail": "Participant non trouvé"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error sharing document: {str(e)}")
+            return Response(
+                {"detail": "Erreur lors du partage du document"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'])
+    def shared_with_me(self, request):
+        """Get documents shared with the current user"""
+        from .models import DocumentShare
+        shares = DocumentShare.objects.filter(
+            shared_with=request.user,
+            status__in=['pending', 'accepted']
+        ).select_related('document', 'shared_by')
+        
+        data = [{
+            'id': str(share.id),
+            'document': {
+                'id': str(share.document.id),
+                'file_name': share.document.file_name,
+                'document_type': share.document.document_type,
+                'file_size': share.document.file_size,
+                'description': share.document.description,
+            },
+            'shared_by': {
+                'uid': str(share.shared_by.uid),
+                'full_name': share.shared_by.full_name,
+                'email': share.shared_by.email,
+            },
+            'permission_level': share.permission_level,
+            'message': share.message,
+            'shared_at': share.shared_at,
+            'expires_at': share.expires_at,
+            'is_new': share.accessed_at is None,
+        } for share in shares]
+        
+        return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def shared_by_me(self, request):
+        """Get documents shared by the current user"""
+        from .models import DocumentShare
+        shares = DocumentShare.objects.filter(
+            shared_by=request.user,
+            status__in=['pending', 'accepted']
+        ).select_related('document', 'shared_with')
+        
+        data = [{
+            'id': str(share.id),
+            'document': {
+                'id': str(share.document.id),
+                'file_name': share.document.file_name,
+                'document_type': share.document.document_type,
+            },
+            'shared_with': {
+                'uid': str(share.shared_with.uid),
+                'full_name': share.shared_with.full_name,
+            },
+            'permission_level': share.permission_level,
+            'shared_at': share.shared_at,
+            'accessed': share.accessed_at is not None,
+            'accessed_at': share.accessed_at,
+        } for share in shares]
+        
+        return Response(data)
+    
+    @action(detail=True, methods=['post'])
+    def revoke_share(self, request, pk=None):
+        """Revoke a document share"""
+        document = self.get_object()
+        share_id = request.data.get('share_id')
+        
+        if not share_id:
+            return Response(
+                {"detail": "share_id est requis"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from .models import DocumentShare
+            from .document_sharing import DocumentShareService
+            
+            share = DocumentShare.objects.get(id=share_id, document=document)
+            DocumentShareService.revoke_share(share, request.user)
+            
+            # Update share count
+            document.share_count = document.shares.filter(status__in=['pending', 'accepted']).count()
+            document.save()
+            
+            return Response({"detail": "Partage révoqué avec succès"})
+            
+        except DocumentShare.DoesNotExist:
+            return Response(
+                {"detail": "Partage non trouvé"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except PermissionError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        except Exception as e:
+            logger.error(f"Error revoking share: {str(e)}")
+            return Response(
+                {"detail": "Erreur lors de la révocation du partage"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """Download a document"""
         document = self.get_object()
         
-        if document.file:
-            response = FileResponse(document.file.open('rb'), content_type='application/octet-stream')
-            response['Content-Disposition'] = f'attachment; filename="{document.file_name}"'
-            return response
+        # Check access permission
+        from .document_sharing import DocumentShareService
+        can_access, permission = DocumentShareService.can_access_document(document, request.user)
         
-        return Response({"detail": "Fichier non trouvé"}, status=status.HTTP_404_NOT_FOUND)
+        if not can_access:
+            return Response(
+                {"detail": "Vous n'avez pas la permission d'accéder à ce document"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Mark share as accessed if viewing shared document
+        if document.uploaded_by != request.user:
+            share = document.shares.filter(shared_with=request.user).first()
+            if share:
+                share.mark_accessed()
+        
+        # In a real implementation, you would fetch the file from storage (S3, etc.)
+        # For now, return a placeholder response
+        return Response({
+            "detail": "Téléchargement prêt",
+            "file_url": document.file_url,
+            "file_name": document.file_name,
+            "permission_level": permission
+        })
 
 
 class PersonalHealthNoteViewSet(viewsets.ModelViewSet):

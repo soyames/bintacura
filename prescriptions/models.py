@@ -71,6 +71,14 @@ class Prescription(SyncMixin):  # Represents medical prescriptions issued by doc
         db_index=True,
         help_text="Client-provided unique key to prevent duplicate prescription creation"
     )
+    health_record = models.ForeignKey(
+        'health_records.HealthRecord',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='prescriptions',
+        help_text="Link to the medical consultation/record that generated this prescription"
+    )
     patient = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='prescriptions')
     doctor = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='prescribed_prescriptions')
     preferred_pharmacy = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='preferred_prescriptions')

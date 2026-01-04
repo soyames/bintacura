@@ -32,6 +32,7 @@ urlpatterns = [
         "appointments/", views.HospitalAppointmentsView.as_view(), name="appointments"
     ),
     path("queue/", hospital_views.HospitalQueueView.as_view(), name="queue"),
+    path("transport/", hospital_views.HospitalTransportDashboardView.as_view(), name="transport_requests"),
     path("staff/receptionist/dashboard/", views.ReceptionistDashboardView.as_view(), name="receptionist_dashboard"),
     path("staff/receptionist/appointments/", views.ReceptionistAppointmentsView.as_view(), name="receptionist_appointments"),
     path("staff/receptionist/patients/", views.ReceptionistPatientsView.as_view(), name="receptionist_patients"),

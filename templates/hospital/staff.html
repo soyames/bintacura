@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion du Personnel - BINTACURA</title>
+    <title>Personnel - BINTACURA Hospital</title>
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
     <link rel="stylesheet" href="{% static 'css/hospital_staff.css' %}">
@@ -12,25 +12,7 @@
     {% include "components/translation_script.html" %}
 </head>
 <body>
-    <nav class="top-nav">
-        <div class="nav-left">
-            <button class="menu-toggle-btn" id="menuIcon">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <button class="nav-back-btn" onclick="window.location.href='/hospital/dashboard/'">←</button>
-        </div>
-        <div class="nav-center">
-            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
-            <span class="nav-page-title">Gestion du Personnel</span>
-        </div>
-        <div class="nav-right">
-            <div class="nav-user-avatar" onclick="window.location.href='/hospital/profile/'">
-                {% include "components/user_avatar.html" with user=request.user %}
-            </div>
-        </div>
-    </nav>
+    {% include "components/top_nav.html" with user_type="hospital" page_title="Personnel" %}
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     {% include "layout/_sidebar_hospital.html" %}

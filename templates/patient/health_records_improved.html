@@ -171,6 +171,93 @@
                         <div class="record-content">
                             <p><strong>Diagnostic:</strong> {{ record.diagnosis|default:"N/A" }}</p>
                             <p><strong>Traitement:</strong> {{ record.treatment|default:"N/A" }}</p>
+                            
+                            <!-- Vitals Section -->
+                            {% if record.blood_pressure_systolic or record.heart_rate or record.temperature or record.weight %}
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                                <p style="font-weight: 600; color: #374151; margin-bottom: 12px;">🩺 Signes Vitaux</p>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                                    {% if record.blood_pressure_systolic %}
+                                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 10px; border-radius: 6px;">
+                                        <div style="font-size: 11px; opacity: 0.9;">Tension</div>
+                                        <div style="font-size: 16px; font-weight: 700;">{{ record.blood_pressure_systolic }}/{{ record.blood_pressure_diastolic }}</div>
+                                        <div style="font-size: 10px; opacity: 0.8;">mmHg</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if record.heart_rate %}
+                                    <div style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: white; padding: 10px; border-radius: 6px;">
+                                        <div style="font-size: 11px; opacity: 0.9;">Fréquence C.</div>
+                                        <div style="font-size: 16px; font-weight: 700;">{{ record.heart_rate }}</div>
+                                        <div style="font-size: 10px; opacity: 0.8;">bpm</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if record.temperature %}
+                                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 10px; border-radius: 6px;">
+                                        <div style="font-size: 11px; opacity: 0.9;">Température</div>
+                                        <div style="font-size: 16px; font-weight: 700;">{{ record.temperature }}</div>
+                                        <div style="font-size: 10px; opacity: 0.8;">°C</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if record.weight %}
+                                    <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 10px; border-radius: 6px;">
+                                        <div style="font-size: 11px; opacity: 0.9;">Poids</div>
+                                        <div style="font-size: 16px; font-weight: 700;">{{ record.weight }}</div>
+                                        <div style="font-size: 10px; opacity: 0.8;">kg</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Linked Prescriptions Section -->
+                            {% if record.prescriptions.exists %}
+                            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                                <p style="font-weight: 600; color: #374151; margin-bottom: 12px;">💊 Ordonnances Liées</p>
+                                {% for prescription in record.prescriptions.all %}
+                                <div style="background: #f3f4f6; border-left: 4px solid #10b981; padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                        <div>
+                                            <div style="font-weight: 600; color: #059669; font-size: 14px;">
+                                                Ordonnance #{{ forloop.counter }}
+                                            </div>
+                                            <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+                                                Délivrée le {{ prescription.issue_date|date:"d/m/Y" }}
+                                                {% if prescription.valid_until %}
+                                                - Valide jusqu'au {{ prescription.valid_until|date:"d/m/Y" }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <span style="background: {% if prescription.status == 'active' %}#10b981{% elif prescription.status == 'ordered' %}#3b82f6{% else %}#6b7280{% endif %}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase;">
+                                            {{ prescription.get_status_display }}
+                                        </span>
+                                    </div>
+                                    {% if prescription.items.exists %}
+                                    <div style="font-size: 13px; color: #374151;">
+                                        <strong>Médicaments:</strong>
+                                        <ul style="margin: 4px 0 0 20px; padding: 0;">
+                                            {% for item in prescription.items.all %}
+                                            <li style="margin: 2px 0;">
+                                                {{ item.medication_name }} - {{ item.dosage }}
+                                                <span style="color: #6b7280; font-size: 12px;">
+                                                    ({{ item.get_frequency_display }}, {{ item.duration_days }} jours)
+                                                </span>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                    {% if prescription.special_instructions %}
+                                    <div style="margin-top: 8px; font-size: 12px; color: #6b7280; font-style: italic;">
+                                        📝 {{ prescription.special_instructions }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
 
                         <div class="record-footer">
@@ -296,28 +383,191 @@
 
             <!-- Tab: Vitals -->
             <div id="tab-vitals" class="tab-content">
-                <h3>Signes Vitaux Récents</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3>Signes Vitaux Récents</h3>
+                    <button class="btn btn-primary" onclick="window.location.href='/patient/wearable-devices/'">
+                        ⚙️ Gérer les Appareils
+                    </button>
+                </div>
+                
+                {% if active_devices.exists %}
+                    <div style="background: #e3f2fd; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 20px;">📱</span>
+                        <div>
+                            <div style="font-weight: 600; color: #1976d2;">
+                                {{ active_devices.count }} appareil{{ active_devices.count|pluralize }} connecté{{ active_devices.count|pluralize }}
+                            </div>
+                            <div style="font-size: 13px; color: #555; margin-top: 2px;">
+                                {% for device in active_devices %}
+                                    {{ device.get_device_type_display }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
                 {% if recent_vitals %}
                 <div class="vital-grid">
                     {% for vital in recent_vitals %}
-                    <div class="vital-card">
-                        <div class="vital-label">{{ vital.data_type|title }}</div>
+                    <div class="vital-card {{ vital.data_type|slugify }}">
+                        <div class="vital-label">
+                            {% if vital.data_type == 'heart_rate' %}❤️ Fréquence Cardiaque
+                            {% elif vital.data_type == 'steps' %}👟 Pas
+                            {% elif vital.data_type == 'distance' %}📏 Distance
+                            {% elif vital.data_type == 'calories' %}🔥 Calories
+                            {% elif vital.data_type == 'sleep' %}😴 Sommeil
+                            {% elif vital.data_type == 'blood_pressure' %}🩺 Tension Artérielle
+                            {% elif vital.data_type == 'blood_oxygen' %}🫁 Oxygène Sanguin
+                            {% elif vital.data_type == 'body_temperature' %}🌡️ Température
+                            {% elif vital.data_type == 'weight' %}⚖️ Poids
+                            {% elif vital.data_type == 'bmi' %}📊 IMC
+                            {% elif vital.data_type == 'body_fat' %}💪 Masse Grasse
+                            {% elif vital.data_type == 'exercise' %}🏃 Exercice
+                            {% elif vital.data_type == 'stress' %}😰 Stress
+                            {% elif vital.data_type == 'hydration' %}💧 Hydratation
+                            {% elif vital.data_type == 'respiratory_rate' %}🫁 Rythme Respiratoire
+                            {% elif vital.data_type == 'vo2_max' %}🏋️ VO2 Max
+                            {% elif vital.data_type == 'hrv' %}💓 VRC
+                            {% else %}{{ vital.get_data_type_display }}
+                            {% endif %}
+                        </div>
                         <div class="vital-value">
-                            {{ vital.value }}
+                            {{ vital.value|floatformat:1 }}
                             <span class="vital-unit">{{ vital.unit }}</span>
                         </div>
-                        <div style="font-size: 11px; margin-top: 8px; opacity: 0.8;">
+                        <div class="vital-date">
                             {{ vital.timestamp|date:"d/m/Y H:i" }}
                         </div>
                     </div>
                     {% endfor %}
                 </div>
+                
+                {% if vital_summary %}
+                <div style="margin-top: 24px; padding: 16px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <h4 style="margin-bottom: 12px; color: #333;">📊 Résumé des 7 derniers jours</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                        {% for data_type, stats in vital_summary.items %}
+                        <div style="padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                            <div style="font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 600;">
+                                {% if data_type == 'heart_rate' %}Fréquence Cardiaque
+                                {% elif data_type == 'steps' %}Pas
+                                {% elif data_type == 'distance' %}Distance
+                                {% elif data_type == 'calories' %}Calories
+                                {% elif data_type == 'sleep' %}Sommeil
+                                {% elif data_type == 'blood_pressure' %}Tension
+                                {% elif data_type == 'blood_oxygen' %}Oxygène
+                                {% elif data_type == 'body_temperature' %}Température
+                                {% else %}{{ data_type|title }}
+                                {% endif %}
+                            </div>
+                            <div style="font-size: 11px; color: #888;">
+                                Moy: <strong>{{ stats.avg|floatformat:1 }}</strong><br>
+                                Min: {{ stats.min|floatformat:1 }} | Max: {{ stats.max|floatformat:1 }}<br>
+                                <span style="color: #1976d2;">{{ stats.count }} mesure{{ stats.count|pluralize }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
                 {% else %}
                 <div class="empty-state">
                     <div class="empty-state-icon">💓</div>
-                    <p>Aucune donnée vitale</p>
+                    {% if active_devices.exists %}
+                        <p style="font-weight: 600; margin-bottom: 8px;">Aucune donnée vitale collectée récemment</p>
+                        <p style="font-size: 14px; color: #666; margin-bottom: 16px;">
+                            Vos appareils sont connectés mais aucune donnée n'a été synchronisée au cours des 7 derniers jours.
+                        </p>
+                        <button class="btn btn-primary" onclick="syncAllDevices()">
+                            🔄 Synchroniser Maintenant
+                        </button>
+                    {% else %}
+                        <p style="font-weight: 600; margin-bottom: 8px;">Aucun appareil connecté</p>
+                        <p style="font-size: 14px; color: #666; margin-bottom: 16px;">
+                            Connectez un appareil portable pour suivre vos signes vitaux automatiquement.
+                        </p>
+                        <button class="btn btn-primary" onclick="window.location.href='/patient/wearable-devices/'">
+                            📱 Connecter un Appareil
+                        </button>
+                    {% endif %}
                 </div>
                 {% endif %}
+                
+                <!-- Doctor-Entered Vitals Section -->
+                <div style="margin-top: 32px;">
+                    <h4 style="color: #333; margin-bottom: 16px;">🩺 Signes Vitaux Cliniques (Médecins)</h4>
+                    
+                    {% if doctor_vitals and doctor_vitals.latest_record %}
+                    <p style="font-size: 13px; color: #666; margin-bottom: 16px;">
+                        Moyennes des mesures effectuées lors de {{ doctor_vitals.total_consultations }} consultation{{ doctor_vitals.total_consultations|pluralize }} (30 derniers jours)
+                    </p>
+                    
+                    <div class="vital-grid">
+                        {% if doctor_vitals_summary.blood_pressure.count %}
+                        <div class="vital-card blood-pressure">
+                            <div class="vital-label">🩺 Tension Artérielle</div>
+                            <div class="vital-value">
+                                {{ doctor_vitals_summary.blood_pressure.avg_systolic|floatformat:0 }}/{{ doctor_vitals_summary.blood_pressure.avg_diastolic|floatformat:0 }}
+                                <span class="vital-unit">mmHg</span>
+                            </div>
+                            <div class="vital-date">
+                                Moy. sur {{ doctor_vitals_summary.blood_pressure.count }} mesure{{ doctor_vitals_summary.blood_pressure.count|pluralize }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if doctor_vitals_summary.heart_rate.count %}
+                        <div class="vital-card heart-rate">
+                            <div class="vital-label">❤️ Fréquence Cardiaque</div>
+                            <div class="vital-value">
+                                {{ doctor_vitals_summary.heart_rate.avg|floatformat:0 }}
+                                <span class="vital-unit">bpm</span>
+                            </div>
+                            <div class="vital-date">
+                                Min: {{ doctor_vitals_summary.heart_rate.min }} | Max: {{ doctor_vitals_summary.heart_rate.max }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if doctor_vitals_summary.temperature.count %}
+                        <div class="vital-card body-temperature">
+                            <div class="vital-label">🌡️ Température</div>
+                            <div class="vital-value">
+                                {{ doctor_vitals_summary.temperature.avg|floatformat:1 }}
+                                <span class="vital-unit">°C</span>
+                            </div>
+                            <div class="vital-date">
+                                Min: {{ doctor_vitals_summary.temperature.min }} | Max: {{ doctor_vitals_summary.temperature.max }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if doctor_vitals_summary.weight.count %}
+                        <div class="vital-card weight">
+                            <div class="vital-label">⚖️ Poids</div>
+                            <div class="vital-value">
+                                {{ doctor_vitals_summary.weight.avg|floatformat:1 }}
+                                <span class="vital-unit">kg</span>
+                            </div>
+                            <div class="vital-date">
+                                Min: {{ doctor_vitals_summary.weight.min|floatformat:1 }} | Max: {{ doctor_vitals_summary.weight.max|floatformat:1 }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 24px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 12px;">🩺</div>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 8px;">
+                            Aucune mesure clinique enregistrée au cours des 30 derniers jours
+                        </p>
+                        <p style="color: #999; font-size: 12px;">
+                            Les signes vitaux mesurés par vos médecins lors des consultations apparaîtront ici
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
 
             <!-- Tab: Documents -->
@@ -459,6 +709,77 @@
         function downloadAllRecords() {
             if (confirm('Télécharger tous vos dossiers médicaux en format PDF?')) {
                 window.location.href = '/api/v1/health-records/records/download_all/';
+            }
+        }
+
+        async function syncAllDevices() {
+            try {
+                // Show loading state
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '⏳ Synchronisation...';
+                btn.disabled = true;
+
+                // Get list of active devices
+                const devicesResponse = await fetch('/api/v1/wearable-devices/devices/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+
+                if (!devicesResponse.ok) {
+                    throw new Error('Erreur lors de la récupération des appareils');
+                }
+
+                const devices = await devicesResponse.json();
+                let syncedCount = 0;
+                let errors = [];
+
+                // Sync each device
+                for (const device of devices.results || devices) {
+                    if (device.status === 'active') {
+                        try {
+                            const syncResponse = await fetch(`/api/v1/wearable-devices/devices/${device.id}/sync/`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                credentials: 'include'
+                            });
+
+                            if (syncResponse.ok) {
+                                syncedCount++;
+                            } else {
+                                errors.push(device.device_name);
+                            }
+                        } catch (err) {
+                            errors.push(device.device_name);
+                        }
+                    }
+                }
+
+                // Show result
+                if (syncedCount > 0) {
+                    alert(`✅ ${syncedCount} appareil(s) synchronisé(s) avec succès!`);
+                    // Reload page to show new data
+                    window.location.reload();
+                } else if (errors.length > 0) {
+                    alert(`⚠️ Erreur lors de la synchronisation de: ${errors.join(', ')}`);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                } else {
+                    alert('ℹ️ Aucun appareil actif à synchroniser');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                alert('❌ Erreur lors de la synchronisation. Veuillez réessayer.');
+                event.target.innerHTML = '🔄 Synchroniser Maintenant';
+                event.target.disabled = false;
             }
         }
 

@@ -1,0 +1,335 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transport - BINTACURA Hospital</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital_admissions.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/hospital/appointments_transport.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body data-user-id="{{ request.user.uid }}">
+    {% include "components/top_nav.html" with user_type="hospital" page_title="Transport" %}
+    
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_hospital.html" %}
+    
+    <div class="main-content">
+        <div class="admissions-container">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>En Attente</h3>
+                    <p class="stat-value">{{ pending_requests.count }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Acceptées</h3>
+                    <p class="stat-value">{{ accepted_requests.count }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Complétées</h3>
+                    <p class="stat-value">{{ completed_requests.count }}</p>
+                </div>
+            </div>
+
+            <div class="filters-section">
+                <h2 style="margin: 20px 0; color: #2d3748;">🚑 Demandes de Transport en Attente</h2>
+                <p style="color: #718096; margin-bottom: 20px;">Cliquez sur "Accepter" pour traiter une demande. Une fois acceptée, elle ne sera plus visible pour les autres hôpitaux.</p>
+            </div>
+
+            <div class="admissions-table-container">
+                <table class="admissions-table">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Téléphone</th>
+                            <th>Départ</th>
+                            <th>Arrivée</th>
+                            <th>Date & Heure</th>
+                            <th>Urgence</th>
+                            <th>Paiement</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if pending_requests %}
+                            {% for request in pending_requests %}
+                            <tr>
+                                <td><strong>{{ request.patient.full_name }}</strong></td>
+                                <td>{{ request.patient.phone_number }}</td>
+                                <td>{{ request.pickup_address|truncatewords:5 }}</td>
+                                <td>{{ request.dropoff_address|truncatewords:5 }}</td>
+                                <td>{{ request.scheduled_pickup_time|date:"d/m/Y H:i" }}</td>
+                                <td><span class="badge badge-{{ request.urgency }}">{{ request.get_urgency_display }}</span></td>
+                                <td>
+                                    {% if request.payment_status == 'paid' %}
+                                        <span class="status-badge status-success">✓ Payé</span>
+                                    {% elif request.payment_status == 'pending' %}
+                                        <span class="status-badge status-warning">⏳ En attente</span>
+                                    {% elif request.payment_status == 'failed' %}
+                                        <span class="status-badge status-danger">✗ Échoué</span>
+                                    {% else %}
+                                        <span class="status-badge">{{ request.get_payment_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="actions-cell" data-request-id="{{ request.id }}">
+                                    {% if request.status == 'accepted' and request.assigned_hospital.uid == user.uid %}
+                                        <button class="btn-action btn-accepted" 
+                                                disabled
+                                                style="background: #48bb78; cursor: not-allowed;">
+                                            ✓ Accepté par vous
+                                        </button>
+                                        <button class="btn-action btn-primary" 
+                                                onclick="showAssignmentModal('{{ request.id }}', '{{ request.patient.full_name }}')"
+                                                style="margin-left: 8px;">
+                                            👤 Assigner
+                                        </button>
+                                    {% else %}
+                                        <button class="btn-action btn-pending" 
+                                                onclick="acceptRequest('{{ request.id }}')"
+                                                data-request-id="{{ request.id }}"
+                                                data-patient-name="{{ request.patient.full_name }}">
+                                            ✓ Accepter
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px;">
+                                    <p>Aucune demande en attente</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="filters-section" style="margin-top: 40px;">
+                <h2 style="margin: 20px 0; color: #2d3748;">✓ Mes Demandes Acceptées</h2>
+                <p style="color: #718096; margin-bottom: 20px;">Ces demandes ont été acceptées par vous. Assignez le personnel une fois le paiement confirmé.</p>
+            </div>
+
+            <div class="admissions-table-container">
+                <table class="admissions-table">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Téléphone</th>
+                            <th>Trajet</th>
+                            <th>Heure Prévue</th>
+                            <th>Paiement</th>
+                            <th>Temps Restant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if my_accepted_requests %}
+                            {% for request in my_accepted_requests %}
+                            <tr>
+                                <td><strong>{{ request.patient.full_name }}</strong></td>
+                                <td>{{ request.patient.phone_number }}</td>
+                                <td>{{ request.pickup_address|truncatewords:3 }} → {{ request.dropoff_address|truncatewords:3 }}</td>
+                                <td>{{ request.scheduled_pickup_time|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if request.payment_status == 'paid' %}
+                                        <span class="status-badge status-success">✓ Payé</span>
+                                    {% else %}
+                                        <span class="status-badge status-warning">⏳ En attente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="timer-badge" data-accepted-time="{{ request.accepted_at|date:'c' }}">
+                                        Calcul...
+                                    </span>
+                                </td>
+                                <td class="actions-cell">
+                                    {% if request.payment_status == 'paid' %}
+                                        <button class="btn-action btn-assign" 
+                                                onclick="showAssignmentModal('{{ request.id }}', '{{ request.patient.full_name }}')"
+                                                data-request-id="{{ request.id }}">
+                                            👤 Assigner Personnel
+                                        </button>
+                                    {% else %}
+                                        <button class="btn-action btn-secondary" disabled title="En attente du paiement">
+                                            ⏳ Attente Paiement
+                                        </button>
+                                    {% endif %}
+                                    <button class="btn-action btn-warning" onclick="transferTransport('{{ request.id }}')">
+                                        🔄 Transférer
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px;">
+                                    <p>Aucune demande acceptée en attente</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="filters-section" style="margin-top: 40px;">
+                <h2 style="margin: 20px 0; color: #2d3748;">🚙 Transports Actifs (Personnel Assigné)</h2>
+                <p style="color: #718096; margin-bottom: 20px;">Personnel assigné et transports en cours.</p>
+            </div>
+
+            <div class="admissions-table-container">
+                <table class="admissions-table">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Téléphone</th>
+                            <th>Trajet</th>
+                            <th>Chauffeur</th>
+                            <th>Véhicule</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if active_requests %}
+                            {% for request in active_requests %}
+                            <tr>
+                                <td><strong>{{ request.patient.full_name }}</strong></td>
+                                <td>{{ request.patient.phone_number }}</td>
+                                <td>{{ request.pickup_address|truncatewords:3 }} → {{ request.dropoff_address|truncatewords:3 }}</td>
+                                <td>{{ request.driver_name|default:"Non assigné" }}</td>
+                                <td>{{ request.vehicle_number|default:"-" }}</td>
+                                <td><span class="status-badge status-{{ request.status }}">{{ request.get_status_display }}</span></td>
+                                <td class="actions-cell">
+                                    <button class="btn-action btn-secondary" onclick="viewTransport('{{ request.id }}')">
+                                        📍 Suivre
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px;">
+                                    <p>Aucun transport actif</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="filters-section" style="margin-top: 40px;">
+                <h2 style="margin: 20px 0; color: #2d3748;">✅ Historique</h2>
+            </div>
+
+            <div class="admissions-table-container">
+                <table class="admissions-table">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Date</th>
+                            <th>Trajet</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if completed_requests %}
+                            {% for request in completed_requests %}
+                            <tr>
+                                <td><strong>{{ request.patient.full_name }}</strong></td>
+                                <td>{{ request.scheduled_pickup_time|date:"d/m/Y H:i" }}</td>
+                                <td>{{ request.pickup_address|truncatewords:3 }} → {{ request.dropoff_address|truncatewords:3 }}</td>
+                                <td><span class="status-badge status-{{ request.status }}">{{ request.get_status_display }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 40px;">
+                                    <p>Aucun historique</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Modal -->
+    <div id="assignmentModal" class="modal" style="display: none;">
+        <div class="modal-overlay" onclick="closeAssignmentModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Assigner le Personnel</h2>
+                <button onclick="closeAssignmentModal()" class="modal-close">&times;</button>
+            </div>
+            <p style="color: #718096; margin-bottom: 20px;">Patient: <strong id="assignment_patient_name"></strong></p>
+            <form id="assignmentForm" onsubmit="submitAssignment(event)">
+                <input type="hidden" id="assignment_request_id">
+                <div class="form-group">
+                    <label>Chauffeur / Ambulancier *</label>
+                    <select id="driver_id" required>
+                        <option value="">Sélectionner un chauffeur</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Véhicule *</label>
+                    <select id="vehicle_id" required>
+                        <option value="">Sélectionner un véhicule</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes d'urgence (optionnel)</label>
+                    <textarea id="assignment_notes" rows="3" placeholder="Instructions spéciales pour le chauffeur..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-submit">Assigner et Accepter</button>
+                    <button type="button" onclick="closeAssignmentModal()" class="btn-cancel">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transfer Modal -->
+    <div id="transferModal" class="modal" style="display: none;">
+        <div class="modal-overlay" onclick="closeTransferModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Transférer la Demande</h2>
+                <button onclick="closeTransferModal()" class="modal-close">&times;</button>
+            </div>
+            <form id="transferForm" onsubmit="submitTransfer(event)">
+                <input type="hidden" id="transfer_request_id">
+                <div class="form-group">
+                    <label>Hôpital Cible *</label>
+                    <select id="target_hospital_id" required>
+                        <option value="">Sélectionner un hôpital</option>
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Notes (optionnel)</label>
+                    <textarea id="transfer_notes" rows="3" placeholder="Raison du transfert..."></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-submit">Transférer</button>
+                    <button type="button" onclick="closeTransferModal()" class="btn-cancel">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Pass vehicles data from Django context to JavaScript
+        window.hospitalVehicles = {{ vehicles|safe }};
+    </script>
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/hospital/transport_dashboard.js' %}"></script>
+</body>
+</html>

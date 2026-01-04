@@ -14,4 +14,8 @@ router.register(r'analytics', views.HospitalAnalyticsViewSet, basename='hospital
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('transport/requests/', views.transport_requests, name='transport-requests'),
+    path('transport/requests/<uuid:request_id>/accept/', views.accept_transport_request, name='accept-transport'),
+    path('transport/requests/<uuid:request_id>/assign/', views.assign_staff_to_transport, name='assign-staff-transport'),
+    path('transport/requests/<uuid:request_id>/transfer/', views.transfer_transport_request, name='transfer-transport'),
 ]

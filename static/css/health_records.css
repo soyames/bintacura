@@ -431,33 +431,120 @@
 
         .vital-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        @media (min-width: 1200px) {
+            .vital-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .vital-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .vital-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .vital-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
+            padding: 16px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .vital-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .vital-card.heart-rate {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .vital-card.steps {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .vital-card.blood-pressure {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .vital-card.blood-oxygen {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        }
+
+        .vital-card.body-temperature {
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);
+        }
+
+        .vital-card.sleep {
+            background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%);
+        }
+
+        .vital-card.calories {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+
+        .vital-card.distance {
+            background: linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%);
+        }
+
+        .vital-card.weight {
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+        }
+
+        .vital-card.bmi {
+            background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+        }
+
+        .vital-card.hrv {
+            background: linear-gradient(135deg, #fdcbf1 0%, #e6dee9 100%);
+        }
+
+        .vital-card.stress {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            color: #333;
         }
 
         .vital-label {
-            font-size: 12px;
+            font-size: 11px;
             opacity: 0.9;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .vital-value {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
+            line-height: 1.2;
         }
 
         .vital-unit {
-            font-size: 14px;
+            font-size: 12px;
             opacity: 0.8;
             margin-left: 4px;
+            font-weight: 400;
+        }
+
+        .vital-date {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 8px;
         }
 
         .menstrual-cycle-card {

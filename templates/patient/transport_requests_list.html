@@ -1,0 +1,309 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Demandes de Transport - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/patient-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/transport_requests_list.css' %}">
+    <link rel="stylesheet" href="{% static 'css/universal-payment-modal.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+
+<body>
+    <nav class="top-nav">
+        <div class="nav-left">
+            <button class="menu-toggle-btn" id="menuIcon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <button class="nav-back-btn" onclick="window.location.href='/api/v1/transport/book/'">←</button>
+        </div>
+        <div class="nav-center">
+            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
+            <span class="nav-page-title">Mes Demandes de Transport</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+                {% include "components/user_avatar.html" with user=request.user %}
+            </div>
+        </div>
+    </nav>
+
+    {% include "layout/_sidebar_patient.html" %}
+
+    <div class="main-content" style="margin-left: 0;">
+        <div class="requests-container">
+            <div class="page-header">
+                <h1>📋 Mes Demandes de Transport</h1>
+                <button class="btn-primary" onclick="window.location.href='/api/v1/transport/book/'">
+                    ➕ Nouvelle Demande
+                </button>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="summary-card pending">
+                    <div class="card-icon">⏳</div>
+                    <div class="card-content">
+                        <div class="card-value">{{ stats.pending }}</div>
+                        <div class="card-label">En Attente</div>
+                    </div>
+                </div>
+                <div class="summary-card accepted">
+                    <div class="card-icon">✅</div>
+                    <div class="card-content">
+                        <div class="card-value">{{ stats.accepted }}</div>
+                        <div class="card-label">Acceptées</div>
+                    </div>
+                </div>
+                <div class="summary-card in-transit">
+                    <div class="card-icon">🚑</div>
+                    <div class="card-content">
+                        <div class="card-value">{{ stats.in_transit }}</div>
+                        <div class="card-label">En Transit</div>
+                    </div>
+                </div>
+                <div class="summary-card completed">
+                    <div class="card-icon">🎉</div>
+                    <div class="card-content">
+                        <div class="card-value">{{ stats.completed }}</div>
+                        <div class="card-label">Complétées</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requests Table -->
+            <div class="requests-table-container">
+                <table class="requests-table">
+                    <thead>
+                        <tr>
+                            <th>N° Demande</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>De → À</th>
+                            <th>Urgence</th>
+                            <th>Statut</th>
+                            <th>Paiement</th>
+                            <th>Montant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in requests %}
+                        <tr class="request-row status-{{ request.status }}">
+                            <td>
+                                <strong>#{{ request.request_number }}</strong>
+                            </td>
+                            <td>{{ request.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <span class="transport-type-badge type-{{ request.transport_type }}">
+                                    {% if request.transport_type == 'ambulance' %}🚑{% endif %}
+                                    {{ request.get_transport_type_display }}
+                                </span>
+                            </td>
+                            <td class="address-cell">
+                                <div class="address-from">📍 {{ request.pickup_address|truncatewords:5 }}</div>
+                                <div class="address-to">🎯 {{ request.dropoff_address|truncatewords:5 }}</div>
+                            </td>
+                            <td>
+                                <span class="urgency-badge urgency-{{ request.urgency }}">
+                                    {{ request.get_urgency_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ request.status }}">
+                                    {{ request.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="payment-badge payment-{{ request.payment_status }}">
+                                    {{ request.get_payment_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if request.final_cost > 0 %}
+                                    <strong>{{ request.final_cost|floatformat:0 }} XOF</strong>
+                                {% elif request.estimated_cost > 0 %}
+                                    <span style="color: #6b7280;">~{{ request.estimated_cost|floatformat:0 }} XOF</span>
+                                {% else %}
+                                    <span style="color: #9ca3af;">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="actions-cell">
+                                {% if request.status == 'accepted' and request.payment_status == 'pending' %}
+                                    <button class="btn-pay" onclick="payTransport('{{ request.id }}', {{ request.final_cost }})">
+                                        💳 Payer
+                                    </button>
+                                {% endif %}
+                                
+                                {% if request.status in 'accepted,driver_assigned,en_route,arrived,in_transit' %}
+                                    <button class="btn-track" onclick="window.location.href='/api/v1/transport/tracking/{{ request.id }}/'">
+                                        📍 Suivre
+                                    </button>
+                                {% endif %}
+                                
+                                {% if request.status == 'pending' %}
+                                    <button class="btn-cancel" onclick="cancelTransport('{{ request.id }}')">
+                                        ❌ Annuler
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="no-data">
+                                <div class="empty-state">
+                                    <div class="empty-icon">🚑</div>
+                                    <h3>Aucune demande de transport</h3>
+                                    <p>Vous n'avez pas encore fait de demande de transport.</p>
+                                    <button class="btn-primary" onclick="window.location.href='/api/v1/transport/book/'">
+                                        Faire une demande
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get platform fee rate from backend settings (DO NOT HARDCODE)
+        const PLATFORM_FEE_RATE = {{ platform_fee_rate }};
+
+        // Payment functionality
+        async function payTransport(requestId, amount) {
+            const paymentMethod = await window.universalPaymentModal.show(
+                requestId,
+                amount,
+                'XOF',
+                null
+            );
+
+            if (!paymentMethod) return;
+
+            if (paymentMethod === 'online') {
+                processOnlinePayment(requestId, amount);
+            } else if (paymentMethod === 'cash') {
+                processCashPayment(requestId, amount);
+            }
+        }
+
+        function processCashPayment(requestId, amount) {
+            fetch(`/api/v1/transport/requests/${requestId}/pay/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ 
+                    payment_method: 'cash',
+                    amount: amount 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✓ Paiement en espèces confirmé! Vous recevrez une facture. Payez le chauffeur à l\'arrivée.');
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + (data.message || 'Paiement échoué'));
+                }
+            })
+            .catch(error => {
+                alert('Erreur de connexion');
+                console.error(error);
+            });
+        }
+
+        function processOnlinePayment(requestId, amount) {
+            // Initiate FedaPay payment
+            fetch(`/api/v1/transport/requests/${requestId}/pay/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ 
+                    payment_method: 'online',
+                    amount: amount 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.payment_url) {
+                    window.location.href = data.payment_url;
+                } else {
+                    alert('Erreur: ' + (data.message || 'Impossible d\'initier le paiement en ligne'));
+                }
+            })
+            .catch(error => {
+                alert('Erreur de connexion');
+                console.error(error);
+            });
+        }
+
+        // Cancel transport
+        function cancelTransport(requestId) {
+            const reason = prompt('Raison de l\'annulation (optionnel):');
+            if (reason !== null) {
+                fetch(`/api/v1/transport/requests/${requestId}/cancel/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ reason: reason })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'cancelled') {
+                        alert('Demande annulée avec succès');
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + (data.error || 'Annulation échouée'));
+                    }
+                })
+                .catch(error => {
+                    alert('Erreur de connexion');
+                    console.error(error);
+                });
+            }
+        }
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Auto-refresh every 30 seconds for active requests
+        {% if stats.in_transit > 0 or stats.accepted > 0 %}
+        setTimeout(() => location.reload(), 30000);
+        {% endif %}
+    </script>
+
+    <!-- Universal Payment Modal -->
+    <script src="{% static 'js/universal-payment-modal.js' %}"></script>
+    <script src="{% static 'js/sidebar.js' %}"></script>
+</body>
+
+</html>

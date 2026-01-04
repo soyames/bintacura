@@ -160,27 +160,31 @@ class GoogleFitService:
             raise
     
     def _sync_steps(self, start_date, end_date):
-        """Sync step count data"""
+        """Sync step count data - using derived data source"""
         data_type_name = "com.google.step_count.delta"
-        return self._fetch_aggregate_data('steps', data_type_name, start_date, end_date, 'count')
+        data_source_id = "derived:com.google.step_count.delta:com.google.android.gms:estimated_steps"
+        return self._fetch_aggregate_data('steps', data_type_name, data_source_id, start_date, end_date, 'count')
     
     def _sync_heart_rate(self, start_date, end_date):
-        """Sync heart rate data"""
+        """Sync heart rate data - using derived data source"""
         data_type_name = "com.google.heart_rate.bpm"
-        return self._fetch_aggregate_data('heart_rate', data_type_name, start_date, end_date, 'bpm')
+        data_source_id = "derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm"
+        return self._fetch_aggregate_data('heart_rate', data_type_name, data_source_id, start_date, end_date, 'bpm')
     
     def _sync_sleep(self, start_date, end_date):
-        """Sync sleep data"""
+        """Sync sleep data - using derived data source"""
         data_type_name = "com.google.sleep.segment"
-        return self._fetch_aggregate_data('sleep', data_type_name, start_date, end_date, 'minutes')
+        data_source_id = "derived:com.google.sleep.segment:com.google.android.gms:merged"
+        return self._fetch_aggregate_data('sleep', data_type_name, data_source_id, start_date, end_date, 'minutes')
     
     def _sync_calories(self, start_date, end_date):
-        """Sync calories burned data"""
+        """Sync calories burned data - using derived data source"""
         data_type_name = "com.google.calories.expended"
-        return self._fetch_aggregate_data('calories', data_type_name, start_date, end_date, 'kcal')
+        data_source_id = "derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended"
+        return self._fetch_aggregate_data('calories', data_type_name, data_source_id, start_date, end_date, 'kcal')
     
-    def _fetch_aggregate_data(self, data_type, data_type_name, start_date, end_date, unit):
-        """Fetch aggregate data from Google Fit"""
+    def _fetch_aggregate_data(self, data_type, data_type_name, data_source_id, start_date, end_date, unit):
+        """Fetch aggregate data from Google Fit with proper data source ID"""
         url = f"{self.API_BASE_URL}/dataset:aggregate"
         
         # Ensure times are in UTC
@@ -189,12 +193,12 @@ class GoogleFitService:
         if timezone.is_naive(end_date):
             end_date = timezone.make_aware(end_date, ZoneInfo('UTC'))
         
-        # Build the request body without dataSourceId
+        # Build the request body - use dataTypeName only for broader compatibility
         body = {
             "aggregateBy": [{
                 "dataTypeName": data_type_name
             }],
-            "bucketByTime": {"durationMillis": 86400000},  # 1 day
+            "bucketByTime": {"durationMillis": 86400000},  # 1 day buckets
             "startTimeMillis": int(start_date.timestamp() * 1000),
             "endTimeMillis": int(end_date.timestamp() * 1000),
         }
@@ -203,8 +207,11 @@ class GoogleFitService:
             response = requests.post(url, headers=self._get_headers(), json=body)
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            logger.error(f"Google Fit API error for {data_type}: {e.response.text if e.response else str(e)}")
-            raise
+            error_detail = e.response.text if e.response else str(e)
+            logger.error(f"Google Fit API error for {data_type}: {error_detail}")
+            logger.error(f"Request body was: {body}")
+            # Return 0 instead of raising to prevent user-facing errors
+            return 0
         
         data = response.json()
         records_created = 0

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Tableau de Bord Transport - Hôpital" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/transport_dashboard.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+{% endblock %}
+
+{% block content %}
+<div class="hospital-transport-dashboard">
+    <div class="dashboard-header">
+        <h1>🚑 {% trans "Demandes de Transport Ambulance" %}</h1>
+        <div class="stats-cards">
+            <div class="stat-card pending">
+                <h3 id="pendingCount">0</h3>
+                <p>{% trans "En Attente" %}</p>
+            </div>
+            <div class="stat-card active">
+                <h3 id="activeCount">0</h3>
+                <p>{% trans "En Cours" %}</p>
+            </div>
+            <div class="stat-card completed">
+                <h3 id="completedCount">0</h3>
+                <p>{% trans "Complétés Aujourd'hui" %}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-filters">
+        <select id="statusFilter" class="filter-select">
+            <option value="all">{% trans "Tous les statuts" %}</option>
+            <option value="pending">{% trans "En Attente" %}</option>
+            <option value="driver_assigned">{% trans "Chauffeur Assigné" %}</option>
+            <option value="en_route">{% trans "En Route" %}</option>
+            <option value="arrived">{% trans "Arrivé" %}</option>
+            <option value="in_transit">{% trans "En Transit" %}</option>
+            <option value="completed">{% trans "Complété" %}</option>
+        </select>
+
+        <select id="urgencyFilter" class="filter-select">
+            <option value="all">{% trans "Toutes urgences" %}</option>
+            <option value="emergency">🔴 {% trans "Urgence" %}</option>
+            <option value="urgent">🟠 {% trans "Urgent" %}</option>
+            <option value="scheduled">🟢 {% trans "Planifié" %}</option>
+            <option value="routine">⚪ {% trans "Routine" %}</option>
+        </select>
+
+        <button id="refreshBtn" class="btn-refresh">
+            <span class="icon">🔄</span>
+            {% trans "Actualiser" %}
+        </button>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="requests-panel">
+            <h2>{% trans "Demandes de Transport" %}</h2>
+            <div id="requestsList" class="requests-list">
+                <div class="loading">{% trans "Chargement des demandes..." %}</div>
+            </div>
+        </div>
+
+        <div class="map-panel">
+            <h2>{% trans "Carte des Transports" %}</h2>
+            <div id="transportMap" style="height: 600px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Detail Modal -->
+<div id="requestModal" class="modal" style="display: none;">
+    <div class="modal-content large">
+        <span class="close">&times;</span>
+        <h2 id="modalTitle">{% trans "Détails de la Demande" %}</h2>
+        <div id="modalBody">
+            <!-- Details will be loaded here -->
+        </div>
+        <div class="modal-actions">
+            <button id="acceptBtn" class="btn-accept" style="display:none;">
+                {% trans "Accepter la Demande" %}
+            </button>
+            <button id="assignDriverBtn" class="btn-primary" style="display:none;">
+                {% trans "Assigner un Chauffeur" %}
+            </button>
+            <button id="updateStatusBtn" class="btn-secondary" style="display:none;">
+                {% trans "Mettre à Jour le Statut" %}
+            </button>
+            <button class="btn-cancel close-modal">{% trans "Fermer" %}</button>
+        </div>
+    </div>
+</div>
+
+<!-- Driver Assignment Modal -->
+<div id="driverModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>{% trans "Assigner un Chauffeur" %}</h2>
+        <form id="driverAssignmentForm">
+            <input type="hidden" id="assignRequestId">
+            <div class="form-group">
+                <label>{% trans "Nom du Chauffeur" %}</label>
+                <input type="text" id="driverName" name="driver_name" required>
+            </div>
+            <div class="form-group">
+                <label>{% trans "Téléphone du Chauffeur" %}</label>
+                <input type="tel" id="driverPhone" name="driver_phone" required>
+            </div>
+            <div class="form-group">
+                <label>{% trans "Numéro du Véhicule" %}</label>
+                <input type="text" id="vehicleNumber" name="vehicle_number" required>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn-primary">{% trans "Assigner" %}</button>
+                <button type="button" class="btn-cancel close-modal">{% trans "Annuler" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<div id="statusModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>{% trans "Mettre à Jour le Statut" %}</h2>
+        <form id="statusUpdateForm">
+            <input type="hidden" id="statusRequestId">
+            <div class="form-group">
+                <label>{% trans "Nouveau Statut" %}</label>
+                <select id="newStatus" name="status" required>
+                    <option value="driver_assigned">{% trans "Chauffeur Assigné" %}</option>
+                    <option value="en_route">{% trans "En Route" %}</option>
+                    <option value="arrived">{% trans "Arrivé" %}</option>
+                    <option value="in_transit">{% trans "En Transit" %}</option>
+                    <option value="completed">{% trans "Complété" %}</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>{% trans "Notes (Optionnel)" %}</label>
+                <textarea id="statusNotes" name="notes" rows="3"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="btn-primary">{% trans "Mettre à Jour" %}</button>
+                <button type="button" class="btn-cancel close-modal">{% trans "Annuler" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'js/hospital_transport_dashboard.js' %}"></script>
+{% endblock %}
