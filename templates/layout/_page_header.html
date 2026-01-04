@@ -19,7 +19,7 @@
         {% endif %}
     </div>
     <div class="nav-right">
-        <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
+        <div class="nav-user-avatar" onclick="window.location.href='/{{ user_type|default:"patient" }}/profile/'">
             {% include "components/user_avatar.html" with user=request.user %}
         </div>
     </div>

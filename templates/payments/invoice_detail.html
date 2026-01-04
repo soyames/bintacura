@@ -12,25 +12,7 @@
     {% include "components/translation_script.html" %}
 </head>
 <body>
-    <nav class="top-nav">
-        <div class="nav-left">
-            <button class="menu-toggle-btn" id="menuIcon">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <button class="nav-back-btn" onclick="window.location.href='/{{ portal }}/invoices/'">←</button>
-        </div>
-        <div class="nav-center">
-            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
-            <span class="nav-page-title">Facture {{ receipt.invoice_number|default:receipt.receipt_number }}</span>
-        </div>
-        <div class="nav-right">
-            <div class="nav-user-avatar" onclick="window.location.href='/{{ portal }}/profile/'">
-                {% include "components/user_avatar.html" with user=request.user %}
-            </div>
-        </div>
-    </nav>
+    {% include "components/top_nav.html" with user_type=portal page_title=invoice_title %}
     
     {% if portal == 'patient' %}
         {% include "layout/_sidebar_patient.html" %}
