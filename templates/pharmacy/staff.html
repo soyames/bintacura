@@ -12,25 +12,7 @@
     {% include "components/translation_script.html" %}
 </head>
 <body>
-    <nav class="top-nav">
-        <div class="nav-left">
-            <button class="menu-toggle-btn" id="menuIcon">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <button class="nav-back-btn" onclick="window.location.href='/pharmacy/dashboard/'">←</button>
-        </div>
-        <div class="nav-center">
-            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
-            <span class="nav-page-title">Gestion du Personnel</span>
-        </div>
-        <div class="nav-right">
-            <div class="nav-user-avatar" onclick="window.location.href='/pharmacy/profile/'">
-                {% include "components/user_avatar.html" with user=request.user %}
-            </div>
-        </div>
-    </nav>
+    {% include "components/top_nav.html" with user_type="pharmacy" page_title="Gestion du Personnel" %}
 
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     {% include "layout/_sidebar_pharmacy.html" %}

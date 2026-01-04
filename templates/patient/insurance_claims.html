@@ -11,25 +11,7 @@
     {% include "components/translation_script.html" %}
 </head>
 <body>
-    <nav class="top-nav">
-        <div class="nav-left">
-            <button class="menu-toggle-btn" id="menuIcon">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <button class="nav-back-btn" onclick="window.location.href='/patient/insurance-subscription/'">←</button>
-        </div>
-        <div class="nav-center">
-            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
-            <span class="nav-page-title">Mes Réclamations</span>
-        </div>
-        <div class="nav-right">
-            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
-                {% include "components/user_avatar.html" with user=request.user %}
-            </div>
-        </div>
-    </nav>
+    {% include "components/top_nav.html" with user_type="patient" page_title="Réclamations" %}
 
     <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
         <div style="background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">

@@ -15,26 +15,7 @@
 </head>
 
 <body>
-    <nav class="top-nav">
-        <div class="nav-left">
-            <button class="menu-toggle-btn" onclick="window.location.href='/patient/dashboard/'" title="Menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <button class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
-        </div>
-        <div class="nav-center">
-            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
-            <span class="nav-page-title">Rendez-vous</span>
-        </div>
-        <div class="nav-right">
-            <button class="nav-next-btn" onclick="window.location.href='/patient/book-appointment/'">→</button>
-            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
-                {% include "components/user_avatar.html" with user=request.user %}
-            </div>
-        </div>
-    </nav>
+    {% include "components/top_nav.html" with user_type="patient" page_title="Rendez-vous" %}
 
     <div class="appointments-container">
         <div class="filter-tabs">

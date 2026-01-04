@@ -492,12 +492,23 @@ def notifications_list_view(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
     
+    user_type = getattr(participant, 'role', 'patient')
+    sidebar_map = {
+        'patient': 'layout/_sidebar_patient.html',
+        'doctor': 'layout/_sidebar_doctor.html',
+        'hospital': 'layout/_sidebar_hospital.html',
+        'pharmacy': 'layout/_sidebar_pharmacy.html',
+        'insurance': 'layout/_sidebar_insurance.html',
+    }
+    
     context = {
         'notifications': page_obj,
         'total_count': Notification.objects.filter(recipient=participant).count(),
         'unread_count': Notification.objects.filter(recipient=participant, is_read=False).count(),
         'has_more': page_obj.has_next(),
-        'user_type': getattr(participant, 'role', 'patient')
+        'user_type': user_type,
+        'page_title': 'Notifications',
+        'sidebar_template': sidebar_map.get(user_type, 'layout/_sidebar_patient.html')
     }
     
     return render(request, 'notifications/list.html', context)
@@ -507,9 +518,19 @@ def notifications_list_view(request):
 def messages_list_view(request):
     """HTML view for messages list - placeholder for now"""
     participant = request.user
+    user_type = getattr(participant, 'role', 'patient')
+    sidebar_map = {
+        'patient': 'layout/_sidebar_patient.html',
+        'doctor': 'layout/_sidebar_doctor.html',
+        'hospital': 'layout/_sidebar_hospital.html',
+        'pharmacy': 'layout/_sidebar_pharmacy.html',
+        'insurance': 'layout/_sidebar_insurance.html',
+    }
     
     context = {
-        'user_type': getattr(participant, 'role', 'patient')
+        'user_type': user_type,
+        'page_title': 'Messages',
+        'sidebar_template': sidebar_map.get(user_type, 'layout/_sidebar_patient.html')
     }
     
     return render(request, 'messages/list.html', context)

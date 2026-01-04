@@ -1,15 +1,13 @@
-{% extends "base.html" %}
+{% extends "components/standard_page_base.html" %}
 {% load static %}
 
 {% block title %}Messages{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
 <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
 {% endblock %}
 
 {% block content %}
-{% include 'components/top_nav.html' %}
 
 <div class="notifications-container">
     <div class="notifications-header">

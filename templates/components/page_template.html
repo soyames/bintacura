@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Title - BINTACURA</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/top-nav.css' %}">
+    <link rel="stylesheet" href="{% static 'css/YOUR_PAGE_SPECIFIC.css' %}">
+    {% include "components/translation_script.html" %}
+</head>
+<body>
+    {% include "components/top_nav.html" with user_type="patient" page_title="Your Page Title" %}
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    {% include "layout/_sidebar_patient.html" %}
+
+    <div class="main-content">
+        <!-- Your page content goes here -->
+        
+    </div>
+
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    <script src="{% static 'js/YOUR_PAGE_SPECIFIC.js' %}"></script>
+</body>
+</html>

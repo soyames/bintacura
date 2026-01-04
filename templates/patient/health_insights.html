@@ -223,20 +223,7 @@
 </head>
 
 <body>
-    <nav class="top-nav">
-        <div class="nav-left">
-            <button class="nav-back-btn" onclick="window.location.href='/patient/ai-assistant/'">←</button>
-        </div>
-        <div class="nav-center">
-            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
-            <span class="nav-page-title">Mes Conseils Santé IA</span>
-        </div>
-        <div class="nav-right">
-            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
-                {% include "components/user_avatar.html" with user=request.user %}
-            </div>
-        </div>
-    </nav>
+    {% include "components/top_nav.html" with user_type="patient" page_title="Aperçus santé" %}
 
     <div class="insights-container">
         <div class="stats-cards">

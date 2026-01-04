@@ -342,26 +342,7 @@
 
 <body>
     <!-- Top Navigation -->
-    <nav class="top-nav">
-        <div class="nav-left">
-            <button type="button" class="menu-toggle-btn" onclick="window.location.href='/patient/dashboard/'" title="Menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <button type="button" class="nav-back-btn" onclick="window.location.href='/patient/dashboard/'">←</button>
-        </div>
-        <div class="nav-center">
-            <img src="{% static 'img/logo.png' %}" alt="BINTACURA" class="nav-logo-img">
-            <span class="nav-page-title">Transactions</span>
-        </div>
-        <div class="nav-right">
-            <button type="button" class="nav-next-btn" onclick="window.location.href='/patient/invoices/'">→</button>
-            <div class="nav-user-avatar" onclick="window.location.href='/patient/profile/'">
-                {% include "components/user_avatar.html" with user=request.user %}
-            </div>
-        </div>
-    </nav>
+    {% include "components/top_nav.html" with user_type="patient" page_title="Transactions" %}
 
     <div class="transactions-container">
         <!-- Summary Cards -->
